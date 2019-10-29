@@ -1,0 +1,1 @@
+This is made to show Spring serves static resource. Go to /{context}/test.txt

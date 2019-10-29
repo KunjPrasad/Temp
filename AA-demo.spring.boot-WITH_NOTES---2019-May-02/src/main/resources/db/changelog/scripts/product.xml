@@ -1,0 +1,23 @@
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog/1.7"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog/1.7
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-1.7.xsd">
+    <changeSet id="Dummy-table-creation-1" author="Kunj" dbms="h2">
+        <comment>Creating user_sequenece for h2</comment>
+        <createSequence sequenceName="PRODUCT_SEQUENCE" incrementBy="1" ordered="true" startValue="1" />
+    </changeSet>
+    <changeSet id="Dummy-table-creation-1" author="Kunj" dbms="oracle">
+        <comment>Creating user_sequenece for oracle</comment>
+        <createSequence sequenceName="PRODUCT_SEQUENCE" incrementBy="1" minValue="1" maxValue="9999999" ordered="true" startValue="1" />
+    </changeSet>
+    <changeSet id="Dummy-table-creation-3" author="Kunj">
+        <comment>Creating user table</comment>
+        <createTable tableName="PRODUCT">
+        	<column name="ID" type="NUMBER(7,0)">
+        		<constraints nullable="false" primaryKey="true" />
+        	</column>
+        	<column name="TITLE" type="VARCHAR(100)"/>
+    	</createTable>
+    </changeSet>
+</databaseChangeLog>

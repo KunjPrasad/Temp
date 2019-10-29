@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>  
+<jboss-deployment-structure>  
+    <deployment>  
+    	<!-- To signal to include the third party jar files. Note that this will just go to your war and not all -->
+    	<!-- 
+         <dependencies>  
+              <module name="com.myjars.jfreechart" />  
+              <module name="com.myjars.jcommon" />  
+        </dependencies>  
+         -->
+         
+         <!-- exclude-subsystems prevents a subsystem deployment. This gives effects as if it is absent, but only for your deployment
+         This can be used to prevent conflict between your and jboss' inbuilt jars -->
+         <exclude-subsystems>
+         	<!-- Looking at standalone.xml settings, this prevents writing to jboss specified location so that app-configs can be used -->
+         	<subsystem name="logging" />
+         </exclude-subsystems>
+    </deployment>  
+</jboss-deployment-structure> 

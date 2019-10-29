@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>com.example</groupId>
+	<artifactId>demo.spring.boot</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<packaging>war</packaging>
+
+	<name>demo.spring.boot</name>
+	<description>Demo project for Spring Boot</description>
+
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>2.0.0.RELEASE</version>
+		<relativePath/> <!-- lookup parent from repository -->
+	</parent>
+
+	<properties>
+		<project.version>${pom.version}</project.version>
+		<project.timestamp>${maven.build.timestamp}</project.timestamp>
+		<maven.build.timestamp.format>yyyy-MM-dd HH:mm</maven.build.timestamp.format>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+		
+		<!-- See https://stackoverflow.com/questions/42802712/java-compiler-version-for-maven-build-of-a-spring-boot-product : it says
+		how to either use java.version property or be able to separately specify source and target. Currently, since the source version
+		uses workspace default, so commenting these settings -->
+		<java.version>1.8</java.version> 
+		<!-- <maven.compiler.source>1.7</maven.compiler.source> -->
+        <!-- <maven.compiler.target>1.7</maven.compiler.target> -->
+		
+		<!-- To configure swagger -->
+		<springfox.version>2.9.2</springfox.version>
+		<!--  To configure the place where swagger json is made -->
+		<swagger.output.dir>${project.build.directory}/swagger</swagger.output.dir>
+		<swagger.output.file.json>${swagger.output.dir}/swagger.json</swagger.output.file.json>
+        <swagger.single.adoc.filename.noextension>index</swagger.single.adoc.filename.noextension>
+        <swagger.single.adoc.filename>${swagger.single.adoc.filename.noextension}.adoc</swagger.single.adoc.filename>
+        <swagger.output.single.adoc>${swagger.output.dir}/${swagger.single.adoc.filename}</swagger.output.single.adoc>
+        <!-- To configure asciidoctor -->
+        <asciidoctor.version>1.5.6</asciidoctor.version>
+        <asciidoctor.output.dir>${project.build.directory}/documentation</asciidoctor.output.dir>
+        <asciidoctorj.pdf.version>1.5.0-alpha.16</asciidoctorj.pdf.version>
+        <asciidoc.output.file.html>${swagger.single.adoc.filename.noextension}.html</asciidoc.output.file.html>
+        <asciidoc.output.file.pdf>${swagger.single.adoc.filename.noextension}.pdf</asciidoc.output.file.pdf>
+        <!--  To configure the resource folder in which maven war should put documentation -->
+        <war.documentation.resource.folder>documentation</war.documentation.resource.folder>
+        <!-- To configure the properties file in which maven will add the properties -->
+        <maven.properties.file>maven.properties</maven.properties.file>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-aop</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+    
+		<!--  To add xml without JAXB annotations -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.dataformat</groupId>
+			<artifactId>jackson-dataformat-xml</artifactId>
+		</dependency>
+		
+		<!-- Spring Retry -->
+		<dependency>
+			<groupId>org.springframework.retry</groupId>
+			<artifactId>spring-retry</artifactId>
+		</dependency>
+		
+		<!-- GUAVA / RATE-LIMITING -->
+		<dependency>
+    		<groupId>com.google.guava</groupId>
+    		<artifactId>guava</artifactId>
+    		<version>24.0-jre</version>
+		</dependency>
+		
+		<!-- Apache Commons; IOUtils, etc -->
+		<dependency>
+    		<groupId>commons-io</groupId>
+    		<artifactId>commons-io</artifactId>
+    		<version>2.6</version>
+		</dependency>
+		<dependency>
+    		<groupId>org.apache.commons</groupId>
+    		<artifactId>commons-lang3</artifactId>
+    		<version>3.7</version>
+		</dependency>
+		
+		<!-- Security -->
+		<!-- 
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		 -->
+		 
+		<dependency>
+			<groupId>org.springframework.session</groupId>
+			<artifactId>spring-session-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-devtools</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-tomcat</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		
+		<!-- Quartz -->
+		<!-- 
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-quartz</artifactId>
+		</dependency>
+		 -->
+		 
+		<!-- JPA, liquibase, DB -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.liquibase</groupId>
+			<artifactId>liquibase-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		
+		<!-- Spring Cache -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-cache</artifactId>
+		</dependency>
+		
+		<!-- Spring Boot JMS -->
+		<dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-activemq</artifactId>
+        </dependency>
+		
+		<!-- Spring JTA: Atomikos -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-jta-atomikos</artifactId>
+		</dependency>
+		
+		<!--  Swagger -->
+		<dependency>
+    		<groupId>io.springfox</groupId>
+    		<artifactId>springfox-swagger2</artifactId>
+    		<version>${springfox.version}</version>
+		</dependency>
+		<dependency>
+    		<groupId>io.springfox</groupId>
+    		<artifactId>springfox-swagger-ui</artifactId>
+    		<version>${springfox.version}</version>
+		</dependency>
+		<!-- To create static swagger docs. This downloads swagger's adoc files -->
+		<!-- This also contains Swagger2Markup as dependency, in case you want entire swagger.json as 1 markup file -->
+		<dependency>
+    		<groupId>io.springfox</groupId>
+    		<artifactId>springfox-staticdocs</artifactId>
+    		<version>2.6.1</version>
+    		<!-- Test scope since that is where the static docs are made -->
+    		<scope>test</scope>
+		</dependency>
+		
+	</dependencies>
+
+	<build>
+	    <!-- 
+	    <pluginManagement>
+          <plugins>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-compiler-plugin</artifactId>
+              <version>3.6.1</version>
+              <configuration>
+                <source>10</source>
+                <target>10</target>
+              </configuration>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+        -->
+    
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+            
+            <!-- Maven property plugin to provide Maven properties to application -->
+            <plugin>
+        		<groupId>org.codehaus.mojo</groupId>
+        		<artifactId>properties-maven-plugin</artifactId>
+        		<version>1.0.0</version>
+        		<executions>
+          			<execution>
+            			<phase>generate-resources</phase>
+            			<goals>
+              				<goal>write-project-properties</goal>
+            			</goals>
+            			<configuration>
+              				<!-- <outputFile>${project.build.outputDirectory}/${maven.properties.file}</outputFile> -->
+              				<outputFile>${project.basedir}/src/main/resources/${maven.properties.file}</outputFile>
+            			</configuration>
+          			</execution>
+        		</executions>
+      		</plugin>
+      		
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                	<!-- Use when needed to skip tests for quicker build, but then also comment out asciidoctor and maven-war-plugin -->
+                	<skipTests>true</skipTests>
+                    <systemPropertyVariables>
+                    	<!-- To pass name of directory and file where swagger.json should be saved -->
+                    	<swagger.output.dir>${swagger.output.dir}</swagger.output.dir>
+                        <swagger.output.file.json>${swagger.output.file.json}</swagger.output.file.json>
+                        <swagger.output.single.adoc>${swagger.output.single.adoc}</swagger.output.single.adoc>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+            
+            <!-- Taken from https://www.jhipster.tech/tips/008_tips_static_swagger_docs.html -->
+            <!-- Also see https://github.com/asciidoctor/asciidoctor-maven-examples/blob/master/asciidoctor-pdf-example/pom.xml -->
+            <!-- 
+            <plugin>
+              <groupId>org.asciidoctor</groupId>
+              <artifactId>asciidoctor-maven-plugin</artifactId>
+              <version>${asciidoctor.version}</version>
+              <dependencies>
+                  <dependency>
+                    <groupId>org.asciidoctor</groupId>
+                    <artifactId>asciidoctorj-pdf</artifactId>
+                    <version>${asciidoctorj.pdf.version}</version>
+                  </dependency>
+                </dependencies>
+              <executions>
+                <execution>
+                  <id>output-html</id>
+                  <phase>test</phase>
+                  <goals>
+                    <goal>process-asciidoc</goal>
+                  </goals>
+                  <configuration>
+                    <backend>html5</backend>
+                    <outputDirectory>${asciidoctor.output.dir}</outputDirectory>
+                  </configuration>
+                </execution>
+                <execution>
+                  <id>output-pdf</id>
+                  <phase>test</phase>
+                  <goals>
+                    <goal>process-asciidoc</goal>
+                  </goals>
+                  <configuration>
+                    <backend>pdf</backend>
+                    <outputDirectory>${asciidoctor.output.dir}</outputDirectory>
+                  </configuration>
+                </execution>
+              </executions>
+              <configuration>
+                <sourceDirectory>${swagger.output.dir}</sourceDirectory>
+                <sourceDocumentName>${swagger.single.adoc.filename}</sourceDocumentName>
+                <attributes>
+                  <doctype>book</doctype>
+                  <toc>left</toc>
+                  <toclevels>2</toclevels>
+                </attributes>
+              </configuration>
+            </plugin>
+            -->
+            
+            <!-- Maven war plugin to include documentation generated after asciidoc -->
+            <!-- 
+            <plugin>
+        		<groupId>org.apache.maven.plugins</groupId>
+        		<artifactId>maven-war-plugin</artifactId>
+        		<version>3.2.0</version>
+        		<configuration>
+          			<webResources>
+            			<resource>
+              				<directory>${asciidoctor.output.dir}</directory>
+              				<targetPath>WEB-INF/classes/${war.documentation.resource.folder}</targetPath>
+            			</resource>
+          			</webResources>
+        		</configuration>
+      		</plugin>
+            -->
+            
+		</plugins>
+	</build>
+
+
+</project>
