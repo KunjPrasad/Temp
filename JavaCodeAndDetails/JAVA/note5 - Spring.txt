@@ -1,0 +1,233 @@
+SPRING
+**** ALSO SEE "SPRING" notes in "note2 - Servlet.txt" file
+Spring AOP notes are second, after core-spring notes
+Then Spring Data access / JDBC related notes
+Then, at #4, Spring BOOT!! (this has spring data JPA part, see notes)
+
+VERY VERY VERY IMPORTANT : Apache Derby db : https://www.youtube.com/watch?v=eR_JFtqyNL4&list=PL1A506B159E5BD13E
+See https://www.youtube.com/watch?v=lpcOSXWPXTk&index=29&list=PLqq-6Pq4lTTbx8p2oCgcAQGQyqN8XeA1x   ~6:20, notice that when using spring boot with embedded Apache derby support, you don't even have to configure anything.. spring sees classpath and knows that it needs to connect to Derby db
+
+VERY VERY IMPORTANT: See https://www.youtube.com/watch?v=uDhumjWApl0&list=PLqq-6Pq4lTTbx8p2oCgcAQGQyqN8XeA1x&index=22  ~1:20.. the "Spring Initializr" web tool is a very very good tool to know what all Spring boot offers and select it. Also, if one options needs more than 1 dependency, Spring automatically provides it rather than us knowing it
+
+See below in Spring-Boot notes. On why entity/DTO objects should be separate. 
+ON SAME LINES - An entity object should always have a custom toString() method which only adds foreign key.. else it will get trapped in circular reference
+
+
+
+
+SPRING CORE ----------------------------------------------------------------------------------------------------------------------------------------------
+
+- See https://www.youtube.com/watch?v=xlWwMSu5I70&list=PLC97BDEFDCDD169D7&index=3   It says Spring is "object container", managing objects based on its xml.. just like tomcat is servlet container, managing servlets based on xml.
+**** IMPORTANT: The video does a nice job describing "Factory pattern". Factory pattern is when instead of calling "new", a factory's make() method is called, and the factory reads underlying spec for the desired class, and creates it. Thus, Spring is factory because it creates object by reading xml-config file
+---- VERY VERY IMPORTANT: Spring is a special factory where it also keeps handle to created bean, and manages its lifecycle. This is the importance of application context.. it's not just a factory, but also manages their lifecycle - which it is able to do since it is the one that made those beans.
+
+
+https://www.youtube.com/watch?v=7c6ZTF6cF88&index=4&list=PLC97BDEFDCDD169D7   : Note that spring has a "FileSystemResource" class that can be used to read resource from main() command inside a class of Java-project, i.e. when not using maven.. NOTE: as per javadoc, fileSystemResource = "Resource implementation for java.io.File handles"
+---- IMPORTANT: NOTICE the spring classes involved "BeanFactory", and, "XmlBeanFactory" - both names show that spring is a "Factory Pattern" wherein it reads a configuration and makes objects!!
+---- See https://www.youtube.com/watch?v=ZxLaEovze3M&list=PLC97BDEFDCDD169D7&index=5   start where it says that using ApplicationContext is better since it provides many other services.. and use BeanFactory only when resource is very constrained.
+
+
+See https://www.youtube.com/watch?v=TW51XsixMqA&list=PLC97BDEFDCDD169D7&index=8
+---- NOTE that what video says as "inner bean" refers to a composition design, and having a inner-class!! Why would one want a reference member that is specific to only one object - **** VERY IMPORTANT: The answer is that maybe consolidation of members make more logical sense - just like in JPA we used @Embedded for a member!! Also, it reduces passing around of many parameters in methods by passing member-group as a single object-member.
+----|---- NOT SURE why someone would want inner class!! Realize that this is different from cmposition-based member reference
+---- **** IMPORTANT: Note Spring's ability to form a composition-member specific to a given bean and also to form alias(s) - even multiple alias for same object. 2 things to note: (1) It can be a nice practice to have multiple name to same object, so as to make code look pretty; (2) Inner member reference (to externally defined class) and Alias should be definable via annotation also!!
+
+
+https://www.youtube.com/watch?v=MgYURkcYeDQ&list=PLC97BDEFDCDD169D7&index=9  -- NOTE: Spring can also wire list/set/collections. How to do so by Annotations??!
+
+
+https://www.youtube.com/watch?v=NnNvDknQJt0&index=11&list=PLC97BDEFDCDD169D7 -- IMPORTANT: NOTE that the default behavior of ApplicationContext is that it eagerly makes all "singleton and non-prototype" beans when the context is initialized.. even before program asks for bean using getBean(). BUT.. this can be changed!!
+---- **** VERY VERY VERY IMPORTANT: Considering that by default all Spring-beans are singleton, it is generally good idea to take note of following with-respect-to concurrency:
+----|---- Note that "Singleton" is not with respect to JVM, that there is a single bean in entire JVM - NO.. But this is with respect to application context. So if one JVM somehow has multiple application context, then there will be a bean in each of them. So the meaning of "Singleton" is with respect to application context
+----|---- For concurrency purpose, it may not be a good idea to change default behavior of instantiating and initializing all beans during startup. Default behavior ensures that before we let the full flow of concurrency come in.. all the beans are properly wired and up and running.
+----|---- add bean-properties by constructor if they are to be used by program itself, and not change during coding -- AVOID leakage via getters, and ability to morph via setters!! 
+- Spring Bean scope: singleton, prototype ..and for web aware context, also, request, session
+
+
+https://www.youtube.com/watch?v=WUqyoH_G4Ko&index=12&list=PLC97BDEFDCDD169D7  **** IMPORTANT: Spring has multiple "Aware" interfaces, that provide reference to different important contexts/handles
+
+
+https://www.youtube.com/watch?v=8LCpo4sfdQU&list=PLC97BDEFDCDD169D7&index=14 **** VERY VERY IMPORTANT:
+1) Shows use of AbstractApplicationContext (not ApplicationContext) that can be use to "registerShutdownHooks" - meaning, when jvm is about to get closed, the abstractApplicationContext will know first. This context can now call destroy method of all beans!! For web-application, this is not "practically" needed, because once web-application goes up, it stays up until server goes down, or is taken down
+2) Shows use of "InitializingBean" interface - it tells the bean when it's properties has been set, i.e. bean has been initialized! There is "DisposableBean" interface that allows pre-destroy. **** IMPORTANT: Understand it is called only if shutdown hook has been registered to context.!!
+3) IN ADDITION, there is also @Post-create, and @Pre-destroy.
+---- IMPORTANT: See ~14:20, how if both are present, i.e. spring interface and int/destroy method, then the interface methods are called first, then by the xml-configured init/destroy method
+**** IMPORTANT: See ~12:45: How to configure default init and default destroy method for all beans.. and do it via annotations!!
+
+
+https://www.youtube.com/watch?v=-ycOZTpMkow&list=PLC97BDEFDCDD169D7&index=15  - IMPORTANT: Note that while create/destroy method needs to be defined in corresponding class.. BeanPostProcessor allows running a common method after initialization of each bean
+**** VERY VERY IMPORTANT: Note that BeanPostProcessor method are required to return an object. This feature can be used to control object instantiation.. changing with proxy, etc.
+**** VERY VERY IMPORTANT: NOTE: (1) There can be more than one BeanPostProcessor, and each gets executed. (2) There can be both BeanPostProcessor (multiple in count) and init-method; former is same method for all beans whereas latter is specific to as defined in that given bean. (3) IMPORTANT: Spring has "Ordered" interface that allows one to control the ordering of BeanPostProcessor (..and also allows ordering of many other configurations - see Javadoc)
+---- See https://www.youtube.com/watch?v=szNWTBlewQI&list=PLC97BDEFDCDD169D7&index=16  -- on similar lines, there is BeanFactoryPostProcessor - which executes methods when BeanFactory is itself initialized!! NOTE: The postProcessor is called before various beans are initialized in the application context
+----|---- VERY VERY IMPORTANT: Same video, towards end - there is PropertiesPlaceholderConfigurer - a BeanFactoryPostProcessor that reads properties and changes value in config xml file.
+----|---- On same note, remember in PatentCenter code the use of @Value() annotation that can take properties and ALSO, can take DEFAULT VALUES!! As a matter of design, it might be preferable to simply read the properties and store it in Properties object, so that can be used/reused..
+
+
+IMPORTANT: See https://www.youtube.com/watch?v=Fs_IoEGSP-A&list=PLC97BDEFDCDD169D7&index=18  and the use of @Required annotation that tells spring that a particular member of bean is required. Also, note that it is a beanPostProcessor that is needed to make these validations
+---- HOWEVER, realize that if the code uses annotation-autowiring through and through, then there is no need for such checks - because if member-bean is not provided, then autowiring will fail! So, mainly, @Required might be necessary for xml based configuration only!
+---- **** VERY VERY IMPORTANT: Rather than triggerig all annotationPostProcessor, simply add <context:annotation-config/>  -- This also explains the meaning of this statement with reference to Spring, i.e. it enables configuration of all annotation based bean post processor
+----|---- See 2 comments below, for video #19 - IMPORTANT
+
+
+See https://www.youtube.com/watch?v=IVIhVJJGo68&list=PLC97BDEFDCDD169D7&index=19   
+(from previous video) @Required - to mark a member in bean as required.
+@Autowired - note that this annotation causes autowiring if: (i) the annotation bean post processor is turned-on, (ii) use has asked spring to instantiate primary object; just putting annotation and not asking for primary object bean via @Component, or by xml configuration file, does not mean an autowire will happen and a bean will be made (iii) if Spring is the one instantianting the primary object, (iv) if Spring is the one that has already instantiated the object to be autowired. IMPORTANT: NOTE that when I say, "Spring is doing..", I mean the particular Application Context is doing the work.. because realize that single JVM can host multiple applicationContexts
+@Value (not in video) - to assign default value to a bean. See http://docs.spring.io/spring/docs/3.1.x/javadoc-api/org/springframework/beans/factory/annotation/Value.html
+
+
+**** VERY VERY VERY IMPORTANT: From https://www.youtube.com/watch?v=IVIhVJJGo68&list=PLC97BDEFDCDD169D7&index=19
+---- Towards the end of video, it is explained why previous ones defined the beanPostprocessor and not use <context:annotation-config/> . It is because <context:annotation-config/> is part of a xml namespace which wasn't used in previous videos!!
+---- In this video, "qualifier" was used in 2 forms: (i) to attach a "qualifier" to a bean, (ii) to resolve a bean when autowiring based on the qualifier value that was attached previously. **IMPORTANT: DO FIND OUT WAYS TO DO SO VIA ANNOTATION.. FOR BOTH CASES..
+----|---- ALSO REALIZE: ..that "qualifier" DOES NOT have to be only equal to bean-id!!
+---- Lastly, remember there is something called "Alias".. QUESTION: What is difference between Alias and Qualifier!!?
+----|---- **** VERY VERY IMPORTANT: Aliasing is not just having different name, but can be used to override existing configurations.. say loaded for configurations in external jar. See https://vladmihalcea.com/2013/12/15/why-i-like-spring-bean-aliasing/  It also shows how to import other resource
+
+
+**** VERY VERY IMPORTANT: Look at all available JSR-250 annotations, and where applicable, use them rather than Spring annotations!!
+
+
+https://www.youtube.com/watch?v=oTcSW4-_1Ew&index=21&list=PLC97BDEFDCDD169D7
+---- **** VERY VERY VERY IMPORTANT : realize that using xml based configuration has advantage over annotation - in that annotations bring a tighter coupling to class definition, and can, thus, limit certain abilities. For example, by annotation, we can make only 1 object of a class, by xml - we can make many, each with its own setting. BUT.. in a real-life scenario, if there are more than 1 objects of a class that need to be made (and this is not a web-service), then it is almost always the case that there are multiple implementations of single inheritance. So, then.. we need one object per implementation!! So once again, even though it looks like annotation based may be having limitations.. in real cases it need not be. The good thing, however, about using annotations in general is that things remain java based, so seem more intuitive
+---- **** VERY VERY VERY IMPORTANT: NOTE the use of <context:component-scan>. Now the difference between annotation-config and component-scan is also clear. Annotation-config offsets the need to always start a beanPostProcessor; HOWEVER, it does not tell spring to make bean. Component-scan tells spring to look into codes and identify beans if the class has been annotated for instantiation. HOWEVER, it does not tell spring what to do after bean is made - that is a beanPostProcessor, and that is related to questions like how to autowire, etc, or how to interpret other annotations made inside bean on methods, members, etc. THAT IS the job of <annotation-config>!!! THUS, the two are different
+----|---- See ~9:00 : In spring, there are annotations to identify beans that will then be performing stereotypical roles, like @Repository, @Service, @Controller, etc. These are "stereotypical" bean annotations, and are also picked up by <context:component-scan ...>
+----|---- IMPORTANT: This also adds some "documentation" for human reader; ALSO.. helpful in Aspect-Oriented-Programming
+----|---- IMPORTANT: NOTE that @Conguration on a bean defines is to be a configuration object!! So when doing component-scan, if Spring sees another @Configuration, it understand to extend the configuration set!!
+
+
+**** VERY VERY VERY IMPORTANT: New Concept: See https://www.youtube.com/watch?v=cUqquQDZR-c&index=22&list=PLC97BDEFDCDD169D7
+Spring's "MessageSource" class to make custom output text, using Spring's ResourceBundleMessageSource class provided out-of-box. Can also be used to change log for different environments.. [remember, in CMS this was needed at one time..]; And it can also be parametrized. **** VERY IMPORTANT.. see near teh end of video - it can also accommodate different message for different locale!
+
+
+**** VERY VERY VERY IMPORTANT: New Concept: See https://www.youtube.com/watch?v=ZUe1Xz7DAcY&list=PLC97BDEFDCDD169D7&index=23
+Involved classes are ApplicationEventPublisher, ApplicationEventPublisherAware interface, ApplicationListener interface and ApplicationEvent class. NOTE: how using this framework we can publish and listen events. Further, EventListener can be turned to a delegate pattern than delegates events to individual processors, or to a combination of processors in a processing group!
+**** VERY VERY VERY IMPORTANT: A design concern : IMPORTANT : In code, there was an instance where reference of object was leaked out! This is not good from view that now the lifecycle of object is not just limited to itself, but also to the event. A good alternative might be to pass weak reference of self! This way, we know that after some time, the reference will get broken.
+
+
+
+
+SPRING ASPECT ORIENTED PROGRAMMING ------------------------------------------------------------------------------------------------------------------
+
+https://www.youtube.com/watch?v=QdyLsX0nG30&list=PLE37064DE302862F8&index=1   Aspect-Oriented-Programming
+- Note how video says (and it is true..) that aspects don't provide extra business functionality, but the burden of having these aspect-methods are on business class. NOW REALIZE.. in an ideal case, if we would write out a "template" as:
+aspectedMethod() {
+	executeAspect();
+	doBusiness();
+	executeAspect2();
+}
+then, now, this forms as template for all codes. Now, all other codes just needs to execute their own doBusiness() method, and the template takes care of having aspect-method executed at correct location. HOWEVER, this creates unnecessary dependency on template-forming abstract class, and even more unnecessary boilerPlate code. ****VERY VERY IMPORTANT: APECT-CONFIGUARTIONS can be considered as a way to generate these rules using an "aspect-language" and to fill up the boiler plate code. Thus, what remains after that is just the need to have actual business method implementation!!
+---- THIS IS HOW ASPECT-ORIENTED-PROGRAMMING CAN BE UNDERSTOOD IN TERMS OF OBJECT-ORIENTED-PROGRAMMING!! THEY ARE NOT DIFFERENT - as is generally said. It's just that without the viewpoint of AOP, and going with rigorous OOP only, a lot of boilerplate code is generated!
+----|---- As said ~10:45 of video.. there are many existing methods in OOP framework that look like aspects. So the point is AOP is part of OOP, combined with some framework-domain particular feature.
+----|---- See ~12:40 on how using AOP makes it easy to add/remove aspects - which in pure OOP would be just tiring. 
+
+
+https://www.youtube.com/watch?v=4P0TME-AbSw&index=2&list=PLE37064DE302862F8  - see video.. to use aspectJ, you need both Spring and aspectJ dependencies
+---- IMPORTANT, Not for spring, but xml: ~5:10, see the way to define multiple namespace - you write [namespace]:xmlns, and this allows writing "[namespace]:[node]" nodes. Also single schemalocation contains links to various schema
+
+
+**** VERY VERY IMPORTANT: See https://www.youtube.com/watch?v=4-z-YsRfSF0&index=4&list=PLE37064DE302862F8 - This is needed in xml because it tells spring that we are using aspect oriented programming.. this now means that order of code execution first finds and installs all aspect, then based on identified definitions, it makes relevant proxies..
+---- ALSO NOTE: Just annotating class with @Apect does not mean spring starts dealing with others, makingd ecorators around it.. to force such processing is the reason for including <aop:aspectj-autoproxy />
+
+
+See around 11:40 of https://www.youtube.com/watch?v=h7IdaLybg9A&list=PLE37064DE302862F8&index=5 : use * for wildcard for package name, return type, modifier, methodName and menthodRegex. HOWEVER: for function parameters: use * for 1 or more parameters, and, .. for 0 or more parameters!!  ****NOTE THE DIFFERENCE!! 
+---- On similar note: See 6:00 of https://www.youtube.com/watch?v=UxzTk57CJD8&index=6&list=PLE37064DE302862F8  where .. on package-name applies advice to all package "and subpackage" classes, but '*' applies advice only on package classes, and NOT for subclasses. Also see ~4:35 of https://www.youtube.com/watch?v=Clz78J7SBKQ&list=PLE37064DE302862F8&index=10  for wilcard within execution() type pointcut definition
+---- VERY VERY IMPORTANT: Note towards the end of video - putting @Poincut annotation over method and then using it.. this is good from refactoring point of view!!
+QUESTION - HOW to control the order of application of multiple advice on same pointcut??!
+
+
+VERY VERY VERY IMPORTANT - BEST PRACTICE ON AOP: See 10:45 of https://www.youtube.com/watch?v=UxzTk57CJD8&index=6&list=PLE37064DE302862F8  Note the concept of "composition" in aspects - and this is what makes it best practices. The idea is to use boolean operators on "general" pointcuts to make more specific pointcut!! This is modular way of writing pointcut. 
+---- COMBINE this with details from https://www.youtube.com/watch?v=Clz78J7SBKQ&list=PLE37064DE302862F8&index=10  . Specially, see ~7:20 where video says that one can use custom annotation on methods to control/define pointcuts; And how using annotations is more helpful because it gives direct information on which methods are being adviced. IMPORTANT: Recall how in CMS, annotation was used to control the before/after loggin patterns!
+
+
+VERY VERY IMPORTANT: See https://www.youtube.com/watch?v=nrAN0E_A7fc&list=PLE37064DE302862F8&index=7
+---- See early portion of video where it shows how by using a JoinPoint argument, "ASPECTJ ACTS LIKE A FRAMEWORK", passing information about the method which is adviced on!! The framework like nature comes from fact that corresponding joinPoint value is autoprovided!!
+---- See ~9:30 - Use of aspects in getting the argument passed to the advice. It may be hard to understand other than video, so it is good to see here. ALSO NOTE. how the video mentions that such "aspect use" allows to change the input before passing it further - Like Python's decorator. **This may not apply if the data is immutable - like STring!
+
+
+VERY IMPORTANT: See ~2:45 in https://www.youtube.com/watch?v=tU6eQh9Hmqk&list=PLE37064DE302862F8&index=8  That the aspect advice is called when we run a method; NOT when spring does the wiring! (Probably because aspect class is not made at that time.. maybe this is how Spring does it! -- Yes, because the most general poincut definition could be based on all methods of all classes; So it is not possible to make proxy object as long as all original classes have been made!! That's why proxies implementing aspects could be made last by Spring)
+---- VERY VERY IMPORTANT: Se ~17:45 -- it is possible to have aspect-advice's return type be a superclass of actual return type of method - and still have the advice called on method returning a sub-type. This "covariance" in types is general behavior of Java!! NOTE: Same also applies when getting handle to Exception, or even when capturing inputs using @Before annotation
+
+
+IMPORTANT: See https://www.youtube.com/watch?v=jwRwHOIwwdQ&list=PLE37064DE302862F8&index=9  -- In @Around advice, note that one must have a ProceedingJoinPOint argument. This is in addition to any extra joinPoint parameters being caught in advice!!
+**** VERY VERY VERY IMPORTANT - NOte that @Around gives the capability to : (1) You can choose to run a logic and decide based on it if the method should be run or not!!, (2) One can catch exception from running method and either return new answer or just throw it further, (3) QUESTION: Can we change both input-to-method and output-from-method???! [ Since @Around returns objects, so #3 is likely possible - see ~12:00; Also explicitly said in video ~12:50]
+
+
+IMPORTANT: See ~7:00 in https://www.youtube.com/watch?v=yiinKulgm4U&index=12&list=PLE37064DE302862F8&spfreload=1  The point is that if you make own class, then aspect advice will not be called! It only runs when method invocation on spring managed bean is done. This is because spring makes "proxies" to implement aspect-advice .. so the advice will not be available if the proxy is not used i.e. if an object is used that is NOT a spring managed bean
+
+
+
+
+SPRING DATA  --------------------------------------------------------------------------------------------------------------------------------------
+NOTE this is Sprin's Jdbc support, not "Spring Data"
+
+https://www.youtube.com/watch?v=eR_JFtqyNL4&list=PL1A506B159E5BD13E  Note as said in beginning, Spring also has support for JDBC.. no need to directly and only go to Spring Data
+---- VERY VERY IMPORTANT: The video shows how to install derby database!! Good for quick testing
+
+
+VERY VERY VERY IMPORTANT: 15:30 of https://www.youtube.com/watch?v=B3gEbC37DAM&index=2&list=PL1A506B159E5BD13E  -- It is very important that connection is always closed.. regardless of success/failure!! Else, will have db impacts!!
+
+
+VERY VERY VERY IMPORTANT: 
+**** See ~12:50 of https://www.youtube.com/watch?v=f-k823MZ02Q&list=PL1A506B159E5BD13E&index=3   on use of apache's DBCP - DB connection pool to create connection pool for any database!! A handy "pooling" method.
+ALSO see ~8:30 - as an example of how Spring, in its bare bones form, help with JDBC. BUT.. more "production-correct" way to do so in later videos
+**** See 10:45 of https://www.youtube.com/watch?v=0LYqy0wvS20&list=PL1A506B159E5BD13E&index=4   on how to use Spring's JdbcTemplate to simplify jdbc coding further!!  QUESTION : Is it thread-safe??! IMPORTANT: More on JdbcTemplate (SPECIALLY, look at end on how resultSet is changed to custom class using RowMapper): https://www.youtube.com/watch?v=QrU6UI_bSbU&list=PL1A506B159E5BD13E&index=5&spfreload=1   SIMILAR, but better, see NamedParameterJdbcTemplate (and SimpleJdbcTemplate) usage in https://www.youtube.com/watch?v=W_9DJYXuhwk&index=8&list=PL1A506B159E5BD13E
+----|---- Rowmapper in https://www.youtube.com/watch?v=i-_CUlER3z8&index=6&list=PL1A506B159E5BD13E
+----|--- VERY VERY IMPORTANT: These 3 videos in essence show a huge aspect of ORM tool!!
+----|---- See https://www.youtube.com/watch?v=BiSIAzSZHpY&index=7&list=PL1A506B159E5BD13E  for data insertion, and deletion. Also, ~7:50, use exeute() method to just run some statement - particular helpful in running DDl statements, like, for making tables.. rather than DML ones for CRUD ops on data
+
+
+VERY VERY VERY IMPORTANT: See https://www.youtube.com/watch?v=UOyjFjilPIo&index=9&list=PL1A506B159E5BD13E  showing JdbcDaoSupport provided by Spring!! While video says that it is good - I don't think it is good. Particularly: (1) it is hard to test; (2) it is bad from design/security perspective.. we may not want any setters exposing the datasource; (3) inheritance should only be done if there is "is a" relationship. For "has a" relation, one should use composition!; (4) what if in future we want multiple db and/or separate db for different operation
+Also, see ~10:00, it seems that even with DaoSupport of spring, one needs to wire the datasource appropriately
+
+
+IMPORTANT: See https://www.youtube.com/watch?v=0lqlg5tnDag&list=PL1A506B159E5BD13E&index=10 ~7:40 for hibernate session factory support!! ALSO, see ~20:10 where the spring bean is marked as @Repository - in following with best practices!
+
+
+
+SPRING BOOT ------------------------------------------------------------------------------------------------------------------------------------------
+
+VERY VERY IMPORTANT: Spring Boot Actuator : https://www.youtube.com/watch?v=ojc_Jy_0EgI&list=PLqq-6Pq4lTTbx8p2oCgcAQGQyqN8XeA1x&index=33
+Also, add Swagger...
+
+
+IMPORTANT: End of https://www.youtube.com/watch?v=bDtZvYAT5Sc&index=8&list=PLqq-6Pq4lTTbx8p2oCgcAQGQyqN8XeA1x  shows that all Spring boot projects use a particular Spring's pom as parent to get all necessary jars (See https://www.youtube.com/watch?v=FeU24_8JhEs&list=PLqq-6Pq4lTTbx8p2oCgcAQGQyqN8XeA1x&index=13 ~1:25; The parent configuartion instructs maven on various configurations. MORE IMPORTANT : It also tells version of starter web dependency!!). Also, use spring boot's web dependency to get all web related jars (See ~6:50). Finally, towards end, it shows that simply setting java.version property changes the JRE configuration of project
+
+
+https://www.youtube.com/watch?v=E7_a-kB46LU&list=PLqq-6Pq4lTTbx8p2oCgcAQGQyqN8XeA1x&index=9
+@SpringBootApplication - anotate class which has main method
+SpringApplication.run() - static method that creates web services and launches application
+In PatentCenter.. the enclosing class inherited "SpringBootServletInitializer" 
+
+
+Other annotations
+---- @Controller - for url mapping
+----|---- @RestController - NOTE: If method gives String output, it will go in MVC style and try to look for a corresponding view. To just return value, you need to return ResponseEntity<?> object, or annotate with @ResponseBody. Doing so becomes unnecessary with @RestController. See : https://www.genuitec.com/spring-frameworkrestcontroller-vs-controller/   "Using the @RestController Annotation. Spring 4.0 introduced @RestController, a specialized version of the controller which is a convenience annotation that does nothing more than add the @Controller and @ResponseBody annotations. ... The ---- @ResponseBody annotation is active by default"
+---- @Service - to define service classes (business logic). If needed, add @Transactional here
+---- @RequestBody - to add to function argument to tell Spring MVC to map request body to this variable
+----|---- IMPORTANT: See https://www.youtube.com/watch?v=AI2oBJkPK3c&list=PLqq-6Pq4lTTbx8p2oCgcAQGQyqN8XeA1x&index=19   When doing post and only want to return response code and no other value, use controller-method of return type = [void]
+
+
+VERY VERY IMPORTANT: See https://www.youtube.com/watch?v=uDhumjWApl0&list=PLqq-6Pq4lTTbx8p2oCgcAQGQyqN8XeA1x&index=22  ~1:20.. the "Spring Initializr" web tool is a very very good tool to know what all Spring boot offers and select it. Also, if one options needs more than 1 dependency, Spring automatically provides it rather than us knowing it
+See https://www.youtube.com/watch?v=bNqD5P-huJc&index=23&list=PLqq-6Pq4lTTbx8p2oCgcAQGQyqN8XeA1x  -- useful for groovy scripts! and only for prototypes, not prod management. NOTE: GOOD FOR PROTOTYPING..
+
+
+VERY VERY IMPORTANT : https://www.youtube.com/watch?v=fcHYCCF9myY&list=PLqq-6Pq4lTTbx8p2oCgcAQGQyqN8XeA1x&index=25    Configuring SpringBoot using application.properties file (This configures the properties of server launched when main() is run). Also, for environment dependence properties, remember as done in PATENTCENTER code, use application-{env}.properties file
+---- VERY IMPORTANT : See ~4:30, "spring boot common application properties" lists the common properties for spring boot application that can be configured with properties file
+
+
+NOTE:  https://www.youtube.com/watch?v=lpcOSXWPXTk&index=29&list=PLqq-6Pq4lTTbx8p2oCgcAQGQyqN8XeA1x  When using CrudRepository - it is not given any Spring annotation on it
+
+
+VERY VERY IMPORTANT: See https://www.youtube.com/watch?v=lpcOSXWPXTk&index=29&list=PLqq-6Pq4lTTbx8p2oCgcAQGQyqN8XeA1x   ~6:20, notice that when using spring boot with embedded Apache derby support, you don't even have to configure anything.. spring sees classpath and knows that it needs to connect to Derby db
+
+
+VERY VERY IMPORTANT: NOTICE how https://www.youtube.com/watch?v=bEKt7LLEvb0&list=PLqq-6Pq4lTTbx8p2oCgcAQGQyqN8XeA1x&index=30  feels wrong in the processing - this highlights importance of separating of DTO vs Entity objects!!
+ALSO.. In relational DB, having @ManyToOne is common to show relation - but, with regards to proper object-oriented programming, this brings in circular behavior, i.e. A -> B -> A -> ... [Recall .toString() failed in one of Patentcenterd efect resolution where ative instantiation was enforced by calling toString]. So it is also necessary to separate entity objects from service/processing objects which should be made per Java standards..
+---- VERY VERY IMPORTANT: ON SAME LINES - An entity object should always have a custom toString() method which only adds foreign key.. else it will get trapped in circular reference
+---- ALSO NOTE: Convention to define custom method in CrudRepository interface
+
+
+**** VERY IMPORTANT: Spring Data JPA, see https://www.youtube.com/watch?v=_Jnu_jHfQbM&list=PLqq-6Pq4lTTbx8p2oCgcAQGQyqN8XeA1x&index=31
+---- **** VERY VERY VERY IMPORTANT: See 7:45 onwards on how to write methods if member you are looking at for filtering fetches is actually a composite class in itself!! - also applies for foreign key
+---- **** VERY VERY VERY IMPORTANT: On same note, see ~11:30 to lazily load a topic.. Furthermore.. realize that:
+----|---- Hibernate may by default do a lazy loading
+----|---- **** VERY VERY VERY IMPORTANT: At this point in code, without lazy loading, the code works because topic class itself doesn't have link to list of courses. If that were so, then an infinite recursion would break service. THAT's why DAO and DTO objects should be separate

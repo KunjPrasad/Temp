@@ -1,0 +1,39 @@
+Following are the tasks:
+
+* PARTICULARLY FOR PYTHON: Make unit tests, use decorators, use lazy evaluation
+* MAKE ANOTHER JAVA/SCALA VERSION: where both are mixed in same maven project and Scala does the compilation
+* IMPORTANT: For Java, define the business-class to have a locking object. Make locking object transient. Find the appropriate method and redefine it so that when new objects are made by reading from file, new lock is also made automatically.
+
+--- For Python, to to find if serialization behavior and locking can be controlled.
+
+
+1) read entries from a file containing list of string. User passes filePath, whether it is text/binary file, whether it is json/csv. 
+1.1) Throw error if file is binary/text but user gave wrong option of text/binary correspondingly
+1.2) Throw error if file is json/csv but user gave wrong option of csv/json correspondingly. 
+1.3) Throw eror if the file is absent. 
+1.4) Also check for readability permissions. 
+1.5) Check for writability permission because the final file will be made in same folder. 
+1.6) Final file name is same as original fileName after removing the extension, adding "_result" suffix, then adding the same extension. Check that the file does not exist already.
+
+2) Preprocess and validate entries:
+2.1) Do a trim-to-null, uppercase. 
+2.2) If entry is null, then delete it from list. 
+2.3) Do pre-validation, if there is anything else except a-z, throw error. 
+---- For Python try to use decorators.
+
+3) For each entry create an object containing string value, its hex, map of characters with the count, keeping only non-zero counts. 
+---- For this outputclass, create constructor and also a builder.
+
+4) Serialize the list of newly created object either as csv/json based on incoming file type. When serializing map for csv, use semi-colon sign (;) as entry separator and equal sign (=) as key-value separator.
+
+5) POST CODING OBSERVATIONS. FOLLOWING IS IMPLEMENTATED:
+User can ask for serialzation-deserialization in one of (i) CSV, (ii) JSON, (iii) PROTOSTUFF, (iv) PROTOCOL-BUFFER, (v) KRYO (Kryo says that it is not tread safe and should use a pool, or threadLocal - see github. Thus, its implementation is more close what is done for csv, json, rather than for proto-stuff/proto-buf)
+User can ask for read/write compression in one of (i) NONE, (ii) SNAPPY, (iii) GZIP, (iv) LZ4, (v) LZO
+Unless a serde-compression pair is invalid, as identified in notes, it can be provided by user.
+
+**Crypto is enabled/disabled based on changing a constant in code. See https://github.com/apache/commons-crypto/blob/master/src/test/java/org/apache/commons/crypto/examples/StreamExample.java
+At least for no-compress, all types were able to cipher the data and then de-cipher it
+See here: It is suggested to use commons-codec utils for ciphering/de-ciphering:: https://stackoverflow.com/questions/15554296/simple-java-aes-encrypt-decrypt-example
+
+More emphasis is placed on using Patterns, like, factory, delegate, serialization-proxy, builder. The patterns are visible particularly in java implementation
+Locks are used, and, using Java-8 framework using Function<> object and callbacks, the locking/unlocking mechanism is decoupled from actual logic to implement once lock is obtained.

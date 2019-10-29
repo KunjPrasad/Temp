@@ -1,0 +1,232 @@
+JAVASCRIPT - from JavaBrains. 
+Reference book : You don't know JS (also available free html in github.. maybe free pdf also)
+Lectures covered: (1) intro to JS, (2) scope and closure, (3) object and prototype
+
+The notes from you don't know JS
+
+At very end: lectures from: https://egghead.io/technologies/js
+
+
+
+**** VERY VERY VERY IMPORTANT: TO THINK --- So many similarities between JS and Python.. can it explain Python's GIS lock, making it single threaded!
+
+**** VERY VERY VERY IMPORTANT: Look into Jasmine and Maven-plugin for Jasmine to make unit test for JS, and to automate it
+Examples: See https://evanhahn.com/how-do-i-jasmine/  and  https://www.howtodoitinjava.com/scripting/javascript/jasmine-javascript-unit-testing-tutorial/  
+Another option to keep in mind is to use Rhino in Java to execute JS scripts and then perform test using Java!!
+
+**** VERY VERY VERY IMPORTANT: WHAT IS MEANING OF "SCRIPTING LANGUAGE"?? https://www.youtube.com/watch?v=--prnKeYJ78&index=4&list=PLqq-6Pq4lTTYFJxC9NLJ7dSTI5Z1WWB6K 
+"It means the commands/instructions are written for a runtime environment". For shell script, the runtime environment is shell. 
+---- This is probably where link to "interpreted" nature of language comes in.. because it is interpreted and not compiled, so it can be directly injected in a runtime evironment, thereby allowing it to be used for scripting. 
+---- Also explains why interpreted languages are considered good for prototyping.. because you just pick a runtime environment and start typing in it! And keep seeing changes after each step. 
+----|---- This further separates it from Scala REPL; because that is a "loop", making a compiled language to behave as an interpreted one.. but Scala is still a compiled, JVM-based language
+---- This also probably explains why interpreted languages don't have strict type check. Since there is no compilation, so there needs to be an uniformity in storing runtime objects on same ground, and leaving it on user to provide correct data and code manipulations
+
+
+**** VERY VERY VERY IMPORTANT: Basically, how JavaScript works? And how is it able to get events, etc?
+See ~3:00 onwards of https://www.youtube.com/watch?v=--prnKeYJ78&index=4&list=PLqq-6Pq4lTTYFJxC9NLJ7dSTI5Z1WWB6K
+The idea is that HTML code is essentially a bunch a text with tags!
+---- So, as the text comes in, when a matching condition is found, it generates an "event".
+---- One can also have futures, wherein you tell it to wait for an event, or a particular tag.. and then compute a function at that moment!
+---- The fact that it is a XML, means there is DOM structure with elements as parent-child, or as siblings. For parent-child, this now becomes class structure, with bottom one as child of parent!! (NOTE: this understanding is important.. if you need to be able to generalize your html to make it more general.. because objects in JavaScripts are forgiving.. but by looking at it in a strict object-model of compiled object-oriented language, you'll be more "inclined" to make proper design decisions and generalizations!!)
+----|---- See ~4:15 onwards: The fact that JS can make changes to static html dom-tree means, before JS is executed, there better be a DOM.. else JS would fail, or use of JS will not create any effect
+
+
+
+
+JAVABRAINS - INTRO TO JS
+
+** What is JavaScript? -- See https://www.youtube.com/watch?v=VEzWZav5EkA&list=PLqq-6Pq4lTTYFJxC9NLJ7dSTI5Z1WWB6K&index=3&spfreload=1  pulled from MDN
+---- on that note, NOTE THAT.. MDN is the best resource for javascript
+---- Why Java-script: because it is a scripting language. Why Java? - For marketing reason; See https://www.youtube.com/watch?v=1H2v5QVBQDQ&index=7&list=PLqq-6Pq4lTTYFJxC9NLJ7dSTI5Z1WWB6K    But JavaScript does reflect the style of C-family of languages
+
+
+** IMPORTANT: See https://www.youtube.com/watch?v=a_WbAyayxRw&list=PLqq-6Pq4lTTYFJxC9NLJ7dSTI5Z1WWB6K&index=10  
+---- in JS, every number is 64 bit precision floating point numbers! 
+---- String is 16 bit UTF. There is no character.. just string
+---- **** VERY VERY IMPORTANT: "undefined" type. As mentioned above, for JS (and maybe other interpreted languages also), the variable does not have a type, so it is just a container for data which is assigned. Now, recall that in Java there can be compiler error if it thinks that a variable is being used which has not yet been defined. Since this scenario can't apply in JS as it is scripting language.. this scenario leads to "undefined" type!!! For "undefine", see: https://www.youtube.com/watch?v=oYhyG1M-W-o&list=PLqq-6Pq4lTTYFJxC9NLJ7dSTI5Z1WWB6K&index=12
+----|---- ****IMPORTANT: Accessing an object property that does not exist, or an array element outside length.. that gives "undefined"!!
+----|---- This is different from "null" type. Undefined means it does not know (a situation that would have raised compiler error, say, in Java). "Null" means it has a value which is nothing. Do realize this is further different from empty collections or empty string! See:  https://www.youtube.com/watch?v=Y-eClU_8TMk&index=13&list=PLqq-6Pq4lTTYFJxC9NLJ7dSTI5Z1WWB6K     
+----|---- Also see for difference between undefined and null: https://www.youtube.com/watch?v=JM-fQHknjh8&index=14&list=PLqq-6Pq4lTTYFJxC9NLJ7dSTI5Z1WWB6K
+----|---- **** VERY VERY IMPORTANT: REALIZE that Scala's Some/None is like undefined of JS.. however, since Scala is strongly typed - so assigning value to variable cannot change its type. That's why it has both "None" (eqv. to undefined of JS), and "Some" (which is not in JS, because at this point JS just changes the type)
+---- **** VERY VERY IMPORTANT: Enum in JS:
+----|---- Towards the end video mentions the coming up of "Symbol" data type.. not sure if it is already there
+----|---- See this stack overflow: https://stackoverflow.com/questions/287903/enums-in-javascript  
+----|----|---- **** VERY VERY IMPORTANT: Partcularly see one of the comments there to avoid using 0, because JS treats : false || undefined || null || 0 || "" || '' || NaN -- all as the same value when compared using ==
+
+
+**** VERY VERY IMPORTANT: Note that "typeof null" -> "object"!! This is a bug in JS, so be careful!!
+https://www.youtube.com/watch?v=ol_su88I3kw&index=16&list=PLqq-6Pq4lTTYFJxC9NLJ7dSTI5Z1WWB6K
+
+
+**** VERY VERY IMPORTANT: Type coercion (i.e., implicit type casting) and === operator
+See https://www.youtube.com/watch?v=IQoBAaxR3Ng&list=PLqq-6Pq4lTTYFJxC9NLJ7dSTI5Z1WWB6K&index=17  at ~4:30 for a scenario where a nice minded type-coercion causes == to fail!! REALIZE that in Java the "==" working also takes into play the class of object. So while the typecasting in Java means looking at existing class and then returning new value, the original information of class still remains. In JS, since it is loose typing, it would be logical to assume that whenever an operator is seen, if the operands can be type casted, they should be before operation is done.. and this causes problem with "=="
+---- Also see comments below on how type coercion applies when retrieving objects
+---- **** VERY IMPORTANT: NOTE: object variables are equal, i.e. obj1 === obj2 is true if they point to same object in memory, i.e. if we define onj1 = obj2 somewhere earlier (See https://www.youtube.com/watch?v=I0EZNZgJE28&list=PLqq-6Pq4lTTYFJxC9NLJ7dSTI5Z1WWB6K&index=25 ). REALIZE that JS is dynamic, so there is no point of have equals like Java.. though one may define custom equals method none the less -- but it will then also satisfy for DUCK TYPING!!! Since there is no concept of class, but just objects, it means even if another class has set of same conditions.. it will satisfy equals!
+----|---- REALIZE.. same also for python!!
+
+
+JavaScript object:
+var obj = {}; //empty 
+obj.prop1 = "prop1"; obj.prop2 = 123; //adding property on fly
+var obj = {"prop1":"prop1", "prop2":123};  //inline making object -- **NOTE it is JSON notation. So the "key" in object is always STRING
+console.log(obj.propX) --> will give "undefined"!!
+**** VERY VERY IMPORTANT
+---- NOTE: Property can be accessed using dot and bracket notation; So, obj.prop1, or, obj["prop1"]  <-- when using bracket notation, note that quantity in brackets is a String!!
+---- See 6:30 of https://www.youtube.com/watch?v=VQlbNmevZ1E&index=24&list=PLqq-6Pq4lTTYFJxC9NLJ7dSTI5Z1WWB6K  wherein dot and square operators can be interchanged!!
+---- When to use dot vs bracket: https://www.youtube.com/watch?v=7lQ31dJEYoM&index=23&list=PLqq-6Pq4lTTYFJxC9NLJ7dSTI5Z1WWB6K 
+----|---- Specially see ~3:15. Recall.. similar can be done for Python!!
+----|---- **** VERY IMPORTANT : See comments in video where someone says "Are the quotes required around the property? console.log(myObj[1]); worked just fine.?" -- The thing to note is that type-coercion again applies here!! SO.. one more good practice would simply be to choose JSON keys so that they are non-confusing under type coercion! Also discussed around ~4:50 of https://www.youtube.com/watch?v=koO09c6mpgE&list=PLqq-6Pq4lTTYFJxC9NLJ7dSTI5Z1WWB6K&index=29
+
+**** VERY VERY IMPORTANT: In JS, you can define "object's" property to be assigned to functions: https://www.youtube.com/watch?v=3WGQ0NS-e6w&list=PLqq-6Pq4lTTYFJxC9NLJ7dSTI5Z1WWB6K&index=37
+---- THE IMPORTANT PART.. note that now one can also use "this" to get handle to object calling the function... and through "this", you can use other properties of class. See https://www.youtube.com/watch?v=URVdQG96MUw&list=PLqq-6Pq4lTTYFJxC9NLJ7dSTI5Z1WWB6K&index=38  for problem demo
+
+
+**** IMPORTANT: Why the need for delete operation rather than just setting it to undefined!! See https://www.youtube.com/watch?v=ET8WE2pVihU&index=27&list=PLqq-6Pq4lTTYFJxC9NLJ7dSTI5Z1WWB6K   Because if we just set a property of an object as undefined, it'll still show up in console.log() of object
+
+
+**** VERY VERY IMPORTANT: See ~1:45 of https://www.youtube.com/watch?v=koO09c6mpgE&list=PLqq-6Pq4lTTYFJxC9NLJ7dSTI5Z1WWB6K&index=29   
+NOTE that all JS arrays are actually objects!! So array.length is kind of a wrapper that invokes a member that gives count of elements.
+So all things about objects also work for arrays! Like, delete, accessing out of bound giving undefined!
+---- **** VERY IMPORTANT: See 6:45 onwards for https://www.youtube.com/watch?v=koO09c6mpgE&list=PLqq-6Pq4lTTYFJxC9NLJ7dSTI5Z1WWB6K&index=29   on how you can add elements at arbitrary index because array is just like an object! The length always takes [(maxIndx - minIndx)+1]
+
+
+**** VERY VERY IMPORTANT: See https://www.youtube.com/watch?v=2VL4FIJouBE&index=30&list=PLqq-6Pq4lTTYFJxC9NLJ7dSTI5Z1WWB6K  for wrapper "objects" ..wrapper to primitive type in JS. THE THING OF IMPORTANT: is to note the line that anything where you see the use of dot-notation.. that is an object. So, string.length means an object is used having "length" member - this is an example of where string primitive is changed to string object
+
+
+See https://www.youtube.com/watch?v=WV2URboIwhI&index=31&list=PLqq-6Pq4lTTYFJxC9NLJ7dSTI5Z1WWB6K ~4:00: when passing variables to JS functions, just write arg name, like function func(a,b).. and not function func(var a, var b) ..because everything in JS is just "var" and thereis no type!!
+
+
+**** VERY VERY VERY IMPORTANT: See https://www.youtube.com/watch?v=sQhPbAAsYVY&list=PLqq-6Pq4lTTYFJxC9NLJ7dSTI5Z1WWB6K&index=32    
+If you define a function as taking 2 args, but you pass only 1 arg, then JS will make the second variable as "undefined".  It does not throw compilation error!!! If you pass more than what is expected, extra args are just ignored..
+---- **** THIS MEANS OVERLOADED METHODS ARE NOT POSSIBLE IN JS
+
+
+**** VERY VERY VERY IMPORTANT: If you define a function and assign its return value to something.. but the function does not return anything, or just has statement "return;" at end, then the assigned value is "undefined" - not null. To assign null, it should be passed null value!
+See https://www.youtube.com/watch?v=40TM1zMOEyo&index=33&list=PLqq-6Pq4lTTYFJxC9NLJ7dSTI5Z1WWB6K
+
+
+**** VERY VERY VERY VERY IMPORTANT: See https://www.youtube.com/watch?v=pBmEw9SsyaA&list=PLqq-6Pq4lTTYFJxC9NLJ7dSTI5Z1WWB6K&index=41
+---- Every method has "arguments" argument implicitly avilable that contains information of all arguments passed to function, regardless of it is is later ignored.. this is important to get "varargs" like behavior. See towards end.. "arguments" is not an array. it is an object, but has many functions like array
+---- **** VERY VERY VERY IMPORTANT: Not sure where it is referred, but is also said in 1st minute of https://www.youtube.com/watch?v=kQzo1OX7vcI&list=PLqq-6Pq4lTTZ_LyvzfrndUOkIvOF4y-_c&index=2 -- That functions in JS are "objects". JS internally makes an object everytime a function is made. This means that we can also assign members to function! One can do:
+>> var a = function() {console.log("abc");};
+>> a.abc = "def"
+Now a() prints "abc"; console.log(a) shows "function () {console.log("abc");}"; ..and console.log(a.abc) shows "def"
+
+
+Array methods: 
+push(), pop() - to add/remove at end. Push() returns the new length
+shift(), unshift() - add/remove element, but from front. shift() returns new length
+forEach() - to iterate
+
+**** IMPORTANT 
+Math - functions/constants from math object for use in JS
+Date - date object
+
+IMPORTANT: Why the need for async/Callbacks in JS: See ~2:00 of https://www.youtube.com/watch?v=yYcJDoxgPoc&index=46&list=PLqq-6Pq4lTTYFJxC9NLJ7dSTI5Z1WWB6K  -- it is because JS is single threaded. So to get responsiveness.. that one thing does not make your code fail, it is good to use async methods and callbacks
+
+
+**** VERY VERY IMPORTANT: Preventing value change in JS. See https://stackoverflow.com/questions/13064901/how-to-prevent-the-changing-of-a-variable-value-in-javascript  -- but again.. best to remember that JS is for front end.. write a proper code so that the need to freeze objects don't arise!!
+
+
+
+
+JAVABRAINS - SCOPES AND CLOSURES
+
+**** VERY VERY VERY IMPORTANT: At least in Interpreted languages (even in Python), think of Scopes are having a new stack-memory and then finding a variable in it. ..and also the property of going to previous stack if you cannot find a variable in current stack!! - also related to Closure
+---- This clearly explains the observations in : https://www.youtube.com/watch?v=NroNBeIuat4&list=PLqq-6Pq4lTTZ_LyvzfrndUOkIvOF4y-_c&index=5
+---- **** VERY VERY VERY IMPORTANT: Just adding {} does NOT create a new scope in JS!! In JS, there is function-level scope, not block-level scope. Above logic also explains this behavior.. which is because unlike c/Java which is compiled and can understand/COMPILE blocks as new scope, note that JS is scripting language.. you code directly in runtime, so just because you did a if-branch of somewhat.. does not mean it created new scope.. it is still same runtime!! But, function creates a new sub-block/variable-stack that depends on inputs given. See ~3:00 of https://www.youtube.com/watch?v=oDeJpqZdbSk&list=PLqq-6Pq4lTTZ_LyvzfrndUOkIvOF4y-_c&index=4
+
+
+**** VERY VERY VERY IMPORTANT: Keep in mind.. restrict creating global variable and polluting global namespace
+---- VERY VERY VERY IMPORTANT: See https://www.youtube.com/watch?v=3oD7RQTJqvc&index=9&list=PLqq-6Pq4lTTZ_LyvzfrndUOkIvOF4y-_c   Every time JS is available because a page is loaded in browser, there is a global object "window" representing the browser window that loaded the page. 
+----|---- IF YOU CLICK.. you see "document" within window.
+----|--- When you create global variable, it becomes a property of "window" global object. 
+----|----|---- **** IMPORTANT: THIS ALSO MEANS.. if you create multiple global variables based on some pattern, then you can use window[expression] to dynamically access the object
+---- See https://www.youtube.com/watch?v=q21QSRpNaAQ&list=PLqq-6Pq4lTTZ_LyvzfrndUOkIvOF4y-_c&index=6  for way to wrap code snippets in "anonymous" function and run the function at that very time -- as a way to prevent pollution. THIS IS "IIFE" - immediately invoke function expression
+
+
+---- **** VERY VERY VERY IMPORTANT: See https://www.youtube.com/watch?v=-yjNghV5Pi4&index=8&list=PLqq-6Pq4lTTZ_LyvzfrndUOkIvOF4y-_c   followed by https://www.youtube.com/watch?v=eAYiCBb-5Q4&index=13&list=PLqq-6Pq4lTTZ_LyvzfrndUOkIvOF4y-_c    This shows ---- The idea that use of "var" keyword registers a variable in given scope. If not used, then what happens next depends on what operation is being done:
+----|---- If a read operation is done, then an error gets throws (if the variable cannot be found in current and all previous scope, including global)
+----|----|---- **** VERY VERY IMPORTANT: See 8:00-10:00 of https://www.youtube.com/watch?v=aO4QWSQW7yk&list=PLqq-6Pq4lTTZ_LyvzfrndUOkIvOF4y-_c&index=14   -- tricky thing that shows that there are 2 separate compile/interprest steps in JS, such that full compilation happens before full execution. This is  HOISTING in JS -- be careful!!! It means that JS execution "feels" as if all declaration is "hoisted" to top regardless of where it is done in code.
+----|----|---- See https://www.youtube.com/watch?v=XmBQ4r97BWs&list=PLqq-6Pq4lTTZ_LyvzfrndUOkIvOF4y-_c&index=15 -- this also happens for function. **** VERY IMPORTANT: See ~4:30, this allows running multiple function recursion -- BUT, See ~6:50: this works when function are made with declaration and NOT wih assignment
+----|---- If write operation is done, then variable on which writing is done is the first scope where the variable is found.
+----|----|---- If variable is not found even up to global scope, then a new variable is made in global scope that causes namespace pollution!!
+---- ****VERY VERY IMPORTANT: See https://www.youtube.com/watch?v=9T3AIM3JMss&index=16&list=PLqq-6Pq4lTTZ_LyvzfrndUOkIvOF4y-_c   on use of strict mode to prevent some craziness of JS.. 
+
+
+**** WHAT IS CLOSURE.. See https://www.youtube.com/watch?v=Nj3_DMUXEbE&list=PLqq-6Pq4lTTZ_LyvzfrndUOkIvOF4y-_c&index=17
+---- The main issue in "closure" is transfer of variable to higher scope!! . RECALL.. in python, closure values are held in a variable attached to object
+---- **** VERY VERY IMPORTANT: See https://www.youtube.com/watch?v=hCilaRBr0zE&list=PLqq-6Pq4lTTZ_LyvzfrndUOkIvOF4y-_c&index=18  -- for fact that every separate closure instance has independent variable assigned to it. So, if 2 separate calls are made, they have their own set of closure data, and changing one does NOT affect other!! ALSO NOTE: this prevents garbage collection to happen anytime as long as closure-function is held
+----|---- **** VERY VERY VERY IMPORTANT: Note that closeure holds reference to variable, not the value. So, if you do:
+var a = 10;
+function outer() {
+    var b = 20;
+    var inner = function() {
+        console.log("a="+a+", b="+b);
+    };
+    return inner;
+}
+var innerFn = outer();
+a=30;
+innerFn() --> This shows "a=30, b=20", AND NOT.. "a=10, b=20", even though the value of 'a' was 10 when innerFn was made. EVEN MORE.. if you change 'a' to 60, the output changes
+----|----|---- On same note, see 0-3:00 of https://www.youtube.com/watch?v=RU-QXuhOSy0&index=21&list=PLqq-6Pq4lTTZ_LyvzfrndUOkIvOF4y-_c  
+----|----|---- **** VERY VERY VERY IMPORTANT: See https://www.youtube.com/watch?v=vYQ6ge4N4iM&index=22&list=PLqq-6Pq4lTTZ_LyvzfrndUOkIvOF4y-_c   -- AND BE CAREFUL.. whenever iterating a function with "closure" variable, it is always suggested to redefine that in a new closure based on local variable, and then tying outside variable to the local variable. This ensures that iteration creates separate instance of closure-binding variable, rather than just creating multiple instances of function using same underlying closure-bound variable (See ~4:15). Also see towards end of video where another way to code would be to just pass function parameter - because that also creates an instance-specific binding!
+----|----|----|---- ALSO NOTE.. in same video, if you want to wait for 1 second after every print, rather than waiting for 1 second and then printing all.. then you need a function that itself contains setTimeOut and calls itself!
+----|----|----|---- **** VERY VERY VERY IMPORTANT: Note that this code can be restructured to expose, say, a __constr__() constructor to ensure strong validation when an object is formed. EVEN MORE.. This code can now be looped to allow creation of multiple objects of class in a loop.. something like https://www.youtube.com/watch?v=25wlojU2mHg&list=PLqq-6Pq4lTTaflXUL0v3TSm86nodn0c_u&index=3    
+----|----|----|----|---- EVEN MORE.. note that "arguments" implicit argument can be used to get any number of arguments from user.. This means that if we can probably write just one method and use its arguments list to construct each class. 
+----|----|----|----|---- **** VERY IMPORTANT: This can further be coupled wih use of JS' new keyword. See 2:40 onwards in https://www.youtube.com/watch?v=NmpHR95tZzQ&index=4&list=PLqq-6Pq4lTTaflXUL0v3TSm86nodn0c_u
+----|----|----|----|---- **** VERY VERY VERY IMPORTANT: This design can also allow having a "static" variable in class - shared by all objects --  by linking it to a common global-scope variable!! ON SAME NOTE: See 3:45 onwards for https://www.youtube.com/watch?v=F4GL4M3wmuw&index=13&list=PLqq-6Pq4lTTaflXUL0v3TSm86nodn0c_u
+
+
+**** IMPORTANT: setTimeout() method to execute a function after certain delay
+
+
+**** VERY VERY IMPORTANT: See https://www.youtube.com/watch?v=yF3GR-7u4y4&index=20&list=PLqq-6Pq4lTTZ_LyvzfrndUOkIvOF4y-_c  -- on use of Closure to get "private" variables in JS... NOTE: This is referred in video as "Module pattern" -- ALSO NOTE: similar design was also seen for Python!!
+---- **** VERY IMPORTAN: See ~10:00 - since the methods work on closure variables referring to common underlying object - so one can also make setters that change that underlying object!
+
+
+
+
+JAVABRAINS - OBJECTS AND PROTOTYPES
+
+**** VERY VERY IMPORTANT: Meaning of "new" keyword in JS.. see 2:40 onwards of https://www.youtube.com/watch?v=NmpHR95tZzQ&index=4&list=PLqq-6Pq4lTTaflXUL0v3TSm86nodn0c_u
+---- IMPORTANT: See above notes on closure on how to make static variables in class. Same also holds in this case if a closure binding is introduced in constructor definition
+---- **** VERY VERY VERY VERY IMPORTANT: Note that this clarifies the distinction netween __new__ and __init__ method of Python. __init__ is like the code as shown here. __new__ is like the starting "this={};" line that JS makes for us.. in Python both are configurable separately, allowing not just initialization control, but also control on how the object-memory-allocation is itself done - which then allows for singleton objects
+
+
+**** VERY VERY IMPORTANT: NOTE: When defining a function to be called in constructor mode, i.e. with "new" keyword.. the convention is to name it starting with capital.. like Java class
+
+
+**** VERY VERY VERY VERY IMPORTANT: See 5:15 onwards of https://www.youtube.com/watch?v=hKJ6b-Z5Z3U&list=PLqq-6Pq4lTTaflXUL0v3TSm86nodn0c_u&index=6  -- it actually shows the "single-threaded" nature of JS, showing up a fact that "this" keyword holds reference to most recent object. 
+When you explicitly define function inside an object, then you call {object}.function(...), and by starting iwth "object" call, the "this" reference changes. BUT.. as shown in video, if you directly use a JS-constructor like function without giving new keyword, then the reference stored in "this" does not change.. and new variables are made in object which is referenced by "this", which can even be global object
+---- While above viewpoint is not broken.. see the end of https://www.youtube.com/watch?v=v80yuod0ONk&index=9&list=PLqq-6Pq4lTTaflXUL0v3TSm86nodn0c_u  to get understanding of logical distinction between 2 calls of "this". Couple that with fact that JS is interpreted, so, just like cosure, the value used by "this" in code will depend on the current value of this held.. ****IMPORTANT: See ~2:45 of https://www.youtube.com/watch?v=vvV-GZ6AMMY&index=10&list=PLqq-6Pq4lTTaflXUL0v3TSm86nodn0c_u
+
+
+**** VERY VERY VERY IMPORTANT: See 6:30 onwards of https://www.youtube.com/watch?v=vvV-GZ6AMMY&index=10&list=PLqq-6Pq4lTTaflXUL0v3TSm86nodn0c_u 
+THE MAIN POINTS BEING.. (1) JS functions, are objects that have "call" property which is a function, (2) The call() method takes first argument, which in most case is the "this" pointer, but can be changed, (3) call() can take more arguments which are like passing arguments to method call, (4) RECALL.. this is also available in Python!!
+LAST.. DO REMEMBER.. this shows a nice "delegation" pattern like behavior
+
+
+**** VERY VERY IMPORTANT: PROTOTYPE OBJECT (once again, like in Python) https://www.youtube.com/watch?v=F4GL4M3wmuw&index=13&list=PLqq-6Pq4lTTaflXUL0v3TSm86nodn0c_u   
+---- See 3:45 onwards -- the structure of traversing object to prototype object is like PYTHON!!
+---- **** IMPORTANT : Se ~8:20 -- deletion of a property deletes it from holding object, but it that property also exists in underlying prototype object, that remains!
+---- **** VERY VERY IMPORTANT: See 8:00 onwards of https://www.youtube.com/watch?v=qUBcYdWlkz0&index=14&list=PLqq-6Pq4lTTaflXUL0v3TSm86nodn0c_u  -- note how in JS (..ALSO IN PYTHON), the execution is runtime!! something can be added later, and all previously amde objects will still have that behavior, because the object lookup is always done and re-done at each call - in runtime
+
+
+IMPORTANT: See first 2 minutes of https://www.youtube.com/watch?v=WstPY8F4kWk&index=15&list=PLqq-6Pq4lTTaflXUL0v3TSm86nodn0c_u   -- to recap:
+(1) The function has "prototype" member, (2) using function as constructor creates object that has "__proto__" member which points to function's prototype, (3) The prototype has member "constructor" which points to the original function itself
+---- **** BUT... remember that (in both JS and PYTHON), one can always change class and object strucure.. but if class is emulated using closure.. that can't be changed! (..unless you use the __scope__!!)
+---- **** VERY VERY VERY IMPORTANT: Although not said in video https://www.youtube.com/watch?v=eFm3rdarXDA&list=PLqq-6Pq4lTTaflXUL0v3TSm86nodn0c_u&index=16  -- BUT NOTE THAT since all objects in JS are made by Object() function, so adding properties in its prototype() will mean that all objects created in JS will have those properties!! 
+----|---- See first 3 minutes of https://www.youtube.com/watch?v=djBQMUoc3d8&list=PLqq-6Pq4lTTaflXUL0v3TSm86nodn0c_u&index=17  -- This means that if "Object" is changed, then all associated "prototype" objects will also automatically change, which means all objects will also change (See 3-6:00)
+---- **** VERY IMPORTANT: MULTI-LEVEL INHERITENCE IN JS by manipulating func.prototype.__proto__ reference!! See https://www.youtube.com/watch?v=Q-sP71DgKK0&list=PLqq-6Pq4lTTaflXUL0v3TSm86nodn0c_u&index=18 
+
+
+
+
+
+
+
+YOU DON'T KNOW JS PDF
+Over here are important lines.. most other comments are in pdf
+
+**** Pg 14: To type multiple lines into the console at once, use <shift> + <enter> to move to the next new line. Once you hit <enter> by itself, the console will run everything you've just typed.

@@ -1,0 +1,25 @@
+// [START declaration]
+syntax = "proto3";
+package dataObject;
+// [END declaration]
+
+// [START java_declaration]
+option java_package = "dataObject";
+option java_outer_classname = "DataClassProtoBufProxy";
+// [END java_declaration]
+
+// [START messages]
+message DataClass {
+  string data = 1; // use of "required" is discouraged - makes all future versions brittle!
+  string hexVersion = 20; //in proto3 field are optiona by default
+}
+// [END messages]
+
+// Command used to run
+// protoc -I=D:\CODES\TestCodeSpace\GenericJavaCodeMaven\src\main\proto\dataObject --java_out=D:\CODES\TestCodeSpace\GenericJavaCodeMaven\src\main\java D:\CODES\TestCodeSpace\GenericJavaCodeMaven\src\main\proto\dataObject\DataClassProtoBufSerDeProxy.proto
+//-I gives name of directory within which the proto file resides
+//--java_out gives the name of directory where to output the java class. Since java_package is defined at dataObject - so do not end java_out with dataPackage, else it will create folder within folder
+//Once the options are done, then give path of proto file
+
+//ON OTHER NOTE: SEE HOW TO DYNAMICALLY MAKE PROTOBUF SCHEMA AND MESSAGE
+//https://github.com/os72/protobuf-dynamic

@@ -1,0 +1,67 @@
+VERY IMPORTANT: Check Java/note.txt for a large set of important information!
+
+VERY VERY IMPORTANT - about compression:
+* Snappy works with csv, json, protoBuf, protoStuff, Kryo
+* GZIP works with csv, json, but fails with protoBuf, protoStuff, Kryo. They complain about reading bad values. Maybe the "delimiter" used by them interferes with GZIP. Particularly with ProtoBuf - it seems to be appending extra "null" byte at the end, so code attempts to deserialize one more record containing no values
+* LZ4:
+---- See https://github.com/jpountz/lz4-java
+---- Identified to be fastest, close to Snappy (For Streams, see LZ4Block Input/Output Stream)
+---- Works with csv, json but not with protobuf, protostuff, Kryo - for latter 3, it simply does not output anything!!
+* LZO:
+---- https://github.com/shevek/lzo-java
+---- Works with csv, json but not with protobuf and protostuff - for latter 2, it simply does not output anything!!
+
+* For fast hashing, see https://github.com/jpountz/lz4-java/tree/master/src/xxhash
+------------------
+
+[EXTRA] 
+
+Protocol Buffer - Language Spec (https://developers.google.com/protocol-buffers/docs/proto3)
+Self-describing messages: IMPORTANT: See https://developers.google.com/protocol-buffers/docs/techniques#self-description
+Example: https://www.surajnayak.com/2015/05/05/protocol-buffers-hour-1-generating-code-and-using-generated-class/
+
+ProtoBuf Dynamic : https://github.com/os72/protobuf-dynamic
+Also see FileDescriptorProto class (how it can make a proto file; and can be used to make FileDesciptor object), example
+
+Protostuff: https://www.protostuff.io/ [Note that unlike WriteTo and MergeFrom - use - WriteDelimitedTo() and MergeDelimitedFrom() methods]
+
+DUE to the permission issue created by Acrobat: if you are trying to run Snappy, then do so with admin permissions
+
+
+
+****VERY VERY IMPORTANT:
+In JAVA Code, look at "KryoForApp" class.
+1) Notice how there is a pool of Kryo and then reader/writer static nested class use the pool to get Kryo instance. However, this mechanism is hidden from user. This is the "Proxy to hidden collection" pattern implementation discussed by Joshua Bloch in "How to make Good APIs", and also discussed in note file under JAVA folder. Furthermore, by marking the nested static class a sCloseable, a close() method can be defined to release Kryo back to pool.
+---- Why it is not used in code. I don't know whether this will require classes to continue registering to Kryo as threads are held/released
+2) Note that once can further break up the class by making the KryoPool in a separate class, and then reader and writer in its own class. 
+2.1) If done, then one should make the class holding KryoPool as "package Private" because it is purely implementation detail.
+2.2) The top level reader/writer can be made to extend Kryo, and all kryo-methods can be overwritten so that it passes to internal kryo member. This is example of "Forwarding pattern" (wrapper). The advantage is that the newly made classes can be used insead of Kryo instance, but they are now thread safe!!
+---- This bring up realization of difference between forwarding pattern and composition-with-single-member. In composition, one cannot use the composed class instead of the original class. For example, in Joshua Bloch's book example, the forwarding set is a DECAORATION on top of a set, but the new class is still a set! Just like decoration of streams to include buffer, cipher, compression - by being a "forwarding" class, different decorations can be mounted on top of each other. This is not possible with COMPOSITION
+
+
+
+KRYO OBSERVATIONS - AND DYNAMIC REGISTRATION OF CLASSES TO ALL KRYO INSTANCES:
+1) re-registering same class in kryo does not cause any issue
+
+2) making new kryo instance does not register classes registered in other kryo object
+
+3) DYNAMIC REGISTRATION SOLUTION?? -- See "dynamicJava" package. Here are the steps:
+3.1) Make an "assist" object which is essentially a list of classes registered so far, and list of Kryo objects made from pool so far
+3.2) Make a "NewKryo" class that extends Kryo (Looking at implementation, simply create a composition!!) NewKryo instances created in KryoPool also share the "assist" object
+3.3) When new "NewKryo" is made, it registers itself with kryo-listener-list in assist object (using lock/sync while processing so as to observe Java Memory model and also because Kryo itself is thread unsafe)
+3.4) When registering new class, instead of calling Kryo.register(Class), invoke NewKryo.registerDynamic(Class). The registerDynamic() method add the class to list of classes added within "assist" object, and then registers it in all Kryo instances associated with listener-list.
+3.5) When new Kryo object is made, it is added to listener (#3.3). When it is added to listener, at that time all the classes that have been registered so far with other Kryo is also registered to this one.
+3.6) Proof (In the ZZ_DynamicKryo.java):
+3.6.1) Starting main method starts 3 threads, all pulling Kryo instance from pool but not submitting it - thus you see "CREATING" shown 3 times
+3.6.2) They don't add register class to kryo, so getNextRegistrationId() shows 10. This happens till the main thread adds a class (#3.6.3)
+3.6.3) Main thread, after longer sleep, adds a class. You'll note:
+3.6.3.1) Main thread pulls new Kryo object from pool. So "CREATING" is displayed
+3.6.3.2) getNextRegistrationId() is shown both before and after adding class. Before it is 10, after it is 11
+3.6.3.3) **As soon as main thread adds the class to its Kryo object, the getNextRegistrationId() from threads running in executors also change
+3.6.4) Main thread adding same class again does not increase getNextRegistrationId()
+3.6.5) Main therad adding a new class yet again increases getNextRegistrationId() after registration, and this is immediately reflected in other threads
+****There might be few other nuances - like sync-ing on Kryo before new registration is done. But one gets concurrent update of all Kryo instances.
+
+4) ***This is outright weird: See https://blog.frankel.ch/tag/objenesis/#gsc.tab=0
+Sun.misc.Unsafe and its convenient wrapper "Objenesis" allows creating objects even where the constructor is private, or constructir throws error!!
+It atually does a constructor-less object creation

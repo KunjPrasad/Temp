@@ -1,0 +1,73 @@
+BOOK: Java Cookbook (3rd ed - with Java 8)
+
+
+VERY VERY VERY IMPORTANT: NOTE: there is something called a JWT. It is a token that contains necessary information and can be passed between server and system. It is a good alternate, because depending on it being provided with any request, it can then be made to pass through filters and get appropriate information which then acts as for authorization!
+
+
+**** VERY VERY VERY IMPORTANT: Use System.getProperty() to get parameters defined at runtime and make the code-flow change accordingly. See Pg34. 
+---- IMPORTANT: See Pg53, "The System class has a static Properties member whose content is the merger of operating system specifics (os.name, for example), system and user tailoring (java.class.path), and properties defined on the command line (as we’ll see in a moment)". THE POINT BEING: there are 3 set of available options, all with same API use. A GOOD THING TO NOTE: would be to call: System.getProperties() and get all properties.
+---- This also brings up point where "-D" is used to pass System-arguments to code!! **Pg51 says that System and Runtime are 2 classes that give handle to runtime environment. **Pg54 is "one-of" examples of using a system properties.
+---- OR, instead use a singleton properties, populated by a properties file!
+
+**** VERY VERY IMPORTANT: Pg34: making a method as "final" tells compiler that the method-body can be inlined!! Gives some performance gain if a body is repeatedly called. BUT MAINLY.. make "final" if the method should indeed be final.
+
+**** VERY VERY IMPORTANT: In practice:
+---- don't use assetions, use validation (pg35)
+---- don't use debugger, use unit tests (pg38). Also on Pg40, it is said that don't use TestNG - stick to JUnit now that latter allows annotations!
+
+**** VERY VERY VERY IMPORTANT: Pg42 - briefly about Jenkins
+
+**** VERY VERY IMPORTANT: Important libraries to refer when getting predefined methods: See Pg48: Apache, Spring, JBoss (Yes! not just an app server), Google!!
+
+**** VERY VERY IMPORTANT: Pg59 - Author says that he made an options parser class for Java. Still it seems Python's argparser it better or at least has better interface design! Particular since it automatically generates a help message, and can make multivalued map.
+---- IMPORTANT: better to use apache command line interface: https://commons.apache.org/proper/commons-cli/
+
+**** VERY VERY IMPORTANT: Nice thing to note from coding perspective. See Pg67 - when there is a method with only a getter and not a setter, then maybe expose it is a property name, instead of starting it with "get" verb. The idea being that the method acts as a proxy to access variable, so method is given a "noun" name instead of a verb
+
+Page 81 - it says that "char" is an integer type and integer operations can be done on it. HOWEVER, in Java, "Character" class provides many methods that otherwise require such integer casting/transformation making it almost unnecessary to change character to integer.
+---- VERY VERY VERY IMPORTANT: See https://docs.oracle.com/javase/7/docs/api/java/lang/Character.html#unicode -- it says that since Unicode has expanded since when Java made UTF-16-bit character, so surrogate pairs are used to represent higher characters. This brings up the issue that while "char" form will see it as 2 characters, the int form sees a single corresponding unicode number. The point being.. whenever possible, use int() based methods instead of char() based when processing unicode values!!
+----|---- Note that this issue is not same as UTF-normalization,like, n~ having 2 representations: as single n~, or as n+~. But that is another important issue to remember. REMEMBER: java also has normalize functions!
+---- VERY VERY VERY IMPORTANT: Pg82: Note that if the OS does not have full UTF characters, then same code will give different result
+---- Pg81 shows how using StringBuilder (or the overloaded '+' operator), one can add unicode characters. OR, See Pg91/92 where unicode can be added directly in string using \uNNNN form (Note: has to be 4 digits)
+---- Pg110: \\uNNNN (note: 2 slashes) can be given in regex expression directly to match an unicode character
+
+**** VERY VERY IMPORTANT: Note that if you are continuously exporting a bunch of external jars in eclipse, then it is instead better to add them to a library and just keep on adding library when needed!!
+---- Press "Ctl + Space" to get suggestions in eclipse, even for annotations, or <jsp: tag in jstl
+
+
+
+
+**** IMPORTANT: Note that on Pg48 it is said that JSF+CDI is similar to Spring. So.. maybe just learn Spring and not JSF. Still it will be needed to know about different context objects and handlers, etc. in jee.
+
+**** IMPORTANT: Pg58,59: Identifying the OS and working accordingly. Note that when looking for windows, the os.name "startsWith" Windows, NOT THAT IT EQUALS TO Windows!! Also, note that "NUL:" is the null output for windows!
+
+**** IMPORTANT: (Pg83) Whenever you think of basic String manipulation: Do remember the StringBuilder (non-sync/fast/non-thread-safe) or StringBuffer (sync/slow/thread-safe) class. They may have useful methods. Like, reversing String is in StringBuilder!
+---- SIMILARLY: When you think of LIFO pattern, think Satck; For FIFO, think Queue. Also remember that Stack can be used when the operation can be expressed as placing brackets suitably across all input (See self notes in algorithm)
+
+**** IMPORTANT: Page 89: Presence of Locale information creates difference between calling equals with toUpperCase; or calling equalsIgnoreCase; NOT SURE if Aache Utils have this setting. ONE MROE ISSUE: recall that in Python, 'beta' and 'SS' don't match even with case ignored! Does Java also see similar issue!??
+---- VERY VERY IMPORTANT: On issue of String comparison, See Pg103: "Soundex" and Levenshtein distance in Apache Utils. Similarly one can do a "n-gram" serach, or other String distance measurements. ON OTHER SIDE.. Soundex can be a good-alternate way to cluster/search for information, let's say using Solr!
+
+**** VERY VERY VERY IMPORTANT: Pg 109: Unicode regex. Also see http://www.regular-expressions.info/unicode.html
+
+
+
+
+VERY IMPORTANT TO KNOW... Pg15,16 - what is use of Classpath, how it relates to Java, and how it is "hidden" in framework like Maven and web-container, where the concept of classLoader and Web-Inf/lib comes into play. Also, note how the -d option with "javac" command enables putting class-files in certain directories - an option used by build tools like Maven!!
+---- Pg18: This is  where repositories like Maven come into picture. Instead of downloading a jar in classpath, there are remote repositories from where jar can be pulled and stored in local repositories, and then the local repositories are put on classpath to provide the jar!
+---- This is also related to how src/main/webapp comes into play - that is where maven defines as location that the corresponding web-application will search for web-content (the content displayed). This is equivalent to "WebContent" folder of Dynamic web project - See 06:40 of https://www.youtube.com/watch?v=oX2rw5pAdxw&index=2&list=PLE0F6C1917A427E96 (At 09:25, note that index.html is created in WebContent folder. One can, for better organization, make only the index.html and other html(s) as inside a html folder)
+
+See https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html for "maven lifecycle". One lifecycle has many phases; executing up to a phase executes everything before it; in each phase there are multiple goals - making custom maven plugin makes a nw goal, but that won't be executed unless it is bound to a phase; and the phase is executed in lifecycle
+---- As said on Pg28, "Typically there are application-server–specific targets provided".. meaning app-servers provide custom targets
+
+See Pg32; Instead of using date, use Calendar and DateFormat class
+
+Pg40 - Note that Hamcrest matchers are used with JUnit's assertThat(). The matchers essentially allow making more expressive matching statement rather than just assertEquals!!
+
+Pg74 - StringBuffer has synchronized methods, So even if being used by 1 thread, it is unnecessarily slow. StringBuilder does NOT have synchronized methods, so is faster. BUT -- then, do remember that StringBuilder will not be thread safe!
+
+Pg108: Recall from Python notes: difference between $ and \Z and \z. I think... \z goes after last terminator, \Z goes before last terminator and $ can go even at in-between terminators!
+
+
+
+JUNIT test : Use @Rule TemporaryFolder to create a folder within which extra new files and folders can be made. This "TemporaryFolder" is deleted along with all its contenets regardless of if the test is success or fail
+NOTE: In maven when trying to do junit test, if you use something like: new File("temp") - then this refers to a file in maven root folder. So if there is a file/folder with name temp (or Temp in windows, since windows is case-insensitive), they will get affected!!

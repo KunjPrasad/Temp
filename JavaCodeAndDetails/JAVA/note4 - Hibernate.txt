@@ -1,0 +1,194 @@
+HIBERNATE:
+
+Note: the problem points mentioned in https://www.youtube.com/watch?v=Yv2xctJxE-w&list=PL4AFF701184976B25  are important to know..
+
+
+VERY IMPORTANT: Note that Hibernate implements JPA.. so whenever making annotations, it is better to use javax.persistence based annotations!! Don't use hibernate annotations directly!
+
+
+**** VERY VERY VERY IMPORTANT Hibernate's lazy vs eager initialization   https://www.youtube.com/watch?v=RmnrgocuivQ&list=PL4AFF701184976B25&index=14
+
+- Default is lazy. When doing a get() operation, hibernate only retrieves the 1st level data; Any collections, etc. inside the object is not pulled till its getter is invoked. The way it does is by making "PROXY CLASS!!"
+---- See around 12:50 - when session is closed before proxy object gets a chance to read data - with LazyInitializationException!!
+---- See around 14:25 to change fetching strategy to Eager!
+---- **** VERY VERY IMPORTANT: What happens is the actual class has method which is "final"; or the clas itself is final.. then a proxy cannot be made!
+---- **** VERY VERY IMPORTANT: Note that in order to do lazy processing, hibernate creates a proxy object. THIS IS MAIN REASON WHY Generic interfaces like, Collection, Set, List, etc. should be used rather than specific implementations. Because as long as we use generic interface, hibernate can provide its own proxy implementation. If we instead use specific implementation class, then hibernate may not be able to create a proxy around it!!
+
+
+
+- ****VERY VERY VERY IMPORTANT: Note that when coding, avoid absolute reliance on hibernate based management.. because it can change in future. Still, one can and should, use its major features like lazy loading and transient/managed/detached object and Hibernate-Query-Language (Video 27, 28, 29)! But, "I would say" best practice would be to develop data model to minimize such "framework-specific" reliance and/or making necessary comments so that future developers know about thinks to handle when framework is changed!!
+---- **** VERY VERY IMPORTANT: A "COMMON PLACE" WHERE THIS SUGGESTION BECOMES APPLICABLE is say when you are using Spring and Hibernate. Now, Spring is bean manager; Hibernate is persistence manager. Spring is defined in a way so that it works with generic ORM - so it is not tailored to Hibernate. And now this creates a issue. Because developer will be working with spring - and asking it to persist; And on back-side spring will delegate responsibility to hibernate. But since the developer is directly interacting with Spring only, not Hibernate, so he needs to write code which is as general possible... NOW.. if previously the code is written in a manner that is extremely dependent on hibernate, then that causes issue in trying to integrate Spring in future!! This is a reason, why framework specific coding should be avoided as much possible!!
+----|---- On similar line, recall the defect resolution doen for patentCenter where toString() was called to force eager loading of bean that passed between two transactions; Spring invoked transaction, but transaction was managed by Hibernate. One can ask - why not use this example to make a case of removing Spring all together, rather than do eager loading?? As a case: See http://www.baeldung.com/spring-data-jpa-multiple-databases  where 2 databases are configured for separate entity. Now consider a case where an entity is loaded from ne DB, then transformed to second entity and needs to be saved in other DB. Let's say we are also given specific providers - So now it comes to a case where we have no choice but to indeed actively load from first and then add to second DB. The point is.. try to keep as less framework dependence as possible!!
+----|---- See https://www.youtube.com/watch?v=PiahhQ0Qkak&list=PL4AFF701184976B25&index=29   One of the more important reasons to choose an ORM tool is so that someone only deals with object and not worry about inject, efficiency, prepared-sttement with param name, etc. problems!! By again going down to use of HQL instead of SQL.. even if HQL can be claimed to be easy, still it opens doors to taking care of such issues that we wanted to avoid by going to ORM tool!!
+----|---- SEE BELOW COMMENTS IN SECTION WITH RESPECT TO HQL (hibernate query language)
+---- **** THIS IS REASON WHY SOMETIMES NOT KNOWING SOMETHING CAN ACTUALLY BE BETTER - because it forces a more general design and implementation!!
+
+
+
+SIDE NOTE: As mentioned above, See http://www.baeldung.com/spring-data-jpa-multiple-databases to configure 2 database for different entities. A different requirement might be to have same entity stored simultaneously in 2 databases in each transaction.. That would need "Java Transaction API" (JTA)
+
+
+
+hibernate.cfg.xml is default config file name for hibernate. Giving any other name would require telling hibernate the location of config file. Sample cfg file can be looked for within the sample projects that get downloaded with hibernate zip file
+---- See https://www.youtube.com/watch?v=3eXjpve0QaI&list=PL4AFF701184976B25&index=4  ALSO IMPORTANT: Look at "dialect" setting (..this is database specific). THIS SHOWS WHY/HOW LIQUIBASE is able to take a bunch of json changelogs and turn it into sql statement - because of availability of dialects!  Se ~5:30 - that all the classes with hibernate annotations ned to be provided to hibernate.cfg!!
+---- IMPORTANT: 2:20 onwards in https://www.youtube.com/watch?v=FFMOZY4z6bE&index=5&list=PL4AFF701184976B25   
+----|---- Explains briefly about Hibernate SessionFactory, Hibernate-session, and how to make a session factory using hibernate.cfg.xml and "Configuration" object 
+----|---- Note how no configuration filename was needed because we named the config file as default
+----|---- NOTE: to always perform db-operations within a transaction. This is because relational DB(s) have concept of commit and rollback!!
+
+
+
+- See ~13:50 of https://www.youtube.com/watch?v=iaSd_yK9xaw&list=PL4AFF701184976B25&index=6   Shows how by changing annotation to getter instead of field, the getter value is sent to db. This may be useful in scenarios where the data type of getter is not same as field - like in CMS' xml deserialization.. the members are set via deserialization as String, but getter/setter change it to appropriate type
+
+
+
+RDBMS - Primary Key: Can be Natural Key (a column part of business logic, is required and unique), or Surrogate Key (externally provided just for purpose of making primary key, no importance in business)
+---- IMPORTANT: If it is surrogate key, we can ask Hibernate to generate a surrogate key for us! - Use via @GeneratedValue. 
+----|---- @GeneratedVale has : "generator" for GeneratedValue, "strategy" for generating value
+
+
+
+Hibernate annotations:
+- @Entity (name of entity affects table-name and entity used in HQL), vs, @Value(A value object, that is a class but stored in dbms as separate columns; An entity has a table/meaning of its own, but value-object does not have meaning of its own, but has meaning in combination with entity). See: https://www.youtube.com/watch?v=c2abcy0Q1a0&list=PL4AFF701184976B25&index=10
+
+- @Table(refer only to table name), @Column (to change column name; even on embeddable object)
+
+- @Id (for Id column), @GeneratedValue (see above for meaning of "surrogate primary key"). See 12:15 onward of https://www.youtube.com/watch?v=X8t6oYp0Uk8&list=PL4AFF701184976B25&index=11  for complex primary key - an embeddable object; It needs @EmbeddedId (@Id and @Embedded separately cannot be used)
+
+- @Type
+
+- @Embeddable (made on class describing the embeddable object; for value object - the ones that are object in Java but stored as column in dbms). OPTIONALLY -> you can put @Embedded in entity class
+
+- See 4:15 onwards of https://www.youtube.com/watch?v=X8t6oYp0Uk8&list=PL4AFF701184976B25&index=11   for @AttributeOverrides and @AttributeOverride in order to change name of embeddable object!! - useful, particularly when original entity has 2 ojects of same embeddable class
+
+- @ElementCollection - to persist an entire collection - so tells hibernate to not embed the collection, but make separate table and make new entries for each item in collection. The newly made table for collection uses foreign key - to be able to map multiple entries of collection to single entry in main table
+---- Related: See https://www.youtube.com/watch?v=kk207HAym_I&index=13&list=PL4AFF701184976B25   @JoinTable(name="...") to change name of table with which join is happening to make collection; @JoinColumn to define join column name - put this with @JoinTable(joinColumns={..}) - NOTE "columns" mean one can join on more than one column
+---- See same video for @CollectionId and a hibernate-based @GenericGenerator. IMPORTANT: NOTE that @CollectionId is not from JPA but from hibernate, so this brings explicit hibernate dependency. Its use (and absence from JPA) can be understood as follows: for things to work, one need not have primary key in collection, plus, users can add their own logic to make primary key. This is why having it in JPA is not suggested. Why Hibernate gives it.. because if the actual logic is to just store data, then artificially adding primary key via extension mechanism seems boilerplate code. Furthermore, the added value can actually be random, so it does not have any business importance. This is the utility of having such a bolerplate reduction annotation.
+---- Lastly, note @GenericGenerator (to make a generator); and @Type to specify type of a column
+---- WHAT IF WE WANT A COMPLEX PRIMARY KEY IN COLLECTION.. Well then set it up yourself!! The example is for case where the saved data does not need a primary key, but one needs to be added nonetheless. ON THESE LINES.. one can again see why it might actually be futile to add a primary key if there is no need for it, and so JPA does not have the annotation.
+---- For related info on sequence generator, see: https://stackoverflow.com/questions/2595124/java-jpa-generators-sequencegenerator
+
+
+
+- https://www.youtube.com/watch?v=I8YmYFI5D_E&index=7&list=PL4AFF701184976B25  Hibernate annotations 
+---- @Basic - also useful to configure optional/loading criteria. By default @Basic is what Hibernate uses
+---- @Transient (or make member as static or transient)
+---- @Temporal (TemporalType.Date) -- if you want to save date only, not everything
+---- @Lob - means it is large object; Can have any length [Can be clob (character lob), or byte stream lob (blob)]. It Lob is on top of string, Hibernate chooses clob. If on top of byte array, it uses blob!
+
+
+
+VERY IMPORTANT: See https://www.youtube.com/watch?v=Of7qR-WagYk&index=15&list=PL4AFF701184976B25 ~5:45. Note that if an entity has single or collection of object, the class type of which is marked with @Embeddable, then Hibernate need not be told about such embeddable classes.. BUT, if we are having an entity within an entity, then, both classes need to be identified in HIBERNATE
+---- Also IMPORTANT, see with reference to comments about @CollectionId above. Note that when we really want to add a primary key in another table, best is to make it as a separate entity and then embed one in another. This design is fully JPA complaint and doesn't require any hibernate specific annotation. **** VERY VERY IMPORTANT: thus, almost it can be said that if one requires using Hibernate specific annotation, then maybe data modeling is getting somewhat wrong!!
+---- IMPORTANT: Note that when someone says "one-to-one" mapping, they mean: there are 2 entities, joing on some column(s). The term "mapping" is not used for "Embeddable" objects
+---- VERY VERY IMPORTANT: @OneToOne  (See from, say, 11:00). NOTE following for one to one mapping:
+----|----  **** IMPORTANT: When having different entities, and not embeddable objects, then user is required to save each entity. With Embeddable, saving the first entity also saved others!
+----|---- When making one-to-one mapping, the primary key of the member-object is inject in containing-object as a "foreign key"; and not the other way round. This is to keep things consistent in database with how classes are. For example, in video : user has vehicle, not that, vehicle has user!
+----|---- In doing mapping, the member-object is not given a foreign key
+----|---- See around 11:40 to note the sequence of steps taken by Hibernate: First it adds user data; but since it does not know vehicle id because vehicle-id is generated by a sequence, it then adds vehicle, and finally updates the vehicle id in user table!! 
+----|---- Can use @JoinColumn to give a custom column name!
+
+
+
+FOR @OneToMany and @ManyToOne
+See https://www.youtube.com/watch?v=4mANZ4MMbD4&list=PL4AFF701184976B25&index=16 , https://www.youtube.com/watch?v=jAi8bY-H_ek&list=PL4AFF701184976B25&index=17    particularly the 17th one
+**** VERY VERY VERY IMPORTANT: in general, note that:
+(1) One-to-one creates 2 tables, each having one row
+(2) Many-to-one and one-to-many, by video#17 still has 2 tables, but multiple rows in table corresponding to "multi". This design also matches with @ElementColection/@Embeddable annotation
+
+---- This creates question on which of 2 table should have foreign key / join column, or if both should have.
+----|---- Particularly in video-17, look at "mappedBy" option in @OneToMany annotation. This particularly forces a design where the container-object has id of container-object, rather than the otherway round.
+----|---- **VERY VERY IMPORTANT: Befor reading below comments, do realize, that when 2 classes are marked as "@Entity", it means that they are both "independent". The question of "who can exist without another" is useless - both can exist without other, that's why they are entities; else they would have been @Embeddable!! The question of one-to-many, many-to-one, @JoinTable and mappedBy comes because of discordance that in Java and JPA, relations are unidirectional, whereas in DB, they are bidirectional. (See next set of comments using stackoverflow links)
+----|---- See https://stackoverflow.com/questions/11938253/jpa-joincolumn-vs-mappedby  Using process in video16 vs video17 creates a separation of who is "owner" of table. I guess the same concept of "ownership" happens when one-to-one mapping is also done. **** VERY VERY VERY IMPORTANT: This is important to understand from modelling perspective: Owner is the one that has access to others; and not other way round - and this needs to be identified by business reuqirement. SHOULD BOTH NEED TO OWNER.. then it becomes many-to-many relation, even-if there is a single row in each table. THUS, THE CONCEPT OF ONE-TO-ONE, ONE-TO-MANY, MANY-TO-ONE, MANY-TO-MANY relates NOT to whether there is one or more class inside each other, BUT INSTEAD TO the count of owners of a data relation; owners being the one who have hold on other-data-portions of the full relation via the id!! 
+----|----|---- In this regard, see video 18 start  https://www.youtube.com/watch?v=K2Id3WLZWJI&index=18&list=PL4AFF701184976B25&spfreload=1   . Note the concept of Hibernate throwing exception by JPA standards, when user, annotated with @ManyToOne is not present. And how this is suppressed by a hibernate specific @NotFound annotation. THE MAIN/IMPORTANT POINT IS - since Hibernate specific annotation is used, this signals that something non-standard is being done. For a proper solution, see https://stackoverflow.com/questions/23157585/using-manytoone-and-onetomany-causes-org-hibernate-exception-genericjdbcexcept   ALSO NOTE how use of "mappedBy" is determines the owner of relation - the object that can stand on its own
+----|----**** VERY VERY VERY IMPORTANT: One similar topic, note that the circularity done at end of video-16 is wrong thing to do from Java perspective because it creates CIRCULAR REFERENCE. Instead of circular reference, it is always better to make a higher level class "containing" the 2 inidividual owners. This is probably the design reason why in video-16, 3 tables get made by hibernate.. and also applicable in many-to-many mapping (See ~11:00; also note the use of "mappedBy" to prevent creating additional table)
+
+----In video-16
+----|---- See use of @JoinTable(joinColumns and inverseJoinColumns).. note the 's'/plurality at end, so each contain multiple @JoinColumn 
+----|---- **** VERY VERY IMPORTANT: See towards the end where @ManyToOne is used - but in Vehicle object!! ALTHOUGH POSSIBLE.. THIS SEEMS LIKE A BAD WAY TO DO THINGS because it causes CIRCULAR REFERENCE!! Ideally preferable way would be to simple make a new object consisting of user-vehicle pair (just like the DB does), and be able to index that based on both user and also on vehicle information!!
+
+
+
+**** VERY VERY VERY IMPORTANT: Additional details on @OneToMany, @ManyToOne, related issues to take care of:
+---- https://en.wikibooks.org/wiki/Java_Persistence/OneToMany#Unidirectional_OneToMany.2C_No_Inverse_ManyToOne.2C_No_Join_Table_.28JPA_2.0_ONLY.29
+NOTE: 
+----|---- """A OneToMany relationship "IN JAVA" is where the source object has an attribute that stores a collection of target objects, and, "IF" those target objects had the inverse relationship back to the source object it would be a ManyToOne relationship (SO @OneToMany DOES NOT NECESSARILY IMPLY @ManyToOne BY DEFAULT). **IMPORTANT: ALL RELATIONSHIPS IN JAVA AND JPA ARE UNIDIRECTIONAL, in that if a source object references a target object there is NO GUARANTEE that the target object also has a relationship to the source object. **THIS IS DIFFERENT THAN A RELATIONAL DATABASE, in which relationships are defined through foreign keys and querying such that the inverse query always exists. (IMPORTANT: This is a major source of confusion regarding "owner" of a relation. In Java, ideal design suggests that it should always be top class. But in DB, the "contained" object may act as owner by having a foreign key through which enclosing object can be found)""" 
+----|---- """JPA also defines a ManyToMany relationship, which is similar to a OneToMany relationship except that the inverse relationship (if it were defined) is a ManyToMany relationship. The main difference between a OneToMany and a ManyToMany relationship in JPA is that a ManyToMany "ALWAYS" makes use of an intermediate relational join table to store the relationship, whereas a OneToMany "CAN" either use a join table, or a foreign key in target object's table referencing the source object table's primary key. **IMPORTANT: If the OneToMany uses a foreign key in the target object's table JPA "REQUIRES" that the relationship be bi-directional (inverse ManyToOne relationship must be defined in the target object), "AND" the source object "MUST USE" the mappedBy attribute to define the mapping."""
+----|---- See section on "getters and setters" and how bidirectional mapping faces potential issues that one should be careful about.. which can get exacerbated, particularly in context of Lazy loading
+
+---- IMPORTANT STACKOVERFLOW LINK: https://stackoverflow.com/questions/11938253/jpa-joincolumn-vs-mappedby/11939045#11939045
+
+---- IMPORTANT INFORMATION ON DB DESIGN (and how some modern practices may obscure db clarity): https://stackoverflow.com/questions/762937/whats-the-difference-between-identifying-and-non-identifying-relationships
+
+---- VERY VERY IMPORTANT: Tie together: Cascades: https://www.youtube.com/watch?v=K2Id3WLZWJI&list=PL4AFF701184976B25&index=18  , details from stackoverflow link: https://stackoverflow.com/questions/14585836/hibernate-many-to-many-cascading-delete  , and the fact the each entity means "it is an independently managed object" - to realize that the best db solution, except OneToOne and Embeddable(single/collection) is to in-fact only use an intermediate joinTable followed by a cascading relation!! The simplest solution would be to always have a separate join table when needed, and always use a Casacde-ALL option! -- But then, yes, it won't be most optimal.. but it will be most managable and simple! - and probably closest to Java design, because in Java there are only one-directional links (as said above..)
+----|---- Regarding casacing, note how it prevents the requirement to save each and every "ENTITY" explicitly; cascade does that by its own!
+
+
+
+HIBERNATE and INHERITANCE:
+See https://www.youtube.com/watch?v=M5YrLtAHtOo&list=PL4AFF701184976B25&index=20 and https://www.youtube.com/watch?v=qIdM4KQOtH8&list=PL4AFF701184976B25&index=21 and https://www.youtube.com/watch?v=o1b3HFIlDS0&list=PL4AFF701184976B25&index=22  
+The point to realize is that JPA/Hibernate gives 3 ways to implement inheritance persistence: Single table, table-per-class, and, join-strategy. Involved annotations are @Inheritance(strategy=InheritanceType.{enum-option}); 
+
+---- For single table, there is also: @DescriminatorColumn(...) <-- on super-class being inherited, and, @DiscriminatorValue (on inherited classes). Note that this is default. In terms of implementation, this probably comes closest to "essence of inheritance". Inheritance mean there should be "is" relation between super and sub class [Note, in video, the example uses Vehicle and Two/Four-wheeler. This seems to satisfy inheritance because in general use we think they are related. But thinking in terms of classes with members, it is not very clear how composition would not apply. ****BEST: Use inheritance only for strategy pattern, inheriting from abstract class!!]. Due to "is" relation, it is natural that all data is stored in same table only!! This is what single-table strategy does
+
+---- For table-per-class AND join-strategy, note that both creates multiple table in some way or other. So core "is" relation is broken!! However, in the already-bad-choice of using inheritance to do something that should be done using composition.. the join strategy seems better than table-per-class strategy. In join strategy, even though the actual classes are inherited in Java, the way it is persisted in Java resembles closely to "@OneToOne" mapping and composition principle. Table-Per-Class strategy, on surface seems to be a good one, but I would say is worst (from RDBMS/normalization perspective), because it breaks both the concept of inheritance and also composition by storing all tables separately!! HOWEVER.. it would probably be best (or maybe second, after basic single-table strategy) in a "denormalized" setting which is more apt to NoSQL data storage!!
+
+
+
+CRUD in hibernate:
+- To create, note there are 2 methods, save() and persist() -- But only latter, i.e. persist(), does the cascading
+
+- To read, there is get()
+
+- See around 12:20 of https://www.youtube.com/watch?v=hDBQy-dWC0A&index=23&list=PL4AFF701184976B25  on how session.delete() deletes the object.
+---- IMPORTANT: However, NOTE that, delete() takes an object as argument, but only uses the primary key portion of it to effect a delete. So if you provide it a partially filled object not exactly corresponding to values of entire row, but as long as primary keys are present, Hibernate will only take those primary key values and delete by it!!
+- See ~14:25 for updates
+---- IMPORTANT: note that Hibernate session also has a saveOrUpdate() method!!
+
+
+
+**** VERY IMPORTANT: TRANSIENT, MANAGED and DETACHED objects (with respect to Hibernate framework)
+See https://www.youtube.com/watch?v=kZpRyEABnms&list=PL4AFF701184976B25&index=24 , https://www.youtube.com/watch?v=sjZGFHEdD4M&index=25&list=PL4AFF701184976B25 , https://www.youtube.com/watch?v=T02FicxK_aY&list=PL4AFF701184976B25&index=26
+
+- SPECIALLY... see video#24 and how once an object is "attached" to hibernate session via a save / get / persist - it gets under Hibernate's management such that any/all future changes done on it automatically gets saved!! 
+---- Also note the comment that if there are multiple updates on same member of an object - then hibernate only saves the last one - as way to be more efficient!
+---- This brings some more clarity on use of update(). update() is useful if object isn't bound to Hibernate, and then one needs to bind it again and save the changes - like in video 26. If an object is already under Hibernate's management, there is NO NEED save object again!! <-- IMPORTANT.. Note
+---- Also note in video#25 - how delete() changes object from managed to transient - because after delete(), there is no object in database, so there is no need for hibernate to continue managing it!
+---- Note : Use of Hibernate's @Entity annotation to configure get-before-update.. but then as mentioned above.. try to stick to JPA's specifications. Going outside it most likely mean you are doing something unnecessary!! While get-before-update may have some user, at many other places it will just be unnecessary!!
+
+- VERY IMPORTANT:: LAST.. note the case in video#26 that is good real-life example of when an object might need to be brought back from detached to managed state!! ..Because we want to release hold of hibernate session as son possible rather than waiting for user input - we want to release hold, because, underneath it, hibernation is using DB connection pool of limited size. So, there won't be any available connection left if the hibernate session isn't closed rather than waiting for user.
+---- ON SIMILAR NOTE.. **** VERY VERY IMPORTANT: DO REMEMBER that Hibernate has lazy loading, so, if you try to read lazy-loaded collection/sub-object data from a detached proxy, you won't be able to. You need to first make it hibernate managed again!
+
+
+
+HIBERNATE-QUERY-LANGUAGE (HQL):
+See https://www.youtube.com/watch?v=Em4M2tUn1bU&list=PL4AFF701184976B25&index=27 , https://www.youtube.com/watch?v=WVHFpp8X5z0&index=28&list=PL4AFF701184976B25 , https://www.youtube.com/watch?v=PiahhQ0Qkak&list=PL4AFF701184976B25&index=29
+---- **** VERY IMPORTANT: Based on comments at the very start of Hibernate Section, it seems unnecessary to venture into HQL. HOWEVER, note that there is now something called JPQL : https://en.wikipedia.org/wiki/Java_Persistence_Query_Language   While HQL was made before JPQL, and JPQL might be a subset of HQL.. the fact remains that there is now something called JPQL, which is part of specification - so it may eb good to know of it at least somewhat.. but only the JPQL part, not the HQL part which is outside JPQL
+---- See @NamedQuery vs @NamedNative Query : https://www.youtube.com/watch?v=o_P-p2b_k6w&index=30&list=PL4AFF701184976B25 , http://stackoverflow.com/questions/13954924/namedquery-over-namednativequery   Both annotations are "PART OF JPA", and not hibernate specific.. while the video shows @NamedQuery using HQL, it is instead using JPQL - so use of both is part of JPA specs. See stackoverflow link on pros and cons of both! See ~5:00 of video on how to use named query with Hibernate session - and then binding values either using position or named-parameters.
+----|---- At least as shown in video.. use of NamedQuery doesn't seem to be refactor friendly!! because query is identified by string-name... What if we change class name??! 
+----|----|---- **** VERY VERY VERY IMPORTANT: 2 solution: (1) MOST IMPORTANT: Save names in public static final String, and try to use it. Do this even for table and column name!! THIS IS ACTUALLY A GENERALLY DESIGN/CODING ADVICE!! (2) use criteria API (see below)
+----|---- **** VERY VERY IMPORTANT: NamedQuery and NamedNativeQuery are useful in custom querying (like Accessor in Cassandra)
+
+
+
+CRITERIA API:
+- https://www.youtube.com/watch?v=4fVlAobgQGI&index=31&list=PL4AFF701184976B25 , https://www.youtube.com/watch?v=MzrzsKSJBt0&index=32&list=PL4AFF701184976B25 , https://www.youtube.com/watch?v=2DXjdl8gzOo&index=33&list=PL4AFF701184976B25
+---- IMPORTANT: Note that standard JPA also has a criteria API: https://en.wikibooks.org/wiki/Java_Persistence/Criteria
+---- NOTE that use of criteria API, while being related to Hibernate, can be considered in coding rather than being totally left out as non-standard. The reason is that the benefits brought out it hugely outweight the cons of just being not JPA complient. It is an alternative to defining sql/jpql queries to keep things more managable - and is restricted to dao-implementation logic only. BUT.. if things can be done via JPA-compliant query builder.. that would be preferable
+---- Searching by "Example" in criteria api: NOTE that in searching, hibernate ignores null-valued columns AND "primary key"!! Good to query "by-equality" based on values of members in example object, AND if there are many such constraints (i.e. many such columns) present. This is better than making a large criteria by repeated add() calls.
+
+
+
+**** VERY VERY VERY IMPORTANT: HIBERNATE CACHE
+---- **** VERY VERY VERY IMPORTANT: Note that the video seems very inadequate on topic of caching.. better do extra reading, like looking at J2EE/JPA spec (http://docs.oracle.com/javaee/6/tutorial/doc/gkjia.html) , how to use caching in J2EE, can we integrate any other 3rd party cache and how??! How to integrate both Hibernate and caching with Spring - which config files should be changed and how?
+See https://www.youtube.com/watch?v=ISi_OkmuQbs&index=34&list=PL4AFF701184976B25 , https://www.youtube.com/watch?v=TMZZg-HEjiE&list=PL4AFF701184976B25&index=35 , https://www.youtube.com/watch?v=iwCdyr0bdkw&index=36&list=PL4AFF701184976B25
+
+- For Single level caching iwthin one session: See https://www.youtube.com/watch?v=ISi_OkmuQbs&list=PL4AFF701184976B25&index=34   QUESTION: Within same session, when 2 objects are read using same query, the video shows that Hibernate does only 1 single read from database. The question is : are the 2 objects reference to same object, or are they separate copies!! DO CHECK: If it is same reference, then that creates a major issue when using Hibernate backend.. specially if Hibernate is mixed with other framework, like Spring
+---- Do realize that a proper/concurrent-compliant coding/design should be based on assumption that Hibernate indeed does return same object reference and not create a copy; Because in the end, there is just one object persisted in DB.
+
+- For 2nd level caching of entity, @Cacheable and @Cache annotations come in. The difference : @cacheable tells that entity can be 2nd level cacheable; @Cache tells when to cache, etc. See http://www.rapidprogramming.com/questions-answers/difference-between-cache-and-cacheable-in-jpacache-vs-cacheable-1657    Do note that this is a cache - so it is possible that database has to query again and get new value because old cache entry got evicted. 
+---- NOTE that @Cache used in video belongs to hibernate. But JPA also has a @Cache - why not use it!!
+---- SIMILARLY, as said towards end of video#36, be careful in performing query cache. NOTE: setting query cache ALSO SIGNALS HIBERNATE TO CHECK CACHE. If not set even in following queries, the cached result of first query may not be checked!
+
+- **** VERY IMPORTANT: Realize the caching is NOT a solution to LazyInitializationException. One can instead use session.merge(). 
+---- ON THIS NOTE, one can also use session.evict() to evict session cache so as to repopulate it again!!  ..and use session.contains() to identify if it contains an object -- NOT SURE HOW THIS WORKS..

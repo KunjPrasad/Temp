@@ -1,0 +1,187 @@
+Resource: javaBrains Youtube
+
+
+**** VERY VERY VERY IMPORTANT... Pg15,16 of Java CookBook - what is use of Classpath, how it relates to Java, and how it is "hidden" in framework like Maven and web-container, where the concept of classLoader and Web-Inf/lib comes into play. Also, note how the -d option with "javac" command enables putting class-files in certain directories - an option used by build tools like Maven!!
+---- Pg18: This is  where repositories like Maven come into picture. Instead of downloading a jar in classpath, there are remote repositories from where jar can be pulled and stored in local repositories, and then the local repositories are put on classpath to provide the jar!
+---- This is also related to how src/main/webapp comes into play - that is where maven defines as location that the corresponding web-application will search for web-content (the content displayed). This is equivalent to "WebContent" folder of Dynamic web project - See 06:40 of https://www.youtube.com/watch?v=oX2rw5pAdxw&index=2&list=PLE0F6C1917A427E96 (At 09:25, note that index.html is created in WebContent folder. One can, for better organization, make only the index.html and other html(s) as inside a html folder)
+
+
+
+
+SERVLET:
+
+JavaBrains https://www.youtube.com/watch?v=gU0RebsaFzQ&index=3&list=PLE0F6C1917A427E96
+
+- Note that when making a new Servlet in Eclipse, it extends HttpServlet. Why, and what is a servlet? Servlet is a java-code run by the server. A HttpServlet is a java code run by server in response to a HttpRequest; And so the HttpServlet generates a HttpResponse (See 09:12 minute). Since we intend to communicate via HTTP, so the desired java-code needs to extend HttpServlet (so that it can be run due to a Http trigger). Finally, since these are run in response to Http, so the HttpServlet should have methods to respond to Get, Put, Post, Delete, etc Http-methods. This is why HttpServlet has those methods!
+Furthermore, since Server runs a servlet, it is called "servlet-container". IT IS RESPONSIBLE FOR reading Http data, and parsing it appropriately forming HttpServletRequest object; and later, serializing the HttpServletResponse in proper HTTP data format. AND NOW.. everytime a new request comes, either from same or different browser, the request/repsonse objects are creater by Server and passed to Servlet
+See here for some more details: https://way2java.com/servlets/java-made-clear-difference-servlet-genericservlet-httpservlet/
+
+- Servlet 2.5 vs 3.0: See 05:51 minutes. When a new servlet is made with Servlet 3.0, Eclipse adds @WebServlet(description="..." urlPatterns="/...") annotation. If this were Servlet 2.5, then we would have to add these details in web.xml; i.e. Servlet-name, description and url-access-pattern. With Servlet 3.0, these are annotation-based! 
+NOTE that it is called urlPattern"S", not urlPattern, this means that one can configure to run same class for more than 1 url!!
+Another lecture shows config via web.xml: https://www.youtube.com/watch?v=w6YPK9xunCk&index=5&list=PLE0F6C1917A427E96
+
+- A related concept: the web-context-root.. it is needed because a web-server can run many web-applications at same time. The web-context is useful in identifying which among those all should be looked into for further processing
+
+- IMPORTANT: Servlet vs JSP vs Rest:
+---- As said above, Servlet is a java-code, and for all practical purposes, extends HttpServlet. ANOTHER VERY IMPORTANT things to note: when server reads/responds, it is essentialy reading/writing bytes!! So, it is necessary to set content type so that the client knows how server will interpret the bytes sent, and to let the client know how it should interpret bytes sent by server. This is where @Accepts, and contentType setting comes in play!
+---- JSP is a webpage that doesn't just have text, but also Java code, and other variables enclosed in  ${} that can be filled. Since these are like-webpages, they are placed inside Webcontent folder, but outside WEB-INF. A servlet equivalent of a JSP might be to use URL mapping same as JSP name, and implement a doGet() method where details are written to PrintStream. Note that this gets tedious, and so JSP becomes a more intuitive way to do things. Also note that since JSP can be seen as a servlet, so this helps understand how JSP is able to access different contextual information ${} that otherwise seems logical to be only available via code and not when serving webpages!! But no.. JSP also accesses them.
+----|---- Servlet is "Having html in Java code done via Strings and PrintWriter"; JSP is "Having some Java code in HTML"!!
+---- REST: When making JSP, one can add form which invokes some other "url Access". In Rest, This is same as servlet, but now these are marked with @Path, @Get, @Post, etc. annotation. Once again, a single @Path class can end up having different methods with @Get, @Post, etc. Also, the methods inside a single class can be given additional path.
+
+- Servlet vs Controller:
+Above clarifies that controller is actually just a servlet wherein a code in run based on a url access pattern. However, the concept of Controller is more in line with MVC design pattern
+
+(Minor) https://www.youtube.com/watch?v=MnUJl3NYRRc&list=PLE0F6C1917A427E96&index=6  ---- NOTE that : (1) When executing a form with target as get method, then the input values are passed as query param in url, and the value is retrievable in the code by "request.getParameter("paramName")"; (2) When executing a form as POST, the param is STILL retrieval by "request.getParameter("paramName")"
+---- See 11:17 minute of https://www.youtube.com/watch?v=0WPfqrSCb6c&index=7&list=PLE0F6C1917A427E96   for passing multiple parameters sent, use request.getParameterValues("..")
+
+(Minor) See 10:00 minute onwards of https://www.youtube.com/watch?v=yzC4oDXfkl0&list=PLE0F6C1917A427E96&index=8 -- the point being that Java EE gives specifications for classes, like, HttpServlet. But each webserver, or appserver, can then make a code that implements the interface.. and when a code is run in server, that particular implementation is used. HOWEVER, the developer-code is not bound to the server-specific implementation, since development is done on Java EE specs, which is satisfied by all implementations!! 
+---- Look below the discussion about ClassLoader and think of this problem in terms of that.. and it becomes clear how appServer provides implementation for various Java ee classes and how the concept fits in overall execution process. Note that when user is making his code, he's using Java EE guidelines from interface; but the exact implementation is given by AppServer
+
+- Nice and brief details about genericServlet, HttpServlet class: https://www.youtube.com/watch?v=KPh1nPWB9ac&list=PLE0F6C1917A427E96&index=12   Also covers init(), service() method, and on how doGet(), doPost(), etc shows up for HttpServlet.
+
+
+
+
+VERY VERY VERY IMPORTANT : From Another lecture.. https://www.youtube.com/watch?v=2QD1sOG8pyU&list=PLqq-6Pq4lTTZh5U8RbdXq0WaYvZBz2rbn&index=13  See ~1:00 The point is when making new REST project, we generally always have a starter-servlet that is given a path-portion after the WebContext. What is this special servlet object?
+---- This is the Jersey, or RestEasy servlet (i.e. Java class) which has logic that takes the portion of url that follows, and then tries to look in the codebase we have provided to find a suitable method that can handle the call to remainder of url. 
+---- SO.. NOTE: either we make our own servlet which does the job of handling user request. OR.. we accept a "Dispatcher servlet" provided by Jersey, or RestEasy, or Spring which contains logic to parse the full url and route the request to appropriate code elements that can handle it!! Remember, in case of Swagger for CMS.. it was initialized in a different servlet altogether -- maybe because it has its own inbuilt way of handling request which it does not want shared with existing application logic
+
+
+
+
+VERY VERY VERY IMPORTANT: Objects made by Server
+
+https://stackoverflow.com/questions/3106452/how-do-servlets-work-instantiation-sessions-shared-variables-and-multithreadi
+It describes how there are these main objects made by Server:
+1) ServletContext - this helps server identify different url/servlet associated with ONE web-application. A single object made when deploying application. NOTE: It is shared among all requests in all sessions.
+
+2) Servlet, Filter, Listener - As said in https://www.youtube.com/watch?v=GbvuAIhLUZU&list=PLE0F6C1917A427E96&index=9 at 04:50, and also in https://stackoverflow.com/questions/9555842/why-servlets-are-not-thread-safe/   Servlets are class and contain method for get/post/etc. which contain the core logic. So, it stands to reason that one only needs the methods from these objects to perform business activity. Thus, only 1 instance of servlet class is needed, and the various methods of this object are used/reused asynchronously via a request, which is assigned to 1 thread. This gives efficiency. ONE MORE REASON: HTTP is stateless, so theer is no point saving state information, so by protocol, these methods need to be stateless, and thereby be thread-safe. i.e., there is no staic variable, or non-final member
+---- When making your own servlet and own init() method, remember to always call super.init(config). See https://www.javavillage.in/spring-ioc-on-servlets.php
+
+3) Request/Response - A request is a "deserializaion" of incoming serialized user request. Since it needs to be unique for all user, it is made per request, i.e. it has request-scope. Same for response which is like a deserialized object before it is serialized into actual HTTP response that is passed to user
+---- This is where the concept of filter comes in.. between the point where deserialized request object is made, up to the point when it is passed to servlet, it can be made to pass through a set of filters. Similarly, after the reponse has been given by servlet, up to the point where it is finally let out by server as HTTP, it can pass through post-filter.
+---- This, now, is where the difference between filter and interceptors come in. See http://www.javabench.in/2011/10/java-difference-between-filter-and.html (also printed the webpage). Filter is ONLY associated with a web-request as a whole, so is useful for request/response header manipulation, general authentication, compression. Filters cannot play a fine grained role. Interceptors, however, are associated with classes, i.e. servlets. So, let's say if there is a 2nd layer of specific role-based authentication to access particular class method, that is better made as an interceptor. Similarly, logging at class level is better done at interceptor. Once again, there can be interceptor before or after class.
+---- Finally, there is also Listener. Listener triggers on events! See http://www.javabench.in/2011/10/java-difference-between-filter-and.html
+---- ANOTHER IMPORTANT THING TO NOTE: "Parameter" is what external HTTP request from user comes to the server. An "attribute" is something a server can make and attach to the request object. Why would server make an object? - See this example of use of RequestDispatcher.include() method:https://way2java.com/servlets/requestdispatcher-include-example/ and how it passes data from one servlet to other. This is an example of "Objects" being passed, so an "attribute" is set and not "parameter" because "parameter" can only be String type, not arbitraru Object type. This is similar reason why HttpSession (see next) stores "attribute" values because any "object" can be stored and not necessarily string in session. Reference, see: https://stackoverflow.com/questions/5243754/difference-between-getattribute-and-getparameter
+
+4) Session - This comes from fact that HTTP is stateless, but some aspects need state information, like login information. As mentioned, session is made by server. User is given a cookie, and by contract, user needs to return it to server. Server uses the id in cookie and identifies the session object, till session expires. SO, a session is on server, user just gets sessionId cookie. 
+---- In context of above detail that HttpServlet should not contain any non-final member methods because Http is stateless, note that there are "user-scoped-session". This is the wiring that Spring does, so it is possible to make objects in spring-controller-class that have session-scope!
+---- Also see: https://stackoverflow.com/questions/1700390/best-option-for-session-management-in-java
+---- A small detail on session creation method: https://stackoverflow.com/questions/30980616/difference-between-request-getsession-and-request-getsessiontrue
+
+
+
+
+MORE ON SERVLETCONTEXT (and "RELATED"):
+- ServletContext is an object shared by all servlets. Thus, any configuration properties put in it are shared by all servlets (See https://www.javatpoint.com/servletcontext) This is in contrast to ServletConfig, which provides configuration values only to a given servlet (See https://www.javatpoint.com/servletconfig). This is why ServletConfig uses init-params from <servlet> tag, but servletContext is made from values in context-param which is outside <servlet> tag. Also see https://stackoverflow.com/questions/4223564/servletconfig-vs-servletcontext
+
+- VERY VERY VERY IMPORTANT: A RequestDispatcher object takes a path and identifies the resources (i.e. servlet/jsp/html) that will be serving it. Javadoc: https://docs.oracle.com/javaee/6/api/javax/servlet/RequestDispatcher.html
+---- There are 2 ways to get a RequestDispatcher, from http-request, or from servletContext. Getting it from http-request means the dispatcher is limited to only providing resource from current "context". Getting from ServletContext object as a static method allows one to also call resources from other contexts deployed in same server -- if, the server is configured to allow cross-context access. See https://blog.imaginea.com/cross-context-communication-between-web-applications/
+----|---- A few more things about the blog-link. (1) Note that it uses ClassLoader.. Don't think that this is not necessary because Once the application context is obtained, one can get necessary beans from it. It is necessray because even though the 2 servletContexts can talk, their classLoaders are still different, and one does not know about the other. But the class is defined in corresponding classLoader, so it becomes necessary to go to corresponding loader and use Reflection-API to get class (2) NOTE the code: targetServletContext.getAttribute("org.springframework.web.servlet.FrameworkServlet.CONTEXT.bar");  And see comments in https://stackoverflow.com/questions/29981261/servlet-web-application-context-from-filter   The point is that "org.springframework.web.servlet.FrameworkServlet.CONTEXT.{servletName}" is the name of attribute that gives handle to corresponding applicationContext. This example opens up a few more things about Spring which are discussed separately
+---- See example of using its include() method: https://way2java.com/servlets/requestdispatcher-include-example/   A corollary would be "include" tag in jsp!
+---- It is also possible to call it's forward() method. As shown in the code on https://stackoverflow.com/questions/870150/how-to-access-static-resources-when-mapping-a-global-front-controller-servlet-on/3593513#3593513  The forward() method forwards request to a different servlet on server side but without triggering a browser url change on client side. So client will continue to use his/her url, but the request will be served by a different servlet at server side.
+----|---- Compare it to sendredirect() "...of HttpServletResponse object", which causes client browser to request for new url and reads from there. Both the old and new url go in history.
+---- Can also use for reference: https://way2java.com/servlets/difference-between-requestdispatcher-from-servletrequest-and-servletcontext/
+
+- ServletContext can also be used to get other "resources" attached to web-application using getResourceAsStream() :  https://way2java.com/servlets/servlets-made-clear-servletcontext-getresourceasstream/
+
+- Note that ServletContext contains objects shared across all servlets and sessions. So ideal things to put in there would be like, Database connection, initialization params. Since Spring's ROOT context binds to servlet context, that's why this is a good place to make all common beans. See ~8:20 of https://www.youtube.com/watch?v=KPh1nPWB9ac&list=PLE0F6C1917A427E96&index=12  - Since init() method of Servlet is the first method to run, that is an ideal place to make singular database connection and put the object within servletContext! 
+---- ALWAYS make sure to call super.init() if making own init() method for servlet. See ~09:20 of video on why when overwriting init() method, do NOT overwrite the init() method that takes ServletConfig value!!
+---- In context of above.. if you want to give a value that is specific to a particular servlet only, then add it in ServletConfig, NOT in ServletContext. See ~12:10 on how to add init-param for servlet using annotations in servlet 3.0
+
+- IMPORTANT: Why servlets have init() but no constructor method? NOTE: initialization of servlet is done by container, since container manages lifecycle. To provide the capability to user to make modifications, user is provided the init() method that the container calls. Since init() is the first method being called, this ensures that the user-defined iitialization is done before servlet handles any request/response! ONCE AGAIN.. remember to no overwrite init(ServletConfig) method, or call super.init(config) in it to ensure that initialization is done.
+
+
+
+
+JSP:
+- "out" used to write data to JSP file from Java code in scriptlet. See ~10:20 of https://www.youtube.com/watch?v=WCbwBHXUx0k&index=14&list=PLE0F6C1917A427E96   When one writes <% out.println(k) %>, that is equivalent to writing <%=k %>
+
+- See around 11:45 <%! ... %> can be used to declare methods that are then availale everywhere!! REALIZE - Java being OOP, functions can't exist independently. But doing this allows making methods in JSP
+
+- See around 4:15 of https://www.youtube.com/watch?v=Ycf_GQbPqKI&list=PLE0F6C1917A427E96&index=15   NOTE how for loop is broken in 2 scriptlets!! - without any error. 
+---- IMPORTANT: See ~6:20 - the entire JSP is converted by container to single Java class that is LIKe a servlet (for exact, see ~10:15). And that's why code broken across scriptlets, like the for loop, still work as one!! Using <%! ... %> makes JSP interpret it as a seprate method of that class
+---- IMPORTANT: See ~11:40. JSP respond to get/post or any other type. Essentially, what we write in JSP forms part of service() method invoked on Servlet. When explicitly making HttpServlet, this class created distinction for get/post/etc.. but this distinction is not there for JSP. JSP just has a service() method, so it gets called always regardless of nature of call!!
+
+- Around 3:10 minute of https://www.youtube.com/watch?v=qLpm1Zxytsg&index=16&list=PLE0F6C1917A427E96   A way to do import. In this regard - NOTE: IMPORTANT: "page" directive - way to tell JSP that given attributes apply to entire page, and not as port of service() method! See ~4:00. And then ~4:50 on how to set contentType of servletResponse as html in jsp!
+---- NOTE that <%@ is generally a symbol for "directive". "page" is one example, "include" is another possible (see ~10:15; This is an example of where RequestDispatcher.include() gets used. See above notes for more info)
+---- See http://www.xyzws.com/jspfaq/what-is-difference-between-page-and-pagecontext-in-jsp-pages/4    "Page" can also be used as a java variable
+
+- IMPORTANT: Accessing request, session, context object ..and "PAGE-CONTEXT" : https://www.youtube.com/watch?v=W0JQ0TaeXAY&list=PLE0F6C1917A427E96&index=17
+---- VERY VERY IMPORTANT: What is Page-scope in Jsp? See http://javapapers.com/jsp/explain-the-scope-of-jsp-objects/  In request scope, attributes can be set bound to request, so that if the request gets forwarded to other servlet, they get the object. But beans in page scope do not get transferred.
+
+- VERY VERY IMPORTANT: JSP provides a bunch of implicit object that can be used with ${...} inside JSP; or also in java code. See http://beginnersbook.com/2013/11/jsp-implicit-objects/   or   http://www.rapidprogramming.com/questions-answers/List-the-implicit-objects-in-JSP-197
+
+- VERY VERY IMPORTANT: See https://www.youtube.com/watch?v=g15_vDp0HIg&index=18&list=PLE0F6C1917A427E96  on how to include jsp page in web.xml. This is useful, say, if you want to associate init-params with JSP. Also by including a jspInit() method, one can overwrite as if overwriting init() of servlet [Recall, don't overwrite init(ServletConfig) method - else do call super.init(config)]
+
+
+
+
+SPRING:
+**** VERY IMPORTANT: In JavaBrain/Spring-core 2nd video, it is said that Spring use Apache-Commons-Logging jar. This is also discussed in StackOverflow: http://stackoverflow.com/questions/14055602/why-we-need-apache-common-logging-jars-to-install-spring-framework-in-eclipse   The point is since spring uses logging, this makes it important to first configure logging-listener to web-app, and then call spring-applicationContext-listener. If things are done other way round, then spring won't see logging!! This explains why the sequence is written in this way in web.xml!!
+
+See https://stackoverflow.com/questions/29981261/servlet-web-application-context-from-filter
+---- WebApplicationContextUtils.getRequiredWebApplicationContext(request.getServletContext()) allows one to get application context for a servlet context. What is the difference? ApplicationContext is Spring specific terminology that comes in relation to managing the beans. ServletContext is a Java EE terminology that comes in context of web-applications. See https://stackoverflow.com/questions/31931848/applicationcontext-and-servletcontext  Particularly note how servletContext needs to have properties that are then usd by the listener to initialize a Spring applicationContext and bind it to servletContext (not to servlet). This is a case where bean management is done by Spring, but not servlet management (an example: like CMS application where REstEasy did Java EE side management, and Spring did bean management only; That's why there were @Provider annotations for handler, objectmapper-context, etc)
+---- Look at the comments in above url: "org.springframework.web.servlet.FrameworkServlet.CONTEXT.{servletName}", with servletName used as "dispatcher" in the post, attribute gives handle to corresponding web-application-context. HOWEVER, this is a spring assigned internal-name, so it is not good to use such internal details! 
+---- VERY VERY IMPORTANT: NOTE that "dispatcher" servlet is NOT Spring applicationContext. Dispatcher Servlet is a Controller; It is Spring MVC's implementation of the front controller pattern: See https://stackoverflow.com/questions/2769467/what-is-dispatcher-servlet-in-spring   ApplicationContext is the Spring container that manages the beans. On same line, ApplicationContext is NOT even the ServletContext. To get applicationContext, either use the method above and/or make a class implement ApplicationContextAware, and make a bean of that class.
+----|---- There are 2 different applicationContext(s) that happen. First is called ROOT context which is the application context made by listener and attached to servletContext. Second, each dispatcher-servlet can make a webApplicationContext, which is made when the servlet starts for the first time (so there can be delay if the servlet does not load on startup). The rootApplicationContext is injected into webApplicationContext. This brings up a few options: (1) Root applicationContext is sent to each of multiple webApplicationContext, one for each dispatcher servlet, and webAppContext can modify existing setting, or make locally new beans. Since Root is injected, so Root-beans don't know about web-application, but web-application beans know of root, which is a logical flow. (2) In case where there is no servlet, like RestEasy managing the web, then one only needs Root context. (3) In case where there is single dispatcher servlet, one can possibly leave bean-management task also in dispatcher-servlet configuration.. but it's not a good thing. Particularly, if the servlet is not loaded on startup, there will be a huge delay on first call. (4) It is possible to not make Root context, thus having no spring listener in web.xml. Still there can be multiple dispatchers, in which case each dispatcher servlet sees different bean and there is no commonality. See: MORE IMPORTANT LINK: https://www.codesenior.com/en/tutorial/Spring-ContextLoaderListener-And-DispatcherServlet-Concepts and https://javabeat.net/spring-mvc-application-context/      "It is a best practice to keep a clear separation between middle-tier services such as business logic components and data access classes (that are typically defined in the ApplicationContext) and web- related components such as controllers and view resolvers (that are defined in the WebApplicationContext per Dispatcher Servlet)."
+Continuing Further.. note that all context made in a web-application are WebApplicationContext. The ContextLoaderListener makes the applicationContext bound to ServletContext - this is technically a WebApplicationContext, and so one can get ServletContext if one defines bean as SevletContextAware. As more dispatcher servlets are made, more WebAppContext are heirarchically made that take beans from this main context. Technically, the context loaded for standalone code is ApplicationContext; and that loaded for any webApplictaion is WebApplicationContext (which extends ApplicationContext, so ApplicationContextAware still works)
+OTHER USEFUL LINK: https://www.codesenior.com/en/tutorial/Spring-ContextLoaderListener-And-DispatcherServlet-Concepts
+
+- See following example on getting applicationContext from servlet https://www.mkyong.com/spring/spring-how-to-do-dependency-injection-in-your-session-listener/    It goes out of way defining CounterService class, just to show how the applicationContext can be called and a bean obtained from anywhere. 
+VERY VERY VERY IMPORTANT: It also shows how to make custom listener in Spring and to activate it.. particularly, how to make a custom Session listener, thereby, controlling the tasks executed when a session object is made/destroyed!! This shows customization command one can get with Spring + Also makes reader understand that more such process customizations are possible! For more on servlet lifecycle, see http://docs.oracle.com/javaee/6/tutorial/doc/bnafi.html
+
+- To autowire spring beans in non-spring managed class, one can also use: SpringBeanAutowiringSupport.processInjectionBasedOnCurrentContext()   An example of using it is as done in Cms Validator code. Here, validation is triggered by RestEasy, but validating class is not provided any request object, so they cannot get access to servletContext and thus to spring applicationContext. BUT, as said in documentation of this API, when preferable go via using ServletContext. On how/why it works.. see ClassLoader section!!  
+---- (IMPORTANT) Do note that this will only work if the applicationContext has been made before this service is used. See https://stackoverflow.com/questions/28656947/spring-autowiring-with-processinjectionbasedoncurrentcontextthis   and   https://www.javavillage.in/spring-ioc-on-servlets.php    Looking at the latter link, note that spring method is called in init() method. The point is.. by the time init() is called, constructor call for servlet is done.. only after constructor is done, then do the autowiring. This is also said in the stack overflow link.. because, note from API, that this spring-utility-service takes an object and enables autowiring in it. SO.. before tis service is called, an object MUST be there to pass to service.
+
+
+
+
+CLASSLOADER (general, From J2ee perspective, from Spring perspective):
+- See this stackoverflow link on hierarchy of classloader: http://stackoverflow.com/questions/1771679/difference-between-threads-context-class-loader-and-normal-classloader   (It also has some information about Thread.getContextClassloader() which is discussed later). For more details on classloader, see http://www.theserverside.com/tutorial/Classloaders-Demystified-Understanding-How-Java-Classes-Get-Loaded-in-Web-Applications    For details on how classloaders are arranged in J2ee servers, see http://www.theserverside.com/news/1364680/Understanding-J2EE-Application-Server-ClassLoading-Architectures    and   https://access.redhat.com/documentation/en-us/red_hat_jboss_enterprise_application_platform/7.0/html/development_guide/class_loading_and_modules
+
+- (VERY VERY IMPORTANT): These articles explain the difference between rt.jar (JRE), jre/lib folder (extra class loaded after JRE but then available to all), classpath (application specific), server's codes, server's lib folder (supporting the code used by server; like JBoss' module folder), deployed application, deployed applications's WEB-INF/lib folder (supporting the deployed application), and Parent-first / Parent-last configuration changing how classes and classloaders behave, and the visibility of a code placed in above-mentioned location to other applications deployed down the line!!
+
+- The point is: Classloaders load class; First there is native/NullClassLoader, then JRE-loader, ClassLib-loader, etc.. Also, as explained, the purpose of doing so it to prevent someone from artifically changing java classes and sending hacked-application. The delegating and hierarchical model of classloader will cause target runtime to be loaded by libraries present there and not what the sender sent.
+
+- How is this problematic? See stackOverflow link, and 2nd link, and also http://njbartlett.name/2012/10/23/dreaded-thread-context-classloader.html  One problem is that builtin classes of server get used rather than that provided by user (as said in 2nd link), or also look at the link to blog by njbartlett.. the point being that due to hierarchical nature, one cannot provided a tailored solution. And then, to bypass this issue, J2EE made Thread.getContextClassLoader(). The "bypassing" nature is also described in a solution listed in stackoverflow post saying that in ideal scenario one should also pass classloader. THIS IS NOT WRNG.. in that if you look at Joshua Bloch's book and pattern for service provider, then there is a "registration" method. Using thread's classloader, without explicitly asking for classloader, is a way of bypassing this!
+
+- One solution, of changing classloader, as given in https://www.javacodegeeks.com/2016/08/remembering-reset-thread-context-class-loader.html   and also used in the code in link https://blog.imaginea.com/cross-context-communication-between-web-applications/   is possible. In the latter link, the design consideration used is that the servlet is used to gain handle to servlet, whose attribute is used to gain handle on Spring context, which will be loaded by same classloader loading 2nd servlet. So this gives handle to second classloader.
+
+- TO NOTE IN REGARDS TO J2EE APPLICATION: Note that general patterns seems to be that all Web application have single classloader - for correct reason also, because to read a single WEB-INF/lib, you just need one loader. HOWEVER, for an EAR, or when deploying multiple WARs, there can be multiple classloader, for correct reason - in that, using single classLoader means that classes of 2 applications CAN interact with each other, which shouldn't be trivially allowed unless explicitly configured. NOTE.. if there are 2 servlets in same application, they can communicate, but not if there are 2 separate applications itself.
+
+- TO NOTE IN REGARDS TO SPRING: When loading a war file, even if there are multiple servlets/dispatcher-servlets in it, it is still a single application and so it uses single classloader. If Spring is used for bean management and servlet management is done separately, it means that the servlet-classloader was used when Spring was bootstrapped and the webApplicationContext was made. So, it still holds that there is one classloader.
+THIS IS WHY.. for a single web-application, SpringBeanAutowiringSupport.processInjectionBasedOnCurrentContext() works!!
+
+- JSTL (  https://www.youtube.com/watch?v=-mjYAf0ILZs&index=24&list=PLE0F6C1917A427E96  )
+---- IMPORTANT: Note that it helps to make entire code in proper xml format!! So, then the code can be subjected to better analysis! Also this helps better separate role of Java code (by java coder) and html code (by front end designer) without requiring one to understand other! - So better "separation of concerns" in project maintainability!! **** THIS BRING UP ONE IMPORTANT AND SUBTLE OBSERVATION: How to see where to put JSTL - essentially, it should be used in a manner such that towards end, one doesn't see any scriptlets.
+---- Note: This is different from "EL" (expression language)
+---- ~4:40 of video, note that to use JSTL, start with "<jsp:" ; And to use <jsp:useBean> to get/create an object. Further note that eclipse shows all possible JSTL options once you type up to <jsp:    See https://www.youtube.com/watch?v=4GAJ5pxQ-3c&index=25&list=PLE0F6C1917A427E96  on how to convert parameters in request to an object!!
+
+- Exception in JSP: See https://www.tutorialspoint.com/jsp/jsp_exception_handling.htm   Note how there is "isErrorPage" page directive that allows creation of "exception" object
+
+
+
+
+ETCETERA...
+
+MVC ARCHITECTURE (implementation): 
+- Nicely covered in https://www.youtube.com/watch?v=3ZTxMDDmBqg&index=23&list=PLE0F6C1917A427E96
+---- ~13:50 see how using RequestDispatcher doesn't change original url!! - as happens with response.sendRedirect(..)
+- NOTE: DTO is "data transfer object", or the model in MVC architecture
+
+
+Memcached:
+- See http://www.journaldev.com/24/memcached-java-client-example
+
+
+JSON/Jackson (IMPORTANT):
+- Note that it is possible to configure such that a field is serialized but not deserialized, or vice versa. See http://www.davismol.net/2015/03/21/jackson-using-jsonignore-and-jsonproperty-annotations-to-exclude-a-property-only-from-json-deserialization/
+- Or, it is possible to serialize it from a given name but deserialize it to different name. See http://stackoverflow.com/questions/8560348/different-names-of-json-property-during-serialization-and-deserialization
+
+
+LOGGING: This is based on observations of starting patentcenter project on JBoss
+- When JBoss is starting, it creates logs. Those are JBoss logs, and so it gtes created in standalone's log directory
+- When an application is deployed in JBoss, then application can have its own log setting - which will quite likely be to log to its own independent file. Note that at that time JBoss logs will stop, because now JBoss is not logging, the application is.. and it will go in application's log
+- If however, application does a System.out.println, then that will now go to a file were JBoss' console output is configured. Once again, this need not be any of above 2 files! For this reason, it is always suggest to not use System.out.println in web applications
+- Finally, the tomcat in JBoss will have its access_logs, i.e. logs specifying which ip address made an access request, when and to what url, etc.

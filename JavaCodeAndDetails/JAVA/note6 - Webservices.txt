@@ -1,0 +1,209 @@
+JAVABRAINS - SOAP/REST
+-- JAX-RS
+-- Advanced JAX-RS
+-- SOAP
+
+What is webservice?
+A service/method made available with Web
+
+
+
+
+JAX-RS
+VERY VERY IMPORTANT: See https://www.youtube.com/watch?v=BuYivu9ZjDw&list=PLqq-6Pq4lTTZh5U8RbdXq0WaYvZBz2rbn&index=10  Just like Hibernate is implementation of JPA, and wherever possible, one should import from JPA.. similarly, Jersey and RestEasy are implementations ofJAX-RS.. and wherever possible, one should import from JAX-RS library (javax.ws.rs.*)
+
+VERY VERY IMPORTANT - See https://www.youtube.com/watch?v=tAG8I57epgQ&list=PLqq-6Pq4lTTY40IcG584ynNqibMc1heIa&index=4  (Advanced JaxRS videos), ~3:30, ... by extending Application class, and annotating it.. it works like web.xml dispatcher servlet!! See javadoc of "Application" for more details
+
+
+VERY VERY IMPORTANT: See https://www.youtube.com/watch?v=xkKcdK1u95s&list=PLqq-6Pq4lTTZh5U8RbdXq0WaYvZBz2rbn
+Around 07:30, it is said that cliet and server talk in protocol.. NOTE: 
+(1) Firstly, SOAP/REST are webservices. So both of them talk using HTTP; And http has its own way of encoding/decoding information as it is sent. 
+(2) SOAP vs REST comes because SOAP now expects the deserialized HTTP data to be in xml format, arranging inputs and sending outputs in a particular manner, which is the SOAP protocol. 
+---- As said ~8:20, for REST, they can send data in whatever form to each other as long as they understand - thus the need for "Accepts", and "ContentType" header in http request to REST url. 
+---- See ~10:25: We need service definitions - what is url, what method takes and what it returns. For SOAP - that is a WSDL file! But ideally, REST does not have this.. there is WADL but it is not used
+(3) Recall: A simple version of xml based communication can be seen when having xml-rpc server (Like Apache XML-RPC server, or, like in https://www.tutorialspoint.com/xml-rpc/xml_rpc_examples.htm)
+
+
+VERY VERY VERY IMPORTANT: 4-5:30 of https://www.youtube.com/watch?v=RuICubxGvj4&index=2&list=PLqq-6Pq4lTTZh5U8RbdXq0WaYvZBz2rbn
+It shows how there is an "Action based" (and NOT REST based) design where query params are passed guiding actions. NOTE: This is what "you" have been saying as ideal way to design url(s). So note:
+(1) When asked in future, remember that action based and rest based urls are different
+(2) Realze that action based in NOT wrong approach. While REST based url make most sense when objects are in proper hierarchy and decoupled.. the action based urls make more sense when a heterogenous collection of such resources need to be accessed/modified based on single invocation. The point being - use REST only when the aim of operation is to deal with state. When the aim of operation is to deal with "processing/modification", then use action based url. 
+---- This also explain why HATEOS principles of RESt for versioning don't always apply.. because in most cases where it doesn't apply - it actually is an action based url
+(3) See 4:30 of https://www.youtube.com/watch?v=gYKJqUZXuBw&list=PLqq-6Pq4lTTZh5U8RbdXq0WaYvZBz2rbn&index=4   it shows that for doing filtering/pagination - that's when queryParams can be used on restful url. But realize that when doing pagination, the final task being done is not resource-access, but an "action".. so the idea that queryParam should be associated with action still holds. 
+---- OR.. design wise this could beuseful in access of many-many relation scenario where you want flexibility to not have a specific access hierarchy
+---- OTHER IMPORTANT: Use queryParam for filtering/pagination - BUT ONLY WHEN using collection REST-Uri(s), not instance rest-uri
+
+
+VERY VERY IMPORTANT: Richardson Maturity Model https://www.youtube.com/watch?v=qHbTE3qvUsQ&list=PLqq-6Pq4lTTZh5U8RbdXq0WaYvZBz2rbn&index=9   Also see Level 0 which is SOAP
+Level 1 is use resource based uri. Level 2 is what seems reachable in codes: proper return http response code, use http method. Using hateoas is level 3
+
+
+VERY VERY VERY IMPORTANT: See video https://www.youtube.com/watch?v=NjpKwiRORI4&index=3&list=PLqq-6Pq4lTTZh5U8RbdXq0WaYvZBz2rbn    It is discussed how to have proper REST url. Note:
+(1) Around 09:00, it is said that restful url "should" only contain Noun, not verb. aving verb in url means there is "action based" processing, so it is not going towards rest architecture. NOW.. as long as the verb can be substituted by use of POST, GET, PUT, PATCH, DELETE.. then Restful design can still be done. But if not due to complexity of processing involved.. then it is best not to continue pushing Rest
+---- Since resources by themselves don't version, but action on resources version.. that's why versioning and rest services dont quite mix nicely!
+(2) VERY NICE: The video gves a nice way to design REST by thinking of it in terms of static webpages in its enclosing folder. THIS ALSO BRINGS OUT AN IMPORTANT POINT.. that in rest url, it should always go as /topics/{topicId}/courses/{courseId}/... instead of /{topicId}/{courseId}. FORMER is correct way to form REST url. Latter is WRONG and CONTRIVED way. This also means that at each step of REST url, either you are accessing particular item, or full collection of items. Alos note that noun is "plural"; So it is not /topic/{topicId}, instead it is, /topics/{topicId} <-- plural "topics", not singular "topic"
+
+
+VERY VERY VERY IMPORTANT: See ~15:30 of https://www.youtube.com/watch?v=NjpKwiRORI4&index=3&list=PLqq-6Pq4lTTZh5U8RbdXq0WaYvZBz2rbn  and think in relation with RDBMS storage. Also See ~17:30 on how difference in requirement can make something a top level resource or not.
+The point is, say, you have profiles and messages.. now if you give globally unique id to messages, it means they can exist on there own regardless of who made it. Sure, there can be relation to who all (i.e. profiles) made it, but just that they (i.e. messages) can exist alone too. But if the business requirement is that only profiles are important and never messages alone, then it will generally be preferable to have sequentially increasing message-id for each profile, and not give a globally unique id to message. But what if in future the requirements become wide... the point is this bring out the concept of "owner" of relation much better, but, it also brings out the fact that sometimes you need to do much more so that you don't restrict future expansion!!
+---- See 6:30 of https://www.youtube.com/watch?v=AK6TulIASgQ&list=PLqq-6Pq4lTTZh5U8RbdXq0WaYvZBz2rbn&index=5  on why POST is done on collections-uri, not on instanec-uri. Because before post is successful, client doesn't know the id.. so how can he/she post to a given id that is to come in future? THIS IS WHY.. when doing "POST", it better if server doesn't just return "200", but also the newly-id made. Also, better to return 201 status
+----|---- IMPORTANT: This also explains why POST on a collections uri should take a "list" as message body.. because this gives flexibility to user to post one or more messages at same time. The catch -- if user is providing more than 1 message to post, how will he disambiguate the id made for the message. If there is a way to do so, that if there is some unique field in user's post body, then better to always accept a list in post-body. Else, just accept a single object in post body and have user repeat it
+
+
+IDEMPOTENCE: https://www.youtube.com/watch?v=rhTkRK53XdQ&list=PLqq-6Pq4lTTZh5U8RbdXq0WaYvZBz2rbn&index=6 
+See ~4:30 for how delete operation can be idempotent. HOWEVER.. if business logic is such that absence of data throws 404/400 rather than quitely returning 200, then it is nt idempotent!
+VERY VERY VERY IMPORTANT: Note that behaviors on failure, and concurrency issue can also affect the IDEMPOTENCE NATURE!!
+---- Also note: The PATCH method is the correct choice here as you're updating an existing resource - the group ID. PUT should only be used if you're replacing a resource in it's entirety. (StackOverflow: https://stackoverflow.com/questions/24241893/rest-api-patch-or-put  )
+
+
+See https://www.youtube.com/watch?v=ZyuPCYB-n5o&index=7&list=PLqq-6Pq4lTTZh5U8RbdXq0WaYvZBz2rbn  ~10:30 http codes
+
+
+VERY VERY VERY IMPORTANT: HATEOAS See https://www.youtube.com/watch?v=NK3HNEwDXUk&index=8&list=PLqq-6Pq4lTTZh5U8RbdXq0WaYvZBz2rbn from 0-4:30. Seems like a very important and relevant and "makes-sense" technique. See 13:40 for review/conclusion
+-- question: how does it affect serialization/deserialization in objectmapper - because extra data needs to be ignored.. or processed separately
+-- See ~12:00 for "rel" attribute.. and better arrangement of hateoas data
+
+
+IMPORTANT: See ~2:25 of https://www.youtube.com/watch?v=gYKJqUZXuBw&list=PLqq-6Pq4lTTZh5U8RbdXq0WaYvZBz2rbn&index=4   explaining that why restful url(s) have PLURAL nouns in them - because they are collection URI(s). To access a particular instance, follow it up with an "id"
+
+
+
+VERY VERY VERY IMPORTANT :  https://www.youtube.com/watch?v=2QD1sOG8pyU&list=PLqq-6Pq4lTTZh5U8RbdXq0WaYvZBz2rbn&index=13  See ~1:00 The point is when making new REST project, we generally always have a starter-servlet that is given a path-portion after the WebContext. What is this special servlet object?
+---- This is the Jersey, or RestEasy servlet (i.e. Java class) which has logic that takes the portion of url that follows, and then tries to look in the codebase we have provided to find a suitable method that can handle the call to remainder of url. 
+---- SO.. NOTE: either we make our own servlet which does the job of handling user request. OR.. we accept a "Dispatcher servlet" provided by Jersey, or RestEasy, or Spring which contains logic to parse the full url and route the request to appropriate code elements that can handle it!! Remember, in case of Swagger for CMS.. it was initialized in a different servlet altogether -- maybe because it has its own inbuilt way of handling request which it does not want shared with existing application logic
+
+
+VERY VERY IMPORTANT: See different params in https://www.youtube.com/watch?v=Mqpgca6654Q&list=PLqq-6Pq4lTTZh5U8RbdXq0WaYvZBz2rbn&index=23
+@PathParam, @QueryParam, 
+@MatrixParam - for url like http://{server}/url:key=value  Note that this is different from queryParam which is http://{server}/url?key=value  In Matrix param, a colon is used as seprator
+@HeaderParam
+@CookieParam
+@FormParam - for form params (not widely used.. because if you have rest api, why submit data to it using forms? Also, ifyou want to send files, just send multipart body)
+**** VERY IMPORTNAT: @Context - to get context. Types should be UriInfo, HttpHeaders, HttpServletContext(??!)
+**** VERY IMPORTANT: See ~8:30 @BeanParam .. to make a bean consisting of combinations of various other params. This reduces number of arguments in methods
+**** VERY VERY IMPORTANT: @Provider   See https://www.youtube.com/watch?v=9oeJc_VkZxo&index=27&list=PLqq-6Pq4lTTZh5U8RbdXq0WaYvZBz2rbn
+
+
+**** VERY VERY VERY VERY IMPORTANT: https://www.youtube.com/watch?v=O4dAxOCYAUg&list=PLqq-6Pq4lTTZh5U8RbdXq0WaYvZBz2rbn&index=25
+1) Note the design of "subresources". This is not a call via dispatcher servlet because, as shown later, the information from portion of path in primary resource can also be retrieved in subresource.
+2) This highlights the importance of making service annotations on interfaces, and then making separate class implementations. In this case.. comments come after messages. But what if we want comments separately? Or still, have comments subresource start with a path of '/' may not seem intuitive. A better design would be have a messageRestResource class that calls commentsSubResourceClass for implementation.. and only message one being exposed as service via separate interface. In this case, if someone now looks for comments only, then that can be a separate class calling same subResource class..
+3) In design of messsage with comments, there is a new map of comments added. In real coding, this wuld become a @OneToMany sql mapping on a list of items
+
+
+NOTE: In some video, it is shown that one can call Response.created(url)... : this is a shortcut to have response of "203 created", and add a header "location" which gives location of resource created -- nice practice (both of: (1) in general, returning the created resource uri, and, (2) using suitable methods of resource class.. also (3) returning most suitable response code, not general 200, or 400, etc) ALSO NOTE: here the location is returned in header. Other option is to return multiple links referencing to HATEOAS principle
+
+
+NICE, AND VERY VERY VERY IMPORTANT: See ~8:00 of https://www.youtube.com/watch?v=HEabElNrfbo&index=26&list=PLqq-6Pq4lTTZh5U8RbdXq0WaYvZBz2rbn   when creating a new resource via POST, it is best practice to return to user the url for "resource". This is sufficient because user know that they can use get, put, delete, patch(?!) with the url to make changes. ALSO.. JSON names can be made such that fields that cannot be changed via patch, or ones that cannot be null are specified. or maybe send it in header. One example: "Identifier" suffix is always unique and not null!!
+---- VERY VERY IMPORTANT: Notice that UriInfo builder can be used to append elements to existing path, add by string, or by @Path annotation on a class, etc. RELATED.. see ~6:00 of https://www.youtube.com/watch?v=dtO5NQ8K5Wo&list=PLqq-6Pq4lTTZh5U8RbdXq0WaYvZBz2rbn&index=30  on how UriInfo should be used for subResource mapping, and resolveTemplate() to bind values to pathParams in method annotations when attaching to uriInfo
+
+
+IMPORTANT: Exception mapping using ExceptionMapper Generic class in JAX-RS that changes Exception to a response which is then passed. https://www.youtube.com/watch?v=9oeJc_VkZxo&index=27&list=PLqq-6Pq4lTTZh5U8RbdXq0WaYvZBz2rbn     IMPORTANT: Note that it needs to be annotated with @Provider
+---- NOTE: ****VERY VERY VERY IPORTANT: Note the design feature: Sending documentation also in errorMessage!! It is good and suggested to make RuntimeException extensions for use that also takes a documentation link. This way, whenever an exception is raised, there will always be a document explaining the error. FURTHERMORE.. that external documetation can be linked via properties file to prevent duplication
+----|---- REALIZE.. same can also be done for HATEOAS links!! i.e. give links, rel, comments and/or documentation
+---- See https://www.youtube.com/watch?v=Vdk_tUhcJZM&index=28&list=PLqq-6Pq4lTTZh5U8RbdXq0WaYvZBz2rbn  for WebApplicationException as a way to throw exception. While video shows that it is bad to use.. it may be used properly as follows: (1)Make all customExceptions extend webapplication exception. For all custom exceptions, have a constructor, say, which, accepts message and documentation in consructor, and in addition using its predefined status constant.. it sets appropriate Response object for super!! This way no new Handlers will be needed. ****IMPORTANT: See ~8:00 - within WebApplicationException, there are different class for 3xx, 4xx, 5xx types, and then particular implementation class for each error type. This makes it easier to call specific exception iwthout writing a handler
+
+
+VERY VERY IMPORTANT: See ~5:30 of https://www.youtube.com/watch?v=vP9HU1o3zsE&list=PLqq-6Pq4lTTZh5U8RbdXq0WaYvZBz2rbn&index=31    Essentially, one can have different methods execute FOR SAME PATH.. depending on different value of @Produces and @Consumes annotation. Or, if same method is to be used, then @Produces(value={...,...}) can be used
+
+
+
+
+ADVANCED JAX-RS VIDEO
+
+VERY VERY IMPORTANT - See https://www.youtube.com/watch?v=tAG8I57epgQ&list=PLqq-6Pq4lTTY40IcG584ynNqibMc1heIa&index=4  (Advanced JaxRS videos), ~3:30, ... by extending Application class, and annotating it.. it works like web.xml dispatcher servlet!! See javadoc of "Application" for more details
+
+VERY VERY IMPORTANT: See https://www.youtube.com/watch?v=nLylZ08h60A&list=PLqq-6Pq4lTTY40IcG584ynNqibMc1heIa&index=6   Note how the default behavior of jaxRs is to make new class-object everytime for a method call. @Singleton annotation changes it from request-scope to singleton-scope. In Spring based web-app, @Singleton scope is not needed because liefecycle management is done via Spring.
+---- When making singleton class, note that thread-concurrency and thread-safety behavior of method beomes important
+---- See https://www.youtube.com/watch?v=P-f6C1tHMDM&list=PLqq-6Pq4lTTY40IcG584ynNqibMc1heIa&index=7   
+----|---- First notice how request-scope allows one to define members containing pathParam and queryParam instead of doing it at method level.  
+----|---- Second, see ~6:30. Singleton resource are created even before the first url call, unlike web-srequest scope which are created when first method is called. So, if you use class-member like structure to inject pathParam and queryParam in singleton-class, it fails when deploying code : ModelValidationException
+----|---- Recall how in CMS code, there were spring managed singleton service beans, but their path annotation had a variable component... yet JAX-RS did not fail. Maybe because JAX-RS parses url at point-of-method-execution, so even if variable annotation given at class-level, it is parsed/executed at method level, so there is no concurrency issue
+
+
+VERY VERY IMPORTANT: Important video to make custom converter: https://www.youtube.com/watch?v=gzCynIZYiPM&list=PLqq-6Pq4lTTY40IcG584ynNqibMc1heIa&index=8   and main logic in https://www.youtube.com/watch?v=cokoHTs3a4k&list=PLqq-6Pq4lTTY40IcG584ynNqibMc1heIa&index=9&spfreload=1
+---- IMPORTANT: Note that MessageBodyReader/Writer deals with input/response body. But ParamConverter deals with string in request URL (PathParam, QueryParam, HeaderParam, CookieParam, etc), and changing it to types
+
+
+VERY VERY VERY IMPORTANT: Custom MessageBodyWriter  https://www.youtube.com/watch?v=TLWAuNcoM7A&list=PLqq-6Pq4lTTY40IcG584ynNqibMc1heIa&index=11   
+---- See ~3:40 that getSize() should return -1 by best practice
+---- See ~6:00 : code "Date.class.isAssignableFrom(type)". This means that the conversion applies to all subclasses of Date also. So ideally, MessageBodyWriter generic should be changed from "Date" to "? sub Date". One can say that this will hurt classes inherited from Date but having extra features.. but frankly, doing so is a bad design because inheritance should be used ONLY when there is a "is a" relation between objects - which most likely means that any sub class always have transient new fields (if any).. and just decorates super-class with new functionalities, but does not add new fields. 
+----|---- The other option is to do check like Date.class.equals(type.getClass()), but then this may fail for inheritence objects!!
+---- See ~8:30 -- on how to fix call of messageBodyWriter for a given mediatype only
+---- VERY VERY VERY IMPORTANT: See https://www.youtube.com/watch?v=q3z0WN0GmZg&index=12&list=PLqq-6Pq4lTTY40IcG584ynNqibMc1heIa   on making custom mediaType. This is useful.. say when you want to return file/zip/tar/pdf.. the return type for all can be made into a list.. such that service only provides the list of files and corresponding data, and then based on bodyWriter, the result gets written. This prevents duplication up to some level. Otherwise, it becomes necessary to define set  of utility class and a delegator, and then inject delegator in all service
+----|---- More important, this can be useful if there are different rendering condition, like: either always return zip, or return zip if multiple files and the file if it is single. Doing so by having an util class may mean presence of one precluding possibility to have another. But not so if custom writers are made
+----|---- See 4:35 of video when there can be multiple mediatype
+
+
+VERY VERY VERY IMPORTANT: Custom filters in JAX-RS: https://www.youtube.com/watch?v=nDW6DQSNrIY&index=21&list=PLqq-6Pq4lTTY40IcG584ynNqibMc1heIa
+---- Both custom request and response filters are included.
+---- ****IMPORTANT: Note the use of filters for cross cutting concerns. This is because: Web-applications are a "framework" design. Similarly, Aspect-oriented can be considered as a specific template in terms of Object oriented programming (see notes on Spring AOP). When seeing AOP design as comparing it to web-app framework, one notices that filters play similar role as aspects - they can be called before and after each invocation! This is why any functionality that would otherwise model as cross-cutting concerns is better implemented via filter!!
+----|---- REALIZE: Similar concept applies to "validator". That's why it is better practice to use validators, since they are reusable/modular
+----|---- NOTE another important thing shown in video : that even when response fails, a filter is called!
+---- There are many more filters than what is discussed here. Maybe look at JAX-RS docs, or even RestEasy docs to identify all. Maybe also check if there is a way to control ordering of filters!!
+---- ****IMPORTANT: Note that by general customs, when sending custom headers, prefix it with "x-". It is also done in the video ~5:40
+---- Filter vs Interceptors:
+----|---- ****VERY IMPORTANT: See https://stackoverflow.com/questions/8000844/spring-handlerinterceptor-vs-servlet-filters  , ~3:45. FILTERS and INTERCEPTORS CAN ALSO act on CLIENT side. See ~7:00 where is says that messageBodyReader and writer are opposite when used for client
+----|---- ****VERY VERY VERY IMPORTANT: See 5:45 onwards in https://www.youtube.com/watch?v=WjzMZoBEvRY&index=25&list=PLqq-6Pq4lTTY40IcG584ynNqibMc1heIa  on how different components are invoked between client and server. SPECIALLY NOTE how different components get flipped when reading vs writing. RECALL that for Spring interceptors.. the write-side interceptors are invoked in opposite order of execution compared to read-side interceptor chain
+----|---- NOTE on how https://stackoverflow.com/questions/8000844/spring-handlerinterceptor-vs-servlet-filters says that filters are important and can be used to manipulate IO. BUT, the video says it is not so. Also see here where same thing as said in video is repeated: https://books.google.com/books?id=f9ZOCwAAQBAJ&pg=PA152&lpg=PA152&dq=request+response+flow+filter+interceptor+body+reader&source=bl&ots=ubvyE1Tg0l&sig=SOM1LSzkagRMx8_UWT9PJKIw9Vs&hl=en&sa=X&ved=0ahUKEwj8nKzGv4LVAhVExYMKHcrXDzsQ6AEIKDAA#v=onepage&q=request%20response%20flow%20filter%20interceptor%20body%20reader&f=false   Page 151. ONE NICE THING ABOUT INTERCEPTOR THOUGH.. since it is invoked after resource has been identified, so, it means you have handle to resource. Also, you can throw exceptions and exceptionHandler will translate it properly. Throwing exception from filter won't trigger the call to exceptionHandler, see: https://stackoverflow.com/questions/17715921/exception-handling-for-filter-in-spring    https://stackoverflow.com/questions/34595605/how-to-manage-exceptions-thrown-in-filters-in-spring/43242424   and also https://stackoverflow.com/questions/24306152/how-to-handle-session-using-interceptor-in-spring-3
+
+
+Authentication:
+---- ****VERY VERY IMPORTANT: REMEMBER that JWT token is a good stateless way to authenticate!! There is also OAuth2 as another way to authenticate
+---- ****VERY VERY VERY IMPORTANT: See ~9:00 of https://www.youtube.com/watch?v=501dpx2IjGY&index=22&list=PLqq-6Pq4lTTY40IcG584ynNqibMc1heIa   Base-64 encoding of username and password is NOT "secure". Security is enforced by using HTTPS rather than HTTP. Authentication simply means if end user is identified as someone known by the service. Even beyond authentication, there is concept of authorization - which means even though system knows you, it is preventing you from doing something you aren't allowed to. SECURITY means noone else can snoop data and make it seem as if they are you!! ****REALIZE THE DIFFERENCE!!
+----|---- See ~9:50: we encode so that we can send non http compatible characters. That's it. Encoding is NOT for security
+---- See 7:15 of https://www.youtube.com/watch?v=W5jm4E0TTlA&index=24&list=PLqq-6Pq4lTTY40IcG584ynNqibMc1heIa   on how to return frm a filter. This is necessary because failing request should not go down filter chain, but immediately return with error
+
+
+JAX-RS client: See  https://www.youtube.com/watch?v=LRzEAyao-TQ&index=14&list=PLqq-6Pq4lTTY40IcG584ynNqibMc1heIa    
+..OR.. maybe better to use Apache HttpUtils!! Since rest calls are made via HTTP
+---- Notice towards end in https://www.youtube.com/watch?v=PRqnswCO4JU&index=15&list=PLqq-6Pq4lTTY40IcG584ynNqibMc1heIa   --- it may be a good way to debug by accepting any response as string, and then sysOut it.. or, maybe do a processing dependent on response' status code, delegating it to a common error handler in case of error
+---- IMPORTANT: See https://www.youtube.com/watch?v=ZvliMVpTO5M&index=16&list=PLqq-6Pq4lTTY40IcG584ynNqibMc1heIa  around 5:00 -- the concept to break target URI into hierarchical-components based on functionality is a good-practice.. and easir to understand for everyone else. Also, it can now be modularized!! and there will be just single point in case future mods are needed
+---- FOR POST REQUEST by client, see ~3:00 in https://www.youtube.com/watch?v=SyxiSw2S3wE&list=PLqq-6Pq4lTTY40IcG584ynNqibMc1heIa&index=17   
+---- **** VERY VERY IMPORTANT: See first minute of https://www.youtube.com/watch?v=nfnrJWbVjRk&index=18&list=PLqq-6Pq4lTTY40IcG584ynNqibMc1heIa  -- With respect to concept of abstraction.. having an "Invocation" object is the proper design to pursue. This way an outside method just gets object to invoke without having to worry about the details - which can be deferred to some other business logic. OTHER OPTION is ti possibly code using HttpUtils
+---- VERY IMPORTANT: See ~4:00 of https://www.youtube.com/watch?v=fxDFpVLUDFY&index=19&list=PLqq-6Pq4lTTY40IcG584ynNqibMc1heIa  for retrieving generic type response from jax-rs client
+
+
+
+
+SOAP (JAX-WS)
+
+VERY IMPORTANT: See https://www.youtube.com/watch?v=C53G6R5EVys&list=PLqq-6Pq4lTTZTYpk_1DOowOGWJMIH5T39&index=2&spfreload=1  up to first 3 minutes. 
+Two main ideas are presented:
+1) when sharing a service.. from an abstraction point of view best would be share interface with consumers
+2) in sharing interface.. it is necessary that information be conveyed in a manner that the consumer can use it WITHOUT requiring them to use the same technology.. so the info shared should be technology independent -- this is where xml come in!! ****IMPORTANT: THIS IS WEBSERVICE DEFINITION LANGUAGE (WSDL)!!!
+---- ****IMPORTANT: ALSO.. the data is sent/received in xml format, so that all client technologies can understand it. But changing object to xml has to be done as per a specification/protocol - and that protocol is SOAP (Simple Object Access Protocol)
+---- SEI : Service Endpoint Interface : This is responsible for reading/writing SOAP-xml message and changing it to corresponding Java object that is then processed/sent to client! This is something that is provided/generated for technology being used (can be made fro WSDL).. and you just call it
+----|---- See ~11:45 of https://www.youtube.com/watch?v=QFq4Ue_jExY&index=13&list=PLqq-6Pq4lTTZTYpk_1DOowOGWJMIH5T39&spfreload=1   It says that the interface is SEI. Question: How does SOAP know how to serialize/deserialize classes! any encoding to use! ---- Mayb by JAX-B customization: see https://www.youtube.com/watch?v=wireYD00xkw&list=PLqq-6Pq4lTTZTYpk_1DOowOGWJMIH5T39&index=14&spfreload=1
+3) UDDI - Universal Description Discovery & Integration: The fact is that we are making xml. Now how will others get the wsdl. There are standard directories that can be queried to get wsdl - that is uddi. Not popular though..
+
+
+Example: https://www.youtube.com/watch?v=6hqDMS-oJ9k&index=3&list=PLqq-6Pq4lTTZTYpk_1DOowOGWJMIH5T39
+---- See ~8:20 -- use of "wsimport" java tool to make service Endpoint Interface from wsdl. MAYBE.. automate it using Maven!
+---- See ~2:40 of https://www.youtube.com/watch?v=KFlDdb65w3U&list=PLqq-6Pq4lTTZTYpk_1DOowOGWJMIH5T39&index=4&spfreload=1   the <wsdl:service> and <wsdl:port> under it are used to identify the classes that need to be used for webservice. See ~4:20, the <wsdl:port> class IS the stub that does webservice.. ALSO NOTE, that is generated out from <wsdl:service> class, and not by calling "new"-constructor on <wsdl:port> class
+
+
+See https://www.youtube.com/watch?v=u5cQkVgq6jE&index=7&list=PLqq-6Pq4lTTZTYpk_1DOowOGWJMIH5T39  ~3:45. The webservice application is different from web application. SOAP is the webservice application - as seen from admin console
+---- IMPORTANT Annotations: @WebService (exposes all public methods in class), @WebMethod - to specifically show a method as web 
+----|---- @SOAPBinding, @WebParam and @WebResult in https://www.youtube.com/watch?v=rHJ1v1jsAao&list=PLqq-6Pq4lTTZTYpk_1DOowOGWJMIH5T39&index=12   For soapBinding as RPC - note that as said in video, it does not make it a RPC, but just the way wsdl is made has style as used for RPC
+---- ****VERY IMPORTANT: See https://www.youtube.com/watch?v=S0zdMGNrxr0&index=9&list=PLqq-6Pq4lTTZTYpk_1DOowOGWJMIH5T39  - "Servie first" vs "Contract first" way of making webservice. @WebService annotation seems to be service-first way.. BUT, doingi t contact-first is better design!! and there other annotations will become important
+---- ****VERY IMPORTANT: Nice high level structure of WSDL: https://www.youtube.com/watch?v=E76xW1JTVXY&index=10&list=PLqq-6Pq4lTTZTYpk_1DOowOGWJMIH5T39
+----|---- ****FOR BETTER EXPLANATION: See https://www.tutorialspoint.com/wsdl/wsdl_definition.htm
+----|---- Particularly, note that SOAP is not HTTP. There is a separate element "binding" in WSDL - this tells/defines that the WebService made is accepting SOAP messages over HTTP. 
+---- Customizing WSDL: See https://www.youtube.com/watch?v=xq2zi_UWzUE&list=PLqq-6Pq4lTTZTYpk_1DOowOGWJMIH5T39&index=11
+
+
+VERY VERY IMPORTANT: See 8:51 of https://www.youtube.com/watch?v=HLzM92ZnisY&list=PLqq-6Pq4lTTZTYpk_1DOowOGWJMIH5T39&index=8  from a design perspective. In REST methods, there is no need to return boolean.. one can simply handle exceptions. However, in SOAP, since the return type is fixed.. so even if a method does nothing.. it is better design to return true/false if the operation was successful or not!!
+----|---- See https://www.tutorialspoint.com/wsdl/wsdl_port_type.htm  WSDL can define error type - but then again, it has to be fixed and cannot change!
+
+
+JAX-B customization: https://www.youtube.com/watch?v=k5GbEwDFIl8&index=15&list=PLqq-6Pq4lTTZTYpk_1DOowOGWJMIH5T39    
+---- @XmlRootElement, @XmlType, @XmlElement  ****VERY VERY IMPORTANT: Why both annotations? because xmlRootElement is to define rootElement for class.. xmlType is to customize the class-as-a-container itself 
+
+
+**** IMPORTANT: Error handling.. can have multiple exceptions being thrown:  https://www.youtube.com/watch?v=t9GzOCN2UBk&list=PLqq-6Pq4lTTZTYpk_1DOowOGWJMIH5T39&index=16
+
+
+FOR TESTING: 
+-- IMPORTANT: Using JDK only to expose Web services: https://www.youtube.com/watch?v=ExGgevg3i94&list=PLqq-6Pq4lTTZTYpk_1DOowOGWJMIH5T39&index=19
+-- SoapUI (also available as eclipse plugin)  https://www.youtube.com/watch?v=CAHMJFerXps&list=PLqq-6Pq4lTTZTYpk_1DOowOGWJMIH5T39&index=17
+-- Web Service explorer ..directly in Eclipse  https://www.youtube.com/watch?v=73YeFMmzBts&index=18&list=PLqq-6Pq4lTTZTYpk_1DOowOGWJMIH5T39

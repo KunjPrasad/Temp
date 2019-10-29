@@ -1,0 +1,56 @@
+From javabrains courses, relating to core javabrains
+-- Maven (first)
+-- Lambdas (Second)
+
+
+
+
+Maven
+
+See https://www.youtube.com/watch?v=KlIM897RGwc&list=PL92E89440B7BFD0F6&index=2  for some basic maven commands
+---- mvn compile (creates target/class folder; It just compiles src class, doesn't run any tests)
+---- mvn package (this creates packaging.. and in process it also runs unit tests if present) 
+----|---- REALIZE THIS IS DIFFERENT FROM INSTALL... install is putting the package-product in local maven repository for use by others
+---- **** IMPORTANT: See ~12:30 on how to run a particular class in a jar by giving fully qualified class name. NOT SURE why "-cp" was used instead of "-jar". From comments it is said: -cp sets the class path temporary, where class file is present?
+
+
+**** IMPORTANT: See 3:30 of https://www.youtube.com/watch?v=AI8Kjag1vGk&index=3&list=PL92E89440B7BFD0F6  -- use of SNAPSHOT vs RELEASE as part of best practice when adding version to pom
+
+
+See meaning of various maven phases: 2:30 onwards of https://www.youtube.com/watch?v=IYRYbPR5Gek&index=4&list=PL92E89440B7BFD0F6     NOTE: there is a validate phase; Also note meaningof "install" phase and difference from package phase. ****IMPORTANT: ALSO.. "deploy" phase is to send to remote repository!!
+
+
+**** VERY IMPORTANT (PLUGINS): 
+---- See 7:30 onwards in https://www.youtube.com/watch?v=6sIhJuaZhF0&list=PL92E89440B7BFD0F6&index=8  -- on how to configure maven jetty plugin so that it also continuously listens for class changes, recompiles and redeploys on change
+---- See https://www.youtube.com/watch?v=xE2F4Z_wKCU&list=PL92E89440B7BFD0F6&index=9   for "maven plugin for eclipse" and "eclipse plugin for maven"
+----|---- See 5:16 for adding new "environment variable" to eclipse. ALSO REMEMBER.. the way to add so is also by modifying files, as done to load lombok, and enable code generaton for eclipse
+
+
+
+
+LAMBDAS:
+
+**** VERY VERY IMPORTANT: Making Lambdas in code: https://www.youtube.com/watch?v=DNE8OYBzj7E&list=PLqq-6Pq4lTTa9YGfyhyW2CqdtW9RtY-I3&index=8   
+Note that in previous video, it is explaimed that Lambda is a "function" being assigned to a variable.. just like otherwise done with literals.
+
+
+**** VERY VERY VERY IMPORTANT: 
+---- 1) Lambdas are set up on "Functional interface". A functional interface is one where only at most 1 method is abstract, and there can be other default methods. BUT, in general, it can be used with interface. This also means lambdas can be used with previous api before Java 7 which are interface (See https://www.youtube.com/watch?v=9u8CWKuMCvM&list=PLqq-6Pq4lTTa9YGfyhyW2CqdtW9RtY-I3&index=11  ). Finally, note that with Java 8, type inference is strongly used with Lambdas (See https://www.youtube.com/watch?v=a8jvxBbswp4&list=PLqq-6Pq4lTTa9YGfyhyW2CqdtW9RtY-I3&index=10  )
+---- 2) It is possible that an interface started with only 1 default method but was later expanded to include more. Since this can break Lambdas in consumers, so..
+----|---- (2.1) When adding additional methods, add default implementation, 
+----|---- (2.2) Use @FunctionalInterface annotation on interface if you want it to be used for Lambda. This way, if you add additional abstract methods in interface, it will throw compile exception. See around 3:30 of https://www.youtube.com/watch?v=mJgwVdEGg5A&index=12&list=PLqq-6Pq4lTTa9YGfyhyW2CqdtW9RtY-I3 
+----|---- (2.3) See https://www.youtube.com/watch?v=yubVRLP9Htw&index=15&list=PLqq-6Pq4lTTa9YGfyhyW2CqdtW9RtY-I3  for mention of java.util.functions package containing interface that can be used for common scenarios involving lambdas.. rather than making new interface for each and every lambda use
+----|---- (2.4) When trying to call implemented method, then it is like "method reference". See https://www.youtube.com/watch?v=lwwIZuwYmNI&list=PLqq-6Pq4lTTa9YGfyhyW2CqdtW9RtY-I3&index=21  Again, keep serializability issues in mind when using in context of Spark
+----|----|---- VERY VERY IMPORTANT: See 9:20 onwards of https://www.youtube.com/watch?v=lwwIZuwYmNI&list=PLqq-6Pq4lTTa9YGfyhyW2CqdtW9RtY-I3&index=21   It shows that: (a) System.out is an "object", (2) when method reference is to one that accepts an argument, then corresponding signature in function should be a Consumer type. The consumer type then automatically understands that it accepts a function!!
+---- 3) **** VERY VERY VERY IMPORTANT: Lambdas are treated by java as different from anonymous class. See https://docs.oracle.com/javase/tutorial/java/javaOO/lambdaexpressions.html#accessing-local-variables  and   http://www.java2novice.com/java_interview_questions/lamda-expression-anonymous-class/   The second link says "The key difference between Anonymous class and Lambda expression is the usage of 'this' keyword. In the anonymous classes, ‘this’ keyword resolves to anonymous class itself, whereas for lambda expression ‘this’ keyword resolves to enclosing class where lambda expression is written. Another difference between lambda expression and anonymous class is in the way these two are compiled. Java compiler compiles lambda expressions and convert them into private method of the class. It uses invokedynamic instruction that was added in Java 7 to bind this method dynamically." -- This explains difference in shadowing behavior for anonymous inner class vs lambdas. Also see https://www.youtube.com/watch?v=x9ovGHK7r2E&index=20&list=PLqq-6Pq4lTTa9YGfyhyW2CqdtW9RtY-I3
+----|---- **** VERY VERY IMPORTANT: Since lambdas don't shadow, this is why CLOSURES ARE VERY IMPORTANT IN CONTEXT OF LAMBDA!! See https://www.youtube.com/watch?v=WcLum7g6ImU&list=PLqq-6Pq4lTTa9YGfyhyW2CqdtW9RtY-I3&index=19
+----|---- FOR THIS REASON, avoid serializing lambdas. THIS IS OF HUGE IMPORTANCE when dealing with Spark like distributed framework where classes need to be serialized and transferred. Remember this point specially in those cases.
+----|---- Can also use for reference: https://www.infoq.com/articles/Java-8-Lambdas-A-Peek-Under-the-Hood
+
+
+**** VERY IMPORTANT: Cascading/WRAPPING calls to lambdas to get complex behavior - and exception handling: https://www.youtube.com/watch?v=YLKMCPMLv60&list=PLqq-6Pq4lTTa9YGfyhyW2CqdtW9RtY-I3&index=18
+
+
+**** VERY VERY VERY IMPORTANT: See 4:10 onwards of https://www.youtube.com/watch?v=tfbmYBcq5CM&index=22&list=PLqq-6Pq4lTTa9YGfyhyW2CqdtW9RtY-I3  -- Particularly notice the "external" vs "internal" control of iteration. Notice that the new forEach is a functional programming paradigm!! - easily parallalizable (said around 8:20)!!! 
+---- ..in this parallelizable framework, one can do more efficient stream processing:  https://www.youtube.com/watch?v=0bHCxjkku0s&list=PLqq-6Pq4lTTa9YGfyhyW2CqdtW9RtY-I3&index=23
+---- See 1:00 onwards of https://www.youtube.com/watch?v=suSdjhS03qk&index=24&list=PLqq-6Pq4lTTa9YGfyhyW2CqdtW9RtY-I3  -- stream processing in java is lazy.. unless there is a stream consumer, it does not do anything -- also shown later in video
