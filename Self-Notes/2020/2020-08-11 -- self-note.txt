@@ -1,0 +1,729 @@
+CSS
+1) Book of css3, pg 18-19
+--|---- "Mobile first development", as mainly optimizing for low
+bandwidth.. and can even break css to help with it
+--|---- Use of AND, OR, AND-OR-MIX media queries
+
+2) **VERY VERY IMPORTANT**: Book of css3, Pg 24 : (By self): Generally
+your css should be mostly class based. After that, you can use
+dom-element type, parent-child or sibling relation. Pg.24 gives a good
+example of using an attribute based selector. Realize that it's
+importance/usage is not to set styles that control how information
+coming from some server is displayed -- but, it enhances on those
+details. So, server might send a link.. but the attribute-selector
+enhances it to make it more visible. This is what makes it a good
+example -- rather than artificially trying to show use of a selector,
+it actually shows a purposeful use of it. See highlight on Pg 26
+showing how its usage is more apt and better than using class to
+control css.
+--|---- Think of similar distinctions when thinking of using
+pseudo-class vs pseudo-element for css. Using former is ok.. using
+latter in css rules -- likely not. **IMPORTANT: Understand about the
+two -- see Pg 31
+--|---- See Pg.40 and use of :target css selector -- it is good to
+show internal linking. Using an animation rather than a permanent
+change (as done in book example) may be better option though..
+--|---- See Pg.76: A good place for wildcard-query by attribute is
+when you want a certain style to get applied to all such elements.
+Also see https://stackoverflow.com/questions/5110249/wildcard-in-css-for-classes
+
+3) Use "column-width" css can probably be used for showing different
+column count in desktop vs mobile screen since they are of different
+size. See chpt-7 of book
+--|---- Related css: column-count; column-fill; column-gap; columns
+(mix of column-count and column-width); column-rule; column-span
+
+4) Book of css3, pg 185 : Book of CSS3 - Flexbox vs Grid: "Although
+you can certainly create entire page layouts with Flexbox, it is most
+suitable for working with interface elements (like buttons) and
+smaller components. When working with whole page layouts, consider
+using the Grid Layout Module"
+
+5) Best avoid doing changing flex item order via css.. instead look to
+html/js. Apart from being confusing, it also doesn't work with
+nth-child css
+
+6) Pg.201 -- use of vmax and vmin instead of vh, vw to ensure correct
+sizing in both portrait and landscape mode!!
+
+7) Pg.202 -- using calc() in css, along with examples
+
+8) Pg.205,206-- using width/height: max-content (note: this will cause
+overflow from parent container size) or min-content or fit-content or
+fill
+
+9) Extra things:
+--|---- To set global css rule (HOWEVER.. best to apply a rule only as
+needed!!), use: * {...}. i think can also use --> :root {...}
+--|---- css' float and clear are also good property to use -- remember
+--|---- css: use minmax() -- https://bitsofco.de/how-the-minmax-function-works/
+--|---- Use of repeat() along with 'auto-fill' or 'auto-fit', and with
+minmax() to get dynamic grids. See
+https://css-tricks.com/auto-sizing-columns-css-grid-auto-fill-vs-auto-fit/
+
+
+
+
+REACT:
+1) There are 2 ways to prevent some html element from showing up: (i)
+code like: {condition && <ReactComponent />}, or, (ii) code like:
+<ReactComponent className={classNames({"d-none": condition})} />
+(..where "d-none" is bootstrap css class that adds "display:none" css
+rule). HOWEVER.. note that if the condition is something that can
+rapidly change, like, opening or closing an accordion.. then using
+"d-none" route should be preferred because if using former, then react
+will have to render the whole html and then tear it down as condition
+flips. With latter option, only the visibility is hidden, so react
+does less work.
+
+2) React-saga-test-plan : to test saga
+
+3) use "useReducer()" instead of "useState()" for complex logic. See
+https://reactjs.org/docs/hooks-reference.html#usereducer
+--|---- One drawback of it is that the functions in useReducer()..
+when updating state values, you have to spread the previous state and
+then overwrite it. This can become repeated logic. A simplification
+can be using https://github.com/esamattis/immer-reducer#-react-hooks
+to prevent having to do these spreads (immerjs is also what redux
+toolkit uses under the hood like in sliceUtils.js)
+
+4) When downloading from front end --even in React.js--.. best do it
+via: (1) GET call, (2) on UI, just wrap the image/text with anchor
+tag, (3) on server, set appropriate content-type and
+content-disposition (See
+https://stackoverflow.com/questions/20508788/do-i-need-content-type-application-octet-stream-for-file-download/20509354#20509354)
+
+5) Use redux's select() function is part of redux saga logic is to
+look at the state and then make corresponding changes.
+
+6) For redux.. a good pattern when storing "single" item is to make
+corresponding get/put/post methods.. for each there being a
+"on-request", "on-success", "on-failure" phase. This ensures that: (i)
+Each of get / put/ post operates on a items with same response
+structure, (ii) You can add an "id", "lastCallTime", "error" meta-data
+that gives information about the data. (iii) When doing updates in
+"on-success", "on-error", you can require the id to match (except
+during "on-Request" phase) -- and this creates a takeLatest(..) like
+behavior among different processing calls
+SIMILARLY.. can also think of same for list-type data. This will
+mainly just have GET call and corresponding "on-request",
+"on-success", "on-failure" phase.
+--|---- ADDITIONALLY, if bulk-update is supported, can add that logic
+here. **IMPORTANT - Thing to note -- Relates to Python/server-side
+design**:
+--|----|---- (i) Most likely, bulk update will have partial
+success/error, so returned json will have 2 fields: success, error.
+--|----|---- (ii) Since this is an update operation, regardless of
+whether the operation succeeds/fails, there will be a slug - from
+original entry.. so design the response using the slug, like:
+{"success":{"slug1":{...}, "slug3":{...}}, "error":{"slug2":{...}}} --
+Doing this rather than returning a list for success/error, or just
+returning a number-index of position in the request-list is more
+robust way of communicating back the response. ADDITIONALLY..
+structure each success response in same serialized manner as if
+serializing 1 object **AND** structure each error in a manner as if it
+got raised from a validation-error, regardless of whether it
+did/did-not. To achieve latter make sure to catch each possible error
+(but don't overdo and catch generic exception) and format it like a
+structure as if coming from validation error. **ALSO** because of
+above structure, the response code will always be 200 OK.. and whether
+it was success/fail depends on count of corresponding entries. Note
+that there is also a HTTP-206 partial success code.. but not sure how
+to use it and/or if it might becomes too cumbersome, and also how to
+send error response in it - along with success response!! REALIZE THAT
+doing so allows the requestor in getting the response where it is easy
+to identify the association between object in request-list and
+response's success/error -- rather than having to rely on index
+position, etc.
+--|----|---- (iii) **IMPORTANT**: Realize that unlike a single object,
+the returned status here is always 200 here. So, the success handler
+must both - update each success item and add an error for each failed
+item. Now the code must look at collective item-list in redux and use
+it's index and/or slug (if available), and then look at collective of
+error and identify the corresponding error, or if it's absent! -- and
+the construct of redux structure should be such that doing so is
+possible. Is this a good structure? let's discuss later after
+"bulk-create" - discussed next.
+--|---- ADDITIONALLY to bulk-update, one can have "bulk-create".
+**IMPORTANT - Thing to note -- Relates to Python/server-side design +
+consistency with bulk-update**:
+--|----|---- here too.. one sends a list of request-objects, and must
+get a success/error response, with HTTP 200 OK status always.
+--|----|---- HOWEVER.. there's a difference here, just like difference
+in create vs update for single object -- but it plays out doubly: In
+creating one object, (a) you don't pass slug, but you do so when doing
+update, and, (b) looking at saga-workflow, object create is triggered
+by user pressing some button, that first triggers a on-create-request
+action which puts user-entered data in redux (no slug here on object),
+then success happens (that adds slug), or error happens (no slug on
+object. redux data gains an error metadata). **THINKING SIMILARLY**:
+when creating list of objects, (i) a list exists (say, in some
+react-state object) and each object in it does not have slug. (ii)
+looking at saga-workflow, list-create is triggered by user pressing
+some button, that first triggers a on-createList-request which puts
+user data-list in the redux (no slug for any object here), then
+success happens (200 status) with partial success/error - and then
+success-handler must also store errors. HOWEVER: in this case, the
+returned error-items at least won't have any slug.. they'll just have
+index. So, for consistency, it might be good to simply return all
+success/failure entries from bulk-create against an "index"-valued
+key. This creates slight difference from "update" which has "slug"
+valued entries. The difference could be justified -- in that an update
+call could be idempotent, but a create-call is not idempotent.. and
+so, to make sense of response, you need the request also.
+
+7) **FOLLOW UP FROM PREVIOUS**: For a single object - it is easy to
+identify the redux structure, add {item, meta:{id, lastCallTime,
+error}} -- how should it be for list of items -- such that it is also
+able to handle bulk create/update calls!!
+--|---- To model GET calls, you need: {items, meta:{id, callError}}.
+Note: callError captures errors that are not specific to each item but
+to the call itself.. like not having permission, network down, etc.
+--|---- Concern#1: Say, you do GET to have a list of items. Then you
+select some of them, and do bulk-update on it. Out of that selection,
+some succeed, others fail. How do you model it for redux storage?
+--|----|---- Starting with above structure, first question: do we use
+callError or some other error object? A good idea could be to use a
+different error object because now you're talking of validation-error
+that should show up as a red-text message on form.. rather than a
+callError that should just raise a toast to user to try later. **VERY
+VERY IMPORTANT**: So a general redux structure, even for a single
+object should instead be {item, meta:{id, nonValidationError,
+validationError}} -- and corresponding saga-utility should populate
+one type of error and clearing other type and depending on the status
+code. furthermore, the status code can be used to raise toast in saga
+with more related/descriptive messages.
+--|----|---- For list type data.. should there even be a separate
+validationError field.. or should the data and validationError be
+stored as a unit. This question doesn't come up for single object
+design because then both cases are same. The rationale of having
+"items" in redux group together data and corresponding validationError
+as a list object is : (1) data and error are context bound rather than
+separate. (2) say we add new entries to list, or delete existing. When
+data and error are grouped, then it's easy to simultaneously
+add/delete them.So, with this understanding, the redux structure
+should be {items:[{data, validationError}], meta:{id,
+nonValidationError}} <-- wherein, it is assumed that
+nonValidationError -- even for a list type request -- will be a single
+object and not have list type behavior. NOTE: this structure even
+works nicely for a single object storage in redux!!
+--|---- If we use redux structure of {items:[{data, validationError}],
+meta:{id, nonValidationError}} -- then note that GET call handling
+action needs to be slightly different. It needs to now read the
+response-body (containing list of items) and convert it to list of
+objects that have "data" field in it that contains data. This behavior
+should also be same as on-createList-request action that reads data
+from action-payload and saves it to redux. REALIZE that even when done
+on single item -- it keeps the item and corresponding validationError
+closely bound.
+--|---- With above understanding.. how should list-create and
+list-update operations work? (i) When sending response, send it as
+{"success":{"1":{...}, "2":{...}}, "error":{"0:"{...}, "3":{...}}}
+where keys in json under success/error are the index. This can now be
+used to update successful data or add errors at corresponding
+location. (ii) As mentioned earlier, when doing "update" calls, a
+better design could be to instead send the corresponding "slug" rather
+than index as keys. If that is done, then a filtering needs to be done
+when updating data/error. That can be computationally more expensive..
+but not much difference in basic concept!!
+
+
+
+
+UI/UX:
+1) Book of css3, Pg75: don't have more than 75 characters per line.
+People lose interest
+
+2) UX: WCAG2.1, A11y; UI accessibility rating level A, AA (best to
+target here), AAA;
+--|---- Accessibility : W3C’s WAI-ARIA Authoring Practices
+https://www.w3.org/TR/wai-aria-practices-1.1/
+--|---- aria roles: http://www.a11yhelp.org/index.php/Roles
+--|---- aria properties: http://www.a11yhelp.org/index.php/Roles
+--|---- aria-states: http://www.a11yhelp.org/index.php/states-by-category
+--|---- patterns: https://a11yproject.com/patterns/
+--|---- Accessibility: writing TEXAS in all caps will cause screen
+reader to read it as "T-E-X-A-S" due to all caps. Better way to do so
+is to write "texas" in html and style as all caps using css. This is
+now read as "Texas"
+
+3) VERY VERY IMPORTANT: If capturing sensitive info from the user -
+turn off autocomplete. In React, use "autoComplete" (with caps C), and
+set it to "new-password" (See
+https://stackoverflow.com/questions/37503656/react-doesnt-render-autocomplete-off)
+-- Also see https://gist.github.com/runspired/b9fdf1fa74fc9fb4554418dea35718fe
+ -- can use autoComplete="off" at form level also.
+-- On why setting autocomplete="off" doesn't work.. See
+https://stackoverflow.com/questions/2530/how-do-you-disable-browser-autocomplete-on-web-form-field-input-tag
+
+4) See A better reading is:
+https://developer.mozilla.org/en-US/docs/Mozilla/Mobile/Viewport_meta_tag
+-- also note that "initial-scale" must also be mentioned. -- about
+viewport, mobile mode..
+
+5) When making UI forms:
+--|---- Best define a template from where everyone should copy code
+chunks from when making different form. This keeps consistent style
+--|---- Define form in section and keep section-header different from
+form title. Also, the submit button should be different from the
+section.
+--|---- A good UX is to (i) always keep submit button active; (ii)
+disable it only when loading data or sending data to server - at which
+time show a "loading" spinner; (iii) if user made error and/or server
+sent error result, then create a tab that tells user that there are
+errors and helps user cycle through it
+
+6) Consider the scenario.. you have one modal, with 2 different
+radio-options, based on the option selected, data is read from a
+different slice, and then clicking same continue button sends the
+entered data to different REST API depending on radio button
+selection. How do you model it?
+
+
+
+add self note about the termination modal design.. and how to use
+different slice for different things. Even if 2 seems exclusive now,
+it may change in future
+--|---- same applies about url design
+
+
+
+
+NODE.JS:
+1) Node is single threaded.. runs taking commands in loop. So, it is
+good for IO bound problem - server request / response. But for same
+reason, it's not good for CPU bound problem because the single thread
+will get stuck in the cpu computation and all other incoming requests
+will stop.
+Because of above, giving more than 1 core to Node is a waste.. but not
+really, like, garbage collector may need thread.. but mostly 1 is good
+enough
+About Node, and JS in general -- instead of callback hell.. use async/await
+"V8" is javascript engine of chrome. It is to JS what JVM is to Java.
+Other browsers have their own engine.. V8 is for chrome.. als0 used by
+node.
+
+2) https://medium.com/front-end-weekly/what-are-npm-yarn-babel-and-webpack-and-how-to-properly-use-them-d835a758f987
+
+
+
+
+PYTHON/DJANGO:
+1) For "aspects" in Python, use meta-programming or decorator. Use it
+to add retry logic in clients.
+
+2) See here -- https://docs.djangoproject.com/en/3.0/ref/contrib/admin/
+--|---- using context = dict(
+           # Include common variables for rendering the admin template.
+           self.admin_site.each_context(request),
+           # Anything else you want in the context...
+           key=value,
+        )
+..and sending that context out to the template for rendering.
+--|---- Also, If you want to use the admin layout, extend from
+admin/base_site.html
+
+3) Realizing that pip install can be done using local directories.
+This is python equiv of using local jar
+
+4) Consider that you have some enum states that goes in DB as a status
+or type column. Now, your task is to change the enum value for one
+particular type. Since it might have gone in DB, so it's necessary to
+update DB entries also. However, realize that if you try to do
+migration after making enum change, then old one won't be realized
+since it's no longer available. If you try to run migration before
+making enum change then new enum won't be realized because it's not
+coded yet. This is an example where you must instead use RunSQL and
+give explicit SQL command to change enum value. Same issue also
+happens when enum is changed in a  common jar which is then added to
+library
+
+5) Django's render_to_string(template-name, dict): This allows
+creating a template file and giving it variables.. to then create a
+string. Think of it as useful when making a big string rather than
+using log f"" strings
+
+
+
+
+REST:
+1) If you are making switches, avoid making negatively-named switch
+..to prevent running into double negatives to tell if something is
+allowed. It's confusing.
+--|---- HOWEVER, depending on feature you're trying to switch, maybe
+default value for it should be, say, True ..but the framework being
+used only allows False as default.. and this forces you to use a
+negative named switch
+--|---- A good idea would be log and/or trace when a logic is bypassed by switch
+--|---- Maybe have a framework that allows you for different switch in
+different environment. This can also help with blue/green.
+
+2) If you are making a POST/PUT call that takes a list entry (like
+doing bulk create/update, etc), then a good idea is to ensure that the
+list takes only a max number of entries. It is a sanity check to
+prevent someone from sending an absurdly high number of entries and
+stopping the processing.
+--|---- In this case.. likely, you'll be reading "Slug" from the
+request body rather than url, and so when doing "get_object()", then
+"get_queryset()" will not be called. So, referential checks on slug
+cannot be made. Make sure to do that in your logic.
+--|---- More design info about bulk operations done at list level..
+see under React comments
+
+3) In designing/coding - and particularly regarding models, REALIZE
+that the difference between producer and consumer mindset is and
+important difference to identify. When you are coding as producer, you
+want your codebase to be as compliant to SOLID, it'll be open for
+expansion, but different functionalities will be in different files
+and you'll have more "distributed" codebase. the drawback, maybe you
+may one change, but forget to make related change elsewhere because by
+design concept -- everything is open - so a change at one place
+doesn't/shouldn't affect other places. When coding as consumer, you
+purposefully accept that code won't go to someone else and you have
+full control over its consumption and API structure. You can add
+efficiency with this mindset. But this affects code resiliency. Most
+common, you'll run into import loops and/or will want to move some
+code to utils.. which brings up question of why not do that since
+beginning. STILL.. even in consumer mindset, remember to not break
+DAG!! -- things are easily factored as long as both app, module,
+sub-module level dag is not broken.. particularly removing order of
+__init__.py
+-- This is probably biggest design contention when you are producing
+and using the codebase in your application. The tensions come up
+because a group is both producer and consumer - so both viewpoints are
+correct. However, traditional viewpoints of quickness, efficiency,
+related features at one place because you're the only one so why
+proliferate code -- come up and may blindside the efforts. Do realize
+it comes with a future cost in that there can be future issues.. so do
+keep that in mind - particularly if in scrum workflow. Again, nothing
+that can't be changed - but it'll need extra time/money. Personally,
+having a producer mindset is better because it keeps development open
+towards future changes, but it causes a distributed code.
+-- **Thinking about producer vs consumer mindset is a good way to
+reason about having abstract classes in each project and then have
+them implemented in your project's home app. This way, the definitions
+in each sub-app gives a basic skeleton.. that you modify as necessary
+when adding it in home-app
+-- one aspect is whether they should contain method to define
+nonDB-related ASPECT-LOGIC (like fields that should be logged), field
+based object-access, or whether that logic should be in some other
+class. Having things are one place bloats model, makes model
+definition dependant on context (which is something that may be good
+if you are end consumer -- as it keeps all related code at one place
+and low chance of missing things, but not a provider), also you may
+get forced to scenarios that don't respect DAG!
+-- Thinking along lines of differences between producer and consumer
+mindset is also a good way to think whether the model should be kept
+as much POJO and related methods to moved to separate utility class,
+or if related methods be added inside the model itself. Former is a
+producer mindset and latter is a consumer mindset. The disadvantage of
+latter is that now, classes that lie higher up in DAG precedence can
+be made to have functions that apply on classes that come lower in DAG
+precedence. Then, it moves to having those special methods in separate
+utility.. then it becomes why not just put everything there.. or maybe
+DAG relation was previously not very defined, but it gets so at later
+time, and now the chain is broken.
+-- Where should validation lie when dealing with discrete valued
+"status" type fields in model-vs-serializer -- see above comment!!
+
+4) Designs: [Observation] Considering the flow of request getting
+processed, it passed through middleware -> serializer ->
+Viewset.perform_create() -> serializer.save()
+--|---- 4.1: an error must be raised as soon possible. Since the data
+comes to serializer before to model, if serializer can raise an error
+in a thread-safe manner, then it must do so. Consider the case of
+uniqueness-failure raising Integrity-error. That's an example of error
+which serializer cannot do in thread safe manner and must go at model
+level.
+--|---- 4.2: I see models like plain objects. Keep it as simple
+possible. To be transparent, this thinking actually goes against
+common Django lore but I see this paradigm working nice (..I believe 2
+scoops of Django also suggests doing so). I like to think of Model as
+a deserialized form of database table row. Concept of
+Single-responsibility now suggest not adding any extra meaning to
+model. So, I prefer leaving it in as simple form as possible.
+--|---- 4.3: If there's some constraint that I'd like to be in
+database table, but it's not possible to do so via SQL, then I add
+them in model.save() method : For example, a Review cannot
+simultaneously have both null and non-null value for worker and
+client.
+--|---- 4.4: Modify model and even ModelManager (if needed) with
+logic/relation that is applicable at table level and not based on a
+data. So, there would be internet examples on how complex create()
+logic for a model must be captured by corresponding Manager.
+Personally, I don't prefer it. To me, it also muddles the "what came
+first" relation between classes. So, for example, I feel ModelManager
+comes first with methods that act on some model, and then manager gets
+associated to a particular model class. If I now modify ModelManager
+with complex logic involving other models, then it muddles whether the
+manager came first, or model came first, or some other model came
+first. I feel this is where I may slightly diverge from Jay - had I
+made the itmp/model, I wouldn't have preferred adding foreign key with
+class names written in string, but an actual reference. Latter is more
+constricting because one needs to really clarify "what comes first".
+On flip side, this may be my ignorance with Django coding - since I
+haven't done it for long. Also, it is inspired from Java side. So,
+i'll leave the decision on you.
+--|----|---- The main idea is that when making classes, a clear
+distinction should be maintained between "what comes before other".
+So, for example, an Assignment entry must happen before a Shift entry
+is made. Now consider: Should a custom method be added in
+AssignmentManager that overrides Assignment.create() method to always
+create shifts when an assignment is made. It seems related to business
+needs and so a proper thing to do. To me, this would be an example of
+something that shouldn't be done - because an Assignment occurs before
+a Shift , and so any method in Assignment or its manager must not deal
+with Shift because it breaks the "occurs before" relation.
+--|-----|---- One outcome of not mixing code is that now in future we
+come across a scenario where Assignment needs to be created but no
+Shifts, then it can be done.I should also qualify - nothing wrong with
+making a Manager class with custom logic.. I personally don't prefer
+when that custom manager is attached under Model to its objects
+class-attribute (the one that gets used when making Queryset, like
+Assignment.objects.all()  or creating entity, like
+Assignment.objects.create(...))
+--|---- 4.5: This is about the status field containing "enum" values.
+#3 above says to only add constraints in Model that could have been
+added at database level but possibly couldn't because of SQL language.
+Say you have table T with columns SC0, C1, C2, C3, C4.. SC0 is a
+column that contains discrete, finite status values. For some value,
+C1-C4 can have certain constraints and relations which can change for
+other SC0 value. For example, if SC0 has value SC0_val1, then C1 has
+to be null, C2, C3 are derived from value given in C4, etc. etc... The
+questions is whether such validations should be done at serializer or
+model level.. and why?
+--|----|---- See next comment in that architecture and
+what-seems-ideal changes depending on whether the group thinks from a
+producer or consumer mindset
+--|----|---- If you think as API producer, you are wanting to provide
+basic functionality.. even though there is a status column that
+contains discrete values, you don't know what all status values can
+come there. So, you don't add any validations in model.. instead leave
+it for them (api consumers) to add in serializer.. or if they extend
+model into new models. This lines with the thought process of thinking
+that the "status" column contains values foreign-keyed from a
+different standard table. And then you apply above mentioned design
+considerations on it - that model definition must not contain
+validations based on data!!!
+--|----|---- if you think as API consumer, you already know what
+status values there can be. Now, having one table with different
+constraints coming in based on status values.. can be seen as if you
+instead have different database tables, each with different
+constraint, and then you're joining each of them in a single table. So
+now..(i) all possible status values are already known, and (ii) all
+different constraints for each status value is also known. Going by
+above comments, since these constraints are now based on
+table-definition, so they should be added at model level in save
+method -- even when all those tables are joined into a single one.
+--|----|---- The difference between the two, i.e. whether the "status"
+values are known/unknown is what creates confusion particularly when
+deciding where to keep validations related to status fields. This also
+creates confusion in coding because if some check is done in model..
+then you'd not want to repeat it in serializer - as much possible!!
+
+5) Metric log: When collecting metric log as part of "action / rest
+call", it enables storing both previous and next stages in single log.
+However, if you just take db snapshots periodically, such "flux"
+behavior is lost! So, snapshotting is not a replacement for in-code
+metrics capture that captures the change.
+--|---- The two main ways to crate logs are: (1) Create logs at
+appropriate location within the method so that logs are formed every
+time the method is executed either as part of request or by cron-job,
+(2) Create a cron job that reads database and creates denormalized
+entries. The latter are called snapshot logs since they capture the
+state of database at a particular instance.
+--|---- The advantage of creating logs within method is that it can
+capture transition in value for a column as it is updated in a
+request. However, doing so adds to the request processing time. It may
+also cause unnecessary database calls to collect denormalized values.
+--|---- The advantage of latter is that it can be run as a background
+job when there is low system usage. Due to lack of performance
+constraint, a large number of denormalized fields can be captured and
+logs can be prepared tailored to analysis. The disadvantage is that it
+simply captures the state of database and not the transition, i.e.
+value of columns before/after changes were done.
+
+6) Best - even when doing changes via cron job, do so by making rest
+calls to your application running somewhere.. and have a corresponding
+system user. and log it.
+
+7) PII gotcha: Say you're using Sentry to log errors. Let's say there
+is an API call that contains sensitive info.. and this call fails.
+Sentry will end up logging the request body.. and thus also the PII.
+**Solution: It's generally a bad practice to catch the entire request
+body in any manner.. sort of like breach of privacy trust between user
+and business -- so never ever do that. Also, if you do feel that you
+need certain information from the request body, then just log them
+explicitly.. or make a log-context with every request (using thread
+local) and keep adding variables there so that when you log, you use
+this instead.
+
+8) Code structure: When should you make new method in new module? If
+the new method you make will be reused by others, then sure.. make it.
+However, let's say you want to make a new method to create metrics
+with the rationale that this will one stop to see places that create
+metrics.. then it might not be a good thing to do: 1) you break code
+context.. some method in one place, others in totally different place-
+this makes it hard for developers; 2) the new method made is still
+tightly linked to original.. so why the artificial break; 3) Maybe you
+instead need better ways to identify when/where/how the logs are being
+made in your codebase
+
+9) REST: Say you're asking someone for a historical info (say their
+last name), and that this differs from their current last name (due to
+life event) - then what should you do? One way could be to add a flag
+of "force_commit" -- the idea being that generally this flag would be
+false and this would cause validation error. But if force_commit is
+true, then don't raise error. To communicate to UI, maybe send these
+errors by listing fields under force_commit, and then adding list of
+errors that can be bypassed therein. This serves to form a "WARNING"
+kind of UI behavior.
+
+10) See https://restful-api-design.readthedocs.io/en/latest/methods.html
+-- REST is generally about resources and CRUD operations on it. But
+sometimes, we may want to do some function on a resource. This article
+suggests that such operations should always be POST because they can
+be thought of as POSTing request to a message queue asking for an
+operation to get done.  Since every such messages are different, so it
+becomes a POST request. HOWEVER, I feel it can also be made as a PUT
+or PATCH if the operation is idempotent in nature.. or only causes
+partial changes.
+For such cases, one thing to remember is that if you want to run
+list-type-input operations, then they should be differentiated from
+object-type-input operations as former don't take a resource-slug.
+
+11) Consider the scenario: The application is of call-center. When
+someone calls, you make note. When you give cancel an order over a
+call, you want to cancel and also make a cancellation-note.
+--|---- One way to proceed is to add an if-logic under POST /note
+endpoint (create-note API) that if note-type == CANCEL_ORDER, then
+also cancel order. What it means is you made the call with intention
+to create note and since note is of certain type, you also cancelled
+order
+--|---- Another way to do it is to make a Django-rest-framework
+@action type custom endpoint like POST /order/{orderId}/cancel. Now,
+it cancels order, and in doing so makes a note also.
+--|---- Between above 2 prefer the latter one.. even though 1st one
+may be more compact.. the 2nd one is more clear from viewpoint of
+logging / analysis / debugging. It is much better in preventing
+someone from making a mistaken call and end up doing something not
+intended. Also, the meaning of url relates closely to what is done. In
+addition to being more clear, this also means more granular
+permissions!! Finally.. realize to not shy away from creating REST
+endpoints if needed to achieve specific work.
+
+12) As a good practice in REST design.. don't get a field from user
+that can be inferred . This is particularly important when you have
+optional field. Say, for some enum-value-1, you need field-1, and for
+an enum-value-2, you need field-2. field-1 can be inferred from
+field-2 but not vice versa. Overall, at db level, field-1 is
+mandatory. Even if there is a single endpoint to add data to this
+table, add validations field-1 is checked only when there is
+enum-value-1 and field-2, when there is enum-value-2 ..AND THEN, at
+model level (..or in validate() function at serializer level) you
+overwrite the way fields are assigned.
+
+13) Consider following case: You are a male-centric dating website.
+Two people can see other other's public profile (some data), but not
+name, age, etc. When they date, they can see personal data also. But
+if they stop dating, then they no longer see private data. When they
+are dating, girls can add expense receipt that guys approve. Approval
+process takes girl-slug, boy-slug, week-start-date ..and approves all
+expense in week. Let's say slugs are read from request body rather
+than request.user to allow "common-friends" of both to submit expense
+on behalf.
+Say there is girl-1 (slug=G1) and boy-1, boy-2 (with slugs B1 and B2).
+Let's say B1 and G1 dated in past, but now B2 and G1 are dating. So,
+B1 must not be allowed any info on G1.
+--|---- (i) Since B1 and G1 used to date, let's say B1 looked up G1
+slug from REST call. He now calls POST /approve {"boy":"B1",
+"girl":"G1", "startDate":'2020-08-01"}. In this case, if the
+validation returns different message if G1 has no dates vs if G1 has a
+date which is not B1, then there is an information leak.
+--|---- (ii) Let's say B1 guesses B2's slug and calls POST /approve
+{"boy":"B2", "girl":"G1", "startDate":'2020-08-01"}. Here, if you
+first validate whether B2 and G1 are dating and then validate whether
+user is common-friend of B2, G1.. and give different message for 2
+scenarios, then even though the request will not proceed, B1 will
+still know that B2 and G1 are dating and that is information leak!!
+--|---- MAIN POINT: The main point of above exercise is -- don't leak
+information even via failures. And to that point, it is suggested to
+do an "exploding validation", i.e. start by picking a data-domain in
+request and validate it completely, then pick up 1 related object and
+validate it completely, and keep going down the chain. So, in above,
+the first thing you have is the "request" - and you start by
+validating it first. From business logic, the user is still not fully
+validated as it needs to be common-friend to both the boy and girl. So
+next, do the 2 checks. Lastly, check if the boy and girl are dating.
+--|----|---- Consider same example as above, but say that
+corresponding to "startDate", there is an expense sheet and that is
+the one approved. In this case, don't jump onto checking the existing
+of the sheet first.. Instead, first check, if user is authorized, then
+if the boy and girl and dating, and then for existence of expense
+sheet.
+--|---- MAIN POINT#2: Some relations may exist temporarily for certain
+period of time. In such cases, make sure to do a time-dependent
+validation, i.e. whether the relation holds for a particular temporal
+context used in request. Don't assume that just because it is true at
+some time, that it is ok to mark it as true at all other time
+contexts.
+--|----|---- **VERY VERY IMPORTANT**: A second design consideration
+for "time-bound-contract" type behavior is -- never give slug of one
+party out to another. Think of it like this.. if you enter into a
+contract with a 3rd party app to get your name, age from Facebook in
+exchange for taking some quiz.. but instead Facebook also gives it
+your "id/slug" and now this site becomes the go-to place where other
+3rd party give a Facebook-id and get historical data. Then did
+Facebook do anything wrong? Yes -- **it shouldn't have given out your
+unique identifier that remains for perpetuity out to a service with
+which you have a temporary contract**. The better model design is to
+make a contract table that has foreign key from 3rd party app and from
+your profile. Now, what goes to 3rd party app is not you id/slug but
+the slug of contract. If they want your details.. they are given other
+fields like name, etc.. which can be general and not constrained to be
+unique. Here, you can control the degree of personalization on data
+outflow - maybe just give out first name not full name, maybe just the
+zip code and not exact coordinates. This way, the 3rd party cannot
+make something tailored to the user of given slug in their code --
+which means, things can still get personalized but not individualized
+(separate topic: unless facebook offers that feature.. but then, its
+under their control which is still better than letting it out in
+wild). With the new model, you become "user associated with a
+contract", rather than "user with that slug.." which gives your
+application better control rather than have the providers take
+control.
+
+
+
+
+PRODUCTIONIZING PRODUCTIONIZING:
+
+1) SBI : situation / behavior / impact
+STAR: Situation, Task, Action, Result
+--|---- in your feedback, pick/highlight important points. goal is to
+help managers make sheet -- to say whether you exceed/meet/under. keep
+adding feedback continuously through the tickets rather than doing it
+once a quarter or so. Same about adding review for others
+
+2) **VERY VERY VERY IMPORTANT**: Productionizing Productionizing:
+-- Impossible is nothing. Any change can be undone. The question is
+whether it is worth spending extra time/money. This is where asking
+requirements get important
+-- Ask as a question rather than pointing as something missing..
+**Make it look like you're trying to gather more info for self by
+asking question than making other think they're wrong. -- else people
+can take it personally
+--|---- more important, specially over static medium : slack,
+comments.. when not talking it's hard to convey feeling/emotion
+--|---- Also ask.. does it maybe matter? Maybe it does / doesn't. Can
+it be deferred?
+
+3) slack: start small thread.. then expand.. else you're hogging the screen
+
+4) See http://microformats.org/wiki/rfc-2119 ,
+https://www.quora.com/Whats-the-story-behind-RFC-2119 --- RFC=Request
+for comments.. the thing to emphasize is that when returning
+validation error, use must/must-not rather than can/cannot,
+should/should-not. Although RFC-2119 agrees to using shall/shall-not,
+but since "shall" is present tense of "should".. so it might still
+leave some space for confusion.

@@ -1,0 +1,49 @@
+REACT-ROUTER::::
+
+Very good single article with good design suggestions: https://tylermcginnis.com/react-router-nested-routes/ -- Consider this article as reference in notes below unless otherwise mentioned.
+As secondary reference - use https://www.freecodecamp.org/news/hitchhikers-guide-to-react-router-v4-a957c6a5aa18/
+
+**Already know that within the <Router> : (i) you must only have one component in it, so, maybe wrap everything with a <div>; (ii) You can add components (other than Route) - and they will always be shown in that position; (iii) Routes don't follow an exclusive rule - i.e. more than 1 can get displayed
+
+Following design ideas:
+1) Use <Switch> to contain <Route> definitions. Adding "Switch" forces to do just 1 match and stop as soon as a match is found. This is also a good way to add default rendering in case of no-match. This is from https://www.freecodecamp.org/news/hitchhikers-guide-to-react-router-v4-a957c6a5aa18/ -- but don't use it as a primary reference
+
+2) A good idea - as shown in primary reference - is to just have Routes to only the next level of pages. So, if you have /, /Home, /Jobs, /Jobs/:Id.. then don't put <Route> for /Jobs/:Id in same js file that contains <Route> for /Jobs. Instead.. the first top-level JS file should only contain <Route> for / (a good pattern is shown in second reference document.. in that redirect it to /Home), /Home, and /Jobs. Now.. Jobs should have <Switch> and add paths for /Jobs/:Id/, Jobs:/:Id/Docs, etc. ADDITIONALLY NOTE: 
+-- (i) in this pattern, the top level router is doing a delegating task. This frees up implementation details of Jobs and it can go however needed without touching the top level module; 
+-- (ii) This design "mildly" constrains that any "Link" to REST calls related to Jobs-Id should be contained in this sub-section
+-- (iii) As mentioned in primary reference, when coding for Route match in sub-recources: (a) use match.path in nested route. This way, if later on, the top level paths are changed, it will not require any code changes in sub-resources; (b) use match.url for <Link to="..."> calls
+-- (iv) This design lends itself more easily to adding/customizing breadcrumbs / sidebar
+
+3) Above initiates a small discussion on adding sidebar / breadcrumb / both. A good design could be to make separate js file for actual-component, breadcrumb-div, sidebar-div and export all 3 separately. Now use the design mentioned in https://tylermcginnis.com/react-router-sidebar-breadcrumbs/ -- to separately include the component, breadcrumb, sidebar at appropriate locations on the webpage. (Just to mention, the page shows that by repeating <Route> to match same url, but displaying different component, they end up showing the main component, sidebar, breadcrumb at correct location.. and in a sync'd up manner. An alternate option could be to make a different component that combines these together to make a new component that is then used as component with <Route>
+-- Even more, the design can make use of match-params and match-url to include dynamic data in breadcrumbs and sidebar!!
+-- The advantage of doing it this way is that the logic for main component, sidebar and breadcrumb remains mutually separate; Giving the option to inlcude one/all in different manner. 
+-- Alternately, the breadcrumbs and sidebar could be some global function in the code that are called at each step and passed necessary arguments that help in rendering them. 
+
+4) See the api of <Route> -- https://reacttraining.com/react-router/core/api/Route
+It can show a component either using "component" prop, or "render" prop, or by passing it as children. All 3 have slight differences - understand!! 
+Also, notice that when using render with <Route>, you can pass the properties to component being rendered
+-- **IMPORTANT**: ALSO NOTE that since Routing passes route-params to rendered components, so it is keeping with "best practice" to (i) always take props as argument, (ii) If you're making a higher order component, then take props and pass it to the component being wrapped. This way, the params passed by routing will get available to the wrapped components. Same even applies when Redux wrapping the components.
+
+5) See https://stackoverflow.com/questions/37696391/multiple-params-with-react-router -- it mentions how to pass optional path params to Router.. not sure if this is good idea.. maybe good to do this as filter param 
+
+
+REACT CONNECTED-ROUTER
+1st and **IMPORTANT** question: The browser already stores history.. so why have it in redux?! The best answer that's almost missing everywhere --> because if we try to store history and Redux data separately, then the burden of integrating/sync-ing with both comes down on the application. However, with a ConnectedRouter, this burden is lifted from application. Most notable example being.. this now enables having a history in react-Native where the browser history is not available! Think of it as CQRS pattern.. where you actually have 2 DB.. but it'd be better to have the application interact with just one of them.. and then internally you have logic to sync up the two storages.
+-- MOST answers mention that this is useful to get time-travel behavior in redux devTools. I don't think that is correct. redux-devtools does time-travel debugging by monitoring action calls made and storing it in chronological manner. 
+-- **IMPORTANT** A good thing is that now one can additionally verify the "matching" between url-location and corresponding redux state, and see that both are in coherence. The advantage being that this allows for users to bookmark their page and come to it. REALIZE that the React Application is a single-page application. Doing a history.push() or go(), etc.. you'll still be in the same page.. It won't reload, i.e. it won't hit the server to get index.js, css and js files; And this is the behavior we want since we do NOT want the page to get reloaded and lose the Redux-state data. This further adds to why having history within Redux is good idea.. because now the history session that is existing in browser stack is one that corresponds to movements within a single page only.So, it's good to see it match with Redux store.
+
+1) As mentioned above, when designing application, make sure that the user is able to bookmark a page and come to it. This means that the page getting displayed on url call should correspond to a GET operation.. and not a non-GET operation.
+
+2) **I am assuming** that even with/without using ConnectedRouter, when user clicks on a <Link> element, it stores data in history and allows going back and forward.
+-- See https://blog.logrocket.com/conquer-navigation-state-with-react-router-and-redux-f1beb9b8ea7c/ -- which says that to get this behavior needs some fixing if using <Redirect> 
+-- **IMPORTANT**: NOTE to not get confused.. there isn't a version of store-data getting made for every history entry if you use ConnectedRouter. So, even if you click back.. you'll still see most recent fetched data. The time-travel in Redux Devtools is purely due to it capturing all state info.. and not due to redux doing so.
+
+3) GOOD DESIGN TIPS:
+
+3.1) Say you want to go from Home to Jobs (which displays list of jobs, say, in react Table), to a single job.. say rendered in a modal. The url for list of jobs is "GET /jobs", for creating a new job is "POST /jobs", for getting single job is "GET /jobs/{id}". My suggestion:
+-- Whenever you have a "nested resource", then ALWAYS render it via <Route> call and not directly. SO.. in above situation, show list of jobs and add a <Route>, so that if a ":Id" is given, then that route gets opened, and it shows Modal for single job description that is overlying on top of list-of-jobs. 
+-- What about if we want to display totally new page with single job data rather than overlying it as a modal..? In that case, the initial js script should have 2 routes - one for "/" that uses a component which shows all data, and other "${match.path}/:id" that shows the individual job data on new page (The above design still holds). 
+-- How to go from list-of-jobs to single job data? Add a handler such that clicking on an entry does a history.push(). With new url added, it will trigger a re-render and displaying the single-job-data page. 
+-- What if we want a behavior such that clicking "Create new Job" should open a modal just like if job data were available.. but with blank fields? A shortcut could be add logic, like if the :id is, say, "NEW", then consider it as opening an empty layout for new page, rather than for an already existing job page. This is a "Null handling pattern". Following previous advice.. note that this still does NOT map to a NON-GET operation. A POST operation only happens when user clicks the button. ALSO REALIZE that the above forces POST operation (i.e. id=NEW) to always be different from other GET calls!!
+
+3.2) I would always suggest that as a successHandling to any NON-GET api call.. always add logic to do some type of history.push(). Add an appropriate url. Add an appropriate state json in history, like message to show to user that some operation was done and that it was successful. Now, when user clicks back button, they won't be made to forget that they made a non-GET operation - And this is how, even though a NON-GET operation is never mapped to a url, it is still remembered and conveyed to user rather than being forgotten. Thus, this is how a NON-GET can be seen as getting mapped to history. It can also be seen as a generalization of the "Post-Redirect-Get" pattern, and in being a "NON-GET Redirect GET" pattern.

@@ -1,0 +1,85 @@
+Python TODO: 
+1) https://www.youtube.com/watch?reload=9&v=wf-BqAjZb8M&feature=youtu.be&t=260
+2) get_queryset() :: prepares query-set, it does not actually run it. Extra args can be put as needed, including any filtering. It is only in the final .get() call that the query_set is changed to query and executed
+3) A good practice is to have create/update methods accordingly in the serializer.. including any error handling by wrapping parent's save() method. This way, in ViewSet, you only run the basic commands without any repeated error handling logic.
+4) Use of "baker" in django test ..along with @skipIfDbFeature("is_mocked")
+
+5) Django migrating data.. the process shown in docs uses "app.get_model" -> which is confusing.. it just checks that apps are properly registered and models are properly mapping to each other. It still loads the most recent model and not the one that corresponds to database-table-schema "at that time".. Look into if it is possible to have a set of migrations run at the very end.. or to just generally be able to order migration run. Then data load can be done last.. Also, in terms of keywords, look into something called "Fixtures"
+
+
+
+
+1) react "key":
+react says to add "key" in list.. a good practice is to also add key in all element that can get multiply used in UI.
+For example, showing "Alert" box.. this can happen multiple times in the UI., where different alert boxes can come up at the same time.. Thus, for such cases, best to add "key" to all <Alert> components, even if they show up once..
+
+Realize that if you have a design where a "list" of values can show u at different places in UI.. then best to also prepend a separate prefix -- so that the different set of list values can be disambiguated
+
+
+2) Redux-storage vs useState
+
+---- calling useEffect to trigger reload if using useState to store temp data
+
+---- have just 1 setState calls with all "related" data - to prevent multiple render
+
+---- want referential equality using objects as dependency in useEffect, etc.. then use "useMemo"
+
+---- don't use hook. particularly useEffect hook when you're about to exit a component.. say by returning null.. or if in process you set some value in parent component that stops render of child component.. Hooks will complain in such cases that there are fewer renders than expected!!!
+
+
+
+3) Ensure that if there is clear redux state action.. then it takes highest priority and that it's work isn't undone by slow request setting data..
+-- when storing data in redux-store by pulling it from some REST url.. make sure to also save the REST path-params along with data. The idea is that there can be race-condition in how thunk executes the backend logic. So, we want to also save the information about the parameters that the data belongs to.  **ALSO** now, when using that data in React component.. check that the path param matches to what the react component wants to show.. before actually showing the redux data. If they are different.. then maybe trigger another data load. THIS DESIGN CONSIDERATION WOULD BE NEEDED regardless for thunk or saga.
+-- Realize that one MISSING thing about Thunk is that when it executes the function dispatched to it.. it can do multiple dispatches as part of single execution, but on the outside we'll never be able to know if they happened. That also makes testing hard [[..and what makes testing even worse is that thunks operate on functions which are non serializable. ]]. So, the idea to have transparency about what is actually happening, bring up a message based communication model, which brings up Saga! - which then makes it easy to test
+
+
+
+
+4) Many-to-many discussion
+
+
+5) history.push('/path/to/previous--start with slash'); -- to go to parent
+Refresher:: https://reacttraining.com/blog/react-router-v5-1/
+Nice answer: https://stackoverflow.com/questions/43544674/match-multiple-path-with-react-router-v4
+
+
+6) DESIGN: Component, redux enhanced component (all dispatch / state / etc redux specific imports should ONLY be here), router-enhanced componnet (all router, history, url specific imports should ONLY be here)!!
+---- Say, you're having a modal, wrapped in redux, which is then wrapped in Router. You want to add logic that when modal-processing succeeds, or user clicks close, then modal goes back to previous REST url page. So, we want to have history.push(..) as a terminal operation. However, if you try wrapping it as a parent onClose callback - and pass it to child component.. what happens is that when modal calls the parent-close-callback, the history.push() happens immediately, which changes url, which trigger <route> change, which triggers re-rendering.. and maybe the actual component which was doing processing is removed. This causes React confusion - and react throws warning that you are changing state of a component midway into rendering. The solution: as a parent-close-callback, pass a useStae-setter that sets a flag notifying top level router-wrapper-of-component that history.push(..) needs to be called to navigate away from component, and then have a useEffect within the top level component to do history.push(..). Also, use the same flag to not render wrapped-child if the flag is set. In this case, when childComponent sets the value on parent, react knows nicely that wrapped-child should no longer be displayed.. after re-render has been done, **AFTER THAT** it triggers history.push(..) which causes navigation out to different page!!
+---- A good design is to have url(s) arranged like REST structure.. where the next level REST placeholder are defined in child-component.. and they are imported by parent-component to form Router logic. This gives flexibility, open to future changes.. keeps DAG structure
+
+
+
+7) DB unique constraint in design :: Start by adding as strong of a constraint as possible.. relax later if need comes. Don't start with a weak unique constraint (i.e. one based on multiple fields rather than just a single field)
+---- Note that same also applies when writing validators. If a validator holds for a field, then keep it as a field level validator and don't put on class yet. Maybe, in future you'll need different class level validator or will need separate field validator.
+
+-- Unique DB check - can only be at DB level. If you try to add add logic in service - that won't work for race condition. ..because between validation and addition of data.. some other request may have added data that would fail validation
+
+
+
+https://stackoverflow.com/questions/30394225/django-using-of-related-name-in-manytomany-and-in-foreignkey
+
+================
+Quick Introduction with Django:
+This section quickly introduces to how the request flows in the codebase and is processed using ViewSet. A big problem (..I felt) is that almost all Django books and documentation goes deep into Django-forms, templates, etc. and doesn't cover ViewSets (..or maybe covers it much later).  In the codebase, we mainly have JSON request and response, and there are no forms or templates being used - so a lack of coverage is felt! Note that an important (i.e. important to project) but different aspect is the admin functionalities provided by Django. However, going through setup procedures is sufficient to provide a basic/working-level understanding of it.
+
+URL:
+The "urls.py" files compose the full REST url as it moves from "urls.py" at top-level folder to those in individual module
+For the composed url in sub-modules, the full name can be formed by appending corresponding "app_name" values with colon ":" symbol
+Going through https://www.django-rest-framework.org/api-guide/routers/#usage should be sufficient
+We also use NestedSimpleRouter to extend the REST url without making another module. See https://github.com/alanjds/drf-nested-routers - The documentation also shows the usage
+VIEWSET (..and URL):
+Start by reading the quick documentation about ViewSet on the top: https://github.com/encode/django-rest-framework/blob/master/rest_framework/viewsets.py
+To achieve request processing, you want to use mixins, like, CreateModelMixin, RetrieveModelMixin, etc. along with the GenericViewSet
+How does ViewSet process the request: Start with a quick StackOverflow answer https://stackoverflow.com/questions/31824660/what-is-the-control-flow-of-django-rest-framework/31833300#31833300
+The "lookup_field" member of viewSet serves 2 fold purpose for PUT calls (..will come to other calls in next point). Say, your REST url is "PUT /resource/RES1". If lookup_field is not set, then the value "RES1" will be set to a key-name "pk" as a default behavior (see documentation on Django Routers). Now, the processing goes to "UpdateModelMixin" where pk=RES1 will be one of **kwargs provided to update(..) method. Then, 2 lines later, "self.get_object()" is called. This method is defined in "GenericAPIView" class that is extended by "GenericViewSet", which is then extended by our ViewSet. The get_object() in GenericAPIView start by calling get_queryset(), for which the default implementation is to pull all DB objects corresponding to a Model. [Doing a slide segue and will come back..] get_queryset() method is also used by ListModelMixin, i.e. when you want to do a GET call to list all objets for a particular resource. So, if you want to modify that behavior, like, adding a default sorting, then you'll override this method in your ViewSet. [Coming back to discussion on PUT call processing-flow within GenericAPIView's get_object()..] Either using default or overwritten get_queryset() method, all relevant data is pulled. A filtering is applied (i.e. if the REST url passes query-params. For now, assume there wasn't any such filtering done). Then, "get_object_or_404" method is invoked which takes the list-of-objects provided by get_queryset() and filters out one such that it has a field of name "lookup_field" and value pulled out from the REST URL. So, it is necessary that the lookup_field name be same as the model-field-name, and that it be a unique field.
+An enhancement on above: Say, you used NestedSimpleRouter and mapped the ViewSet to a nested URL like "PUT /resource/RES1/child/CHL1". What happens now? The values CHL1 will be added in **kwarg with key="{lookup_field}", where {lookup_field} is defined in the ViewSet. The value of RES1 will be added with key="{lookup}_{lookup_field}", where {lookup} is defined in NestedSimpleRouter in urls.py file, and {lookup_field} is defined in ViewSet. For example, let's say we set lookup as "client" and lookup_field as "slug". In this case, the kwargs going to update() method of "UpdateModelMixin" will be {slug=CHL1, client_slug=RES1}. When calling get_queryset(), these values also get passed there. [Digression to GET list call..] In this case, when doing "GET /resource/RES1/child" to get all child-resources, we only want those for which the parent is "RES1". So, we'd also want to modify get_queryset() method of the ViewSet, so that it filters and pulls only the child-resources for which the parent is "RES1". [Coming back to PUT call execution..] When get_queryset() is called, our custom method ensures that only those list of children are provided for which the parent is "RES1". Now, among those, a sub-selection based on lookup_field is done. So, as above, we want to ensure that the lookup_field name be same as the model-field-name, and that it be a unique field.
+A few more passing notes, still on PUT call discussed above:
+If you try to do "PUT /resource/RES1", then you can/must have the "lookup_field" be set as a read-only field in the corresponding serializer. Why? ..because this value is already being provided by URL. We don't want to enable ambiguity from coming in by allowing it to be read from the request body provided by user.
+If using NestedSimpleRouter, one must necessarily also change the get_queryset() to filter based on parent-resource. If not done, then cross-resource-access security-attack could be possible. For example, doing "PUT /resource/NOT-RES1/child/CHL1". Such requests should not work because CHL1 is not a child of "NOT-RES1" resource, but is only a child of "RES1" resource.
+In cursory analysis, the PUT call seemed the most complex and so it was discussed in detail. This is also how "lookup_field" works for other calls. Particularly, note that when making a POST call, the specific lookup_field won't be available, since the resource is not yet present in our database. In this case, while saving data from serializer, properly attach the parent resource. The **kwargs available to the method can be used to identify the suitable parent object to attach/link.
+Documentation for GenericView: https://www.django-rest-framework.org/api-guide/generic-views/
+SERIALIZERS:
+Mark corresponding lookup-field as read-only
+If the model object has a parent object (i.e. it contains foreign key column) that is also a user-provided data, it is likely you'd not want to serialize/deserialize it. For example, using above setting, "CHL1" has "RES1" as parent. Note that in practice, it will always be the case that whenever a REST url is being invoked to access CHL1 or related data, then RES1 will also be there. So, you don't want to add extra serialization/deserialization burden. Thus, this rule/observation comes to be.
+As much as possible, always add validations within the serializer. (At this point, I am still to attempt doing this.. so don't have any updates/ suggestion/ best-practices)
+Documentation: https://www.django-rest-framework.org/api-guide/serializers/    https://www.django-rest-framework.org/api-guide/relations/#serializer-relations    https://stackoverflow.com/questions/27591574/order-of-serializer-validation-in-django-rest-framework

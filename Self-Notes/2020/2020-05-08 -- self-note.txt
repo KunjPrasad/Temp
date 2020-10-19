@@ -1,0 +1,37 @@
+TODO:
+i) Django asycn processing: See Celery, Django channels. If instead you need multiprocessing or django-message, then use those.
+
+
+
+JS:
+1) Proper JSdoc comment with arg-types: See https://jsdoc.app/tags-param.html  -- Same rule also applies for return type. If your return type contains object for which you know the shape, you can write "@returns {{field: (type)}}" <-- may try with an IDE that auto-makes the comments. Note how this looks similar to "@returns {Object}" that can also be used
+
+
+
+REACT:
+1) Anytime you see: "clicking on an element going to some other url page" --> think about using <NavLink> from react-router. 
+HOWEVER.. it is seen that when middleware is used to restrict navigation out of a page -- and you're using <ConnectedRouter>, then this causes a disconnect. Clicking on <Link> immediately changes url, which triggers new rendering, but then @@LOCATION_CHANGE action kicks in, which is blocked by middleware and then the url comes back. This causes a flicker in rendered page. In this case, if you instead just do a dispatch(push(...)), then only 1 action is sent and that does not cause a flickering
+
+2) VERY VERY VERY IMPORTANT: A nifty way to "block navigating out of page"...
+In earlier notes, one suggested way is via Middleware. 
+Another way is as follows: 
+--|---- (i) Use <NavigationPrompt> from react-router-navigation-prompt. It allows using a custom component to render the yes/no box to user when user is navigating out of page... so far, still using React-router, nothing big. 
+--|---- (ii) Now, as child of <NavigationPrompt> pass a component that does NOT show a yes/no box, but just renders something - like, raising toast. When navigation out isn't allowed, the toast gets shown. 
+--|---- (iii) Here's the trick.. use a react state to store current time (= new Date().getTime()), use that state-value as key to <NavigationPrompt>, and in the child of <NavigationPrompt> set the state to store new Date() --> How it works --> Per the usual flow, when error toast gets raised for first time.. then problem starts after that because the <NavigationPrompt> doesn't have a way to get user confirmation - since all it did was raise toast and it didn't render anything. Hence, it gets perpetually stuck in a state where it's continuing to raise toast, waiting for user confirmation and not being able to move.  This is where the key={date} comes in. It makes the <navigationPrompt> as a one-time use component. So, instead of being stuck and forever raising toasts, it is immediately discarded after one use and a new prompt is made. So, the stuck prompt no longer exists, and so the toast don't continue till perpetuity!!!!!
+
+3) VERY VERY IMPORTANT Few more things about <Prompt> and <NavigationPrompt>:
+--|---- These are based on history.block(). So, once the prompt gets active, anytime you change history via push or replace.. or even if you try to make a path change in child-url, it'll block it all. So, ALWAYS put history-block on url that you're not expecting to change. If you intention is to be able to change child-path.. then you'll need to instead rely on react-state to capture that information, rather than using any form of <Link>
+--|---- For <Prompt> or <NavigationPrompt> to work, it must get active first (i.e. "when" returning true), and then it does the related work if any history change comes up - either as push or replace.. either in pathname or in search!!
+--|---- If the intention is to totally prevent navigation out of a page, as done in above example -- then best is to do so via toast. The good thing about doing so is that the toast exists as an "aspect" to the entire application. So, one need not have hard-coded components that are wrapped with some logic that says to prevent navigation, and defining custom behavior. Even more.. when new components are added, one need not worry about mistakenly not wrapping it in behavior. 
+--|----|---- **VERY VERY VERY IMPORTANT** -- On a deeper level, this shows what it means to have UI side aspect. (1) When making UX, it is best to design an "aspect" like behavior as getting expressed via an "aspect" like component. (2) An aspect like component is one which is independent from entire application. separate modal containers, separate toast containers are example of such component. An example of "non-aspect" like component for aspect behavior would be showing tooltips when some behavior is disallowed. In this case, you'll have to wrap every element with a tooltip-wrapper ..and worry about whether tooltip should be shown up / down. **HENCE AN ASPECT DESIGN IN UI / UX**
+
+4) VERY VERY VERY IMPORTANT: About React-router..
+--|---- realize that all methods like push(), replace(), to() <-- of <Link>, doesn't need be only given a string url.. but a much more preferable thing would be to give the location object with separate pathname, search fields. This allows for, say, just the pathname, but not the search.. etc.
+--|---- REALIZE that by react-router docs, <Link> is supposed to be declaratively used. If you end up adding your own onClick() for <Link>, you're doing it wrong - even worse if your custom onClick() does an event.stopPropagation(). If a separate onClick() like behavior is needed for <Link>, then the suggested way would be to have the <Link> work as is.. and then add an effect in target component with componentWillMount() like logic.
+
+
+
+DJANGO:
+1) See Pg.184 of 2 scoops.. the get_breakdown method is defined in model manager. This is a good place to do so because get_breakdown don't directly apply to model, but is something that can be done on the model. If "getting breakdown" is something that is more general, then it can even be made into a util, that is then used to define a new manager method! 
+--|--- THIS IS A GOOD EXAMPLE OF METHOD TO PUT IN MANAGER--
+--|---- However, if the need was to identify whether the address is US address or not, then that is better done as a property on the model itself, and not in the model manager.

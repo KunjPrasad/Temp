@@ -1,0 +1,20 @@
+React Lazy (**IMPORTANT**):
+https://hackernoon.com/lazy-loading-and-preloading-components-in-react-16-6-804de091c82d
+https://www.freecodecamp.org/news/how-to-optimize-react-applications-with-lazy-loading-232183e02768/
+
+React-table : has an option to set it to manual.. meaning you take responsibility for pagination and data fetch. the good thing about it is that now, you can just load one page worth of data at a time
+
+See Redux toolkit library (import from '@reduxjs/toolkit;):: https://redux-toolkit.js.org/tutorials/basic-tutorial
+
+See redux's configureStore (https://redux.js.org/recipes/configuring-your-store#the-solution-configurestore) for complex config of store
+
+useMemo and useCallback -- in react, for Hook based system. See https://flaviocopes.com/react-hook-usememo/ and https://flaviocopes.com/react-hook-usecallback/
+useSelector and useDispatch -- to use in Hooks system as alternative to Redux's mapStateToProps and mapDispatchToProps
+
+**in useEffect, the 1st arg is the method that is run.. and 2nd arg is an array of values sent. Note that the 2nd arg value will get injected to function (in 1st arg) ..and, those values don't have to be passed as argument to function (..which is 1st arg of useEffect). Also remember that as long as the values in the array-arg (i.e. 2nd arg passed to useEffect) is same, the useEffect will not run. So, if a constant array is passed (like empty array), then it will be run just once and behaves like "componentDidMount"
+
+problem with adding constant data in Django migrations:
+1) Say you start with a model with 1 field - you apply migrations. This also gets reflected in DB
+2) Now, you want to add data.. what python does is look at existing model - and all fields available there - and creates a constructor adding value to all (or null)
+3) Now you add another column. Lets say you give it some default value. This still works. You also change the model to include new field
+4) HOWEVER.. for a person starting with fresh DB, they'll fail in step-2. Because when python looks at the model now.. it sees extra field - which was added in step-3, but now is part of full model.. and so can be seen by someone running migrations in fresh db. Python will try to assign default value to those fields - but those fields don't even exist as of now in DB.. so this causes failure!!!

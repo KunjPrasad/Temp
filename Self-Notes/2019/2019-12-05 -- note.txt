@@ -1,0 +1,38 @@
+mysql best practices notes
+MySQL
+
+* Single data owner in deciding db design — single owner decided based on service accessing it
+
+* Maintain read only replica for speed
+
+* Keep different db name to identify prod vs non-prod.. and for replica vs non-replica
+
+* INSERT ..ON DUPLICATE KEY UPDATE :: This insert does not fail, but updates if the data is already present. Else it will give duplicate key error
+
+* INSERT ..REPLACE: Strictly don’t use it since it will lose data; Also it does a delete then insert — and that is 2 transaction; and can affect foreign key relation. 
+
+* A related command is INSERT ..IGNORE which is supposed to silently ignore error message if insert failed because key already present, but the bad things is that it silently ignore all insert failures, like, if data is bad. This should be avoided .. but can be used in bulk loading
+
+* SELF-JOIN: table joining on itself. Good for join to get a hierarchy or time-window relation. In this case, for disambiguation, use “AS” clause
+
+* See StackOverflow https://stackoverflow.com/questions/3856164/sql-joins-vs-sql-subqueries-performance — in that joins can be faster than sub select
+
+* If you want to join but with a particular column having a given value, then use that column in “WHERE”, rather than in JOIN..ON..AND.. clause
+
+* If you have table where there can be many rows, and we will query them.. then likely we’ll want to use ORDER BY to maintain order. In this case, it is good to have a column in table on which one can order. REMEMBER to not use the “id” field as numeric.. It may be bad from security viewpoint
+
+****LIMIT command has another form that takes 2 values, 1 is offset and other is the number of entries returned - but under covers this is not performance.. as it first selects everything and then throws offset data out. Better way to paginate is to first filter using WHERE clause, and then use limit.. and then change the input to WHERE for next iteration accordingly.
+
+* Probably a good idea is to take a hybrid approach joining both the above processes.
+
+* You can change character-set in MySQL columns.. but best to have charset as utf8mb4 — **IMPORTANT**: Not utf8.. in MySQL, utf8 is utf8mb3 (3 bytes of data). Even worse, it can drop string data — MySQL historically set around 767 bytes for indexing. Since most string columns are 255 string size, so MySQL decided that they’ll assign 3 bytes per string. So, if there is a larger data sent.. it gets dropped
+
+****IMPORTANT** : Alter table: 2 things to note. Both relate to fact that “Alter table”, when executed, makes copy of original, then changes references to refer to the new table. So:
+1) If trying to do multiple “ALTER TABLE” commands, best to collect all of them in a single statement t prevent performance degradation by multiple operations
+2) Historically, Alter table would lock the table while alteration is being done. Recent versions have improved it by trying to queue the changes and in the mean time allowing external reads to happen.. but this is still slow!
+
+* Use DESCRIBE/EXPLAIN to understand queries. Like “EXPLAIN {query}”. Look at value in “filtered” column — is useful
+
+* Good practice “Order” on index. But do remember, adding index on table means that retrieval would be fast but insert would go slow since all indexes will need updating. Also, do note that if order is being applied after selecting data based on some filter - like primary key range, etc.. then maybe order can be applied to a column, but it won’t be necessary to add an index there.. since data is already small.
+
+* Composite index.. IMPORTANT - the way the structure of index works, it needs value of first column, and others optional; then first and second and other optional; and so on.. the columns in between cannot be skipped

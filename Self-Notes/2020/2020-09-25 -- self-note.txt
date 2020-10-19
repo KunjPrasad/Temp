@@ -1,0 +1,591 @@
+Followup on enum field based verification - in serializer or in
+model.. producer vs consumer aspect
+
+-- it is said that when looking at consumer mindset, you can add
+validations in model's save method.. and this stands in contrast to
+add validations at serializer level when looking from producer
+mindset.
+
+Another way to realize this difference showing up is:
+1) At a later time when new enum values are added, should it cause a
+change to occur in model's save() or in serializer's validate()?
+2) Going by consumer mindset: Since a list of possible note-types
+exist for which validations exist in model's save() method.. the
+save() method must also add a validation if a new note-type comes to
+it for which validation does not exist
+3) Going by producer mindset:: we said that an enum based table column
+can be considered as an aggregation of multiple smaller..
+
+
+
+**One advantage of grouping item / error in list type data.. you can
+now add select / unselect to it.
+Also.. if you have other related elements for each of list-entry, that
+can easily be added . For example, if each list-entry is "homework"
+and the teacher has just graded it. Now, when submitting the grades,
+after all submission is done, teacher could be asked to submit
+comments, one for each homework.. so it's a related item and that can
+easily be modeled if using grouped data.
+
+
+**Use query-param or header: Realize that one good thing of using
+query-param (particularly in context of GET calls) is that then the
+url can be directly used inside <a href="..."> triggering file
+download. SO.. a good idea may be to first use request-header only,
+but then fall down on using query-param. Still, make sure that going
+this route does not cause authentication breach.. i.e. someone is able
+to bypass authentication by adding query params
+--|---- RELATED: **content-negotiation: server vs UI side. Note that
+content-negotiation in REST is a known thing.. but **maybe** a better
+option is to do so on UI side. For example, have a REST url just
+return json, and then, have the ui read json and change it to csv. The
+con is obviously
+
+
+The advantage of doing so is that it now overcomes above limitation of
+not being able to use request headers. but on down side.. that's not
+really REST!!
+--|----|---- just to add.. this is how you do UI side file download:
+
+    if (navigator.msSaveBlob) {
+        window.navigator.msSaveBlob(response.data, fileName);
+    } else {
+        const tempLink = document.createElement('a');
+        const url = URL.createObjectURL(
+            new Blob(['str1\n', 'str2\n', str3\n' /* reading data from
+some place in UI */], {
+                encoding: 'UTF-8', // important.. remember to keep
+encoding, and also include it in file-type
+                type: 'text/csv;charset=UTF-8',
+            })
+        );
+        tempLink.href = url;
+        tempLink.setAttribute(
+            'download', /* VERY VERY IMPORTANT: Use of  */
+            `${fileNamePrefix} - ${moment().format('YYYY-MM-DD HH:mm:ss')}.csv`
+        );
+        document.body.appendChild(tempLink);
+        tempLink.click();
+        tempLink.remove();
+    }
+
+TODO: when to use above?
+
+TODO: Many to many relation between data 1st level independent data domain
+
+TODO: When having db model where lower table has columns that override
+value of column in a higher table -- then: (1) use column-name in
+lower table as `{high-column-name}_override` add @property named
+`{high-column-name}` in lower table that defines the value as using
+the overriden value if available else using the higher table value.
+This can also get chained now.
+
+
+
+HTML code sniffer: https://squizlabs.github.io/HTML_CodeSniffer/
+
+
+
+Django.. if you make migrations and the numbers are not uniquely
+ascending, then it gives (i.e. 2 migrations starting with same
+number), then you get error:
+
+CommandError: Conflicting migrations detected; multiple leaf nodes in
+the migration graph:
+(0072_taco-1097_employmenteligibility_ovc_scheduled_date,
+0074_itmp-550-add-time-punch-constraints in itmp).
+To fix them run 'python manage.py makemigrations --merge'
+
+To fix it you need a merge migration which essentially has no
+operations.. but has dependency on the 2 "leaf" migrations
+
+
+
+Django audit-log: See
+https://github.com/ndwhelan/django-auditlog/blob/master/src/auditlog/registry.py
+-- the idea is to register methods that trigger on post-save (note..
+"post"), and pre-update, pre-delete (note.. "pre") that create the
+logs. For update and delete, the methods do a queryset call with "pk"
+filter to get original object.. because since these signals happen
+before save (and signals run in same transaction context), so they are
+able to capture the changes -BEFORE- they get persisted.
+
+-- see https://docs.djangoproject.com/en/3.1/ref/contrib/contenttypes/#generic-relations
+ and also django_admin_log (logs made when changes are done via django
+admin.. see `log_change` method of `admin.ModelAdmin`) -- it shows how
+content-type id as foreign key can be used to make a "generic" foreign
+key. Do realize though, (1) same entry may not work in different
+places due to different content-id being given; (2) it is as good as
+on_delete=SET_NULL; (3) not sure how it'll respond to in case a model
+is removed in future. All being said.. realize that making a generic
+foreign key is an option. Any place where you can register
+models/entities and give them some id.. this method works!
+
+
+Django:  It's not a good idea to do validation in model.save().
+However, consider coding for a "single table inheritance", where
+different columns can be optional/mandatory based on a type. However,
+in DB you just have a single table. This means, you cannot have
+multiple classes that extend from a single abstract class. You can
+only have 1 concrete table to make 1 db table. However, each type has
+its own "requirement" on which field should be optional/mandatory.
+Thus, not for validation, but for enforcing the constraints, this is
+the case where if-else is used in save() method.
+
+
+
+Django rest framework: Why "must" (note the word.. must, not
+could/should.. i feel it is a strong criteria, so using "must") "slug"
+always be read-only?
+--|---- For normal case of put/patch/delete calls, this is evident -
+because the slug is getting read from url-path.
+--|---- However, consider the case when the url needs to take a list
+of entries in request-body and update all of them - like, a
+bulk-update. In this case also, the correct way to proceed is to read
+entries in list one after another, and process as: (i) First, read
+directly entry.slug. Assert that it is not None, and has a parent
+relation with the slug given in url (..or whatever criteria.. the goal
+is to realize that there is no improper access by violating parent
+child access) Make list of validation error if that is not the case
+for each entry where that's not the case.. and then raise it. (ii)
+Next, make serializer for each entry separately. Since it is update
+call, also pass the instance to serializer. Can set "partial=True" for
+patch call updates (where you bypass required=True checks). In the
+validate() method, can add extra validations that trigger if
+"self.instance is not None".. hence ensuring that PUT updates don't
+break any data model constraints. (iii) Also, if you want, before
+saving all updates, can first just do "update-no-save" to get new
+entries that'll go in db, run a validation on the collective, and then
+send them out for save. This is best codified at model level --
+because as mentioned above, these restrictions exist in model
+definition itself.. just that we can't write it due to limitations of
+sql language itself.
+
+Following above.. another thought on database modelling.. Let's say
+you are modeling for a cloth machine. It has a row of spools that
+feeds it, but at a time if pulls from just one spool. After the spool
+is done, it can automatically jump to other. There is start time for
+first spool. There can be time difference between stopping a finished
+spool and picking thread from the next one. How to model it? Let's
+also say that we are given that a single machine DB table instance has
+as child multiple "RunDay" instance, corresponding to each day the
+machine is run.. and each RunDay has multiple spool instance as child.
+--|---- In a previous note, it is said that to have a "only one" like
+constraint/behavior among a subset of rows, you can add, say, a
+nullable boolean column, say, "col-b" and add a unique constraint on
+["col-b", "foreign-key-identifying-row-subset"]. Now col-b can be True
+(value in db = 1) or False (value in db = 0) just once in the subset.
+If you don't use "False" value in application, this ensures that there
+will always be just one entry. However..
+--|---- In previous note, it is also said that doing so is not a very
+elegant thing to do. For one, it depends on the db quirk of
+considering each null value as separate. What if someone changes that
+behavior. If null cannot be compared to be same, realize that they
+cannot be compared to be different. Comparison on it is undefined -
+like raising an error.. it's not that each null value defines a
+comparison and is different by it. Also, this doesn't prevent someone
+from using value of "False" which is not an expected value. So.. it's
+not being a one-shot answer anyway. MORE IMPORTANTLY THOUGH..
+--|---- Say you make above constraint.. and say, you now need to edit
+the db entry where currently active entry is disabled and a new active
+entry is to be added in single transaction. This can only happen if
+the constraint check is deferred, i.e. uniqueness is checked before
+and after the complete transaction, and not midway. Even though there
+are DBs that allow deferring constraints, some don't - like MySQL. So,
+you'll be stuck with making 2 transactions in your request to first
+set "col-b" which is currently True, to null, and then changing newly
+made row's col-b from null to True. This can get even weird if you've
+configured an audit log on your table and it will capture 2 quick
+changes. Plus, the code isn't very concurrency friendly.. but that can
+initially be ignored. To add to it, since most test frameworks run
+code in a transaction.. such kind of valid use cases cannot get
+tested! ALSO..
+--|---- The "col-b" column was made because we needed constraint on 1
+active spool for a RunDay per machine. How about requiring 1 active
+spool on any RunDay per machine. There isn't any way to constrain that
+in DB and we must now resort to checks in application... using
+Select-for-update, etc. But if we have to eventually do that, then why
+not do same for "col-b" constraint itself. This makes having "col-b"
+constraint useless.
+
+
+
+**Important: in a self-note.. either here itself or earlier.. it is
+said how enum field based verification can be done at model level
+because "enum" values aren't user data - but like a single table
+inheritance pattern in django (..note: single table is not an official
+django way to do inheritance). However - case must be taken!! If the
+enum valued column is set only once at create and is immutable after
+that - then it implies a single table inheritance implementation.. but
+if the enum values in column can change over time, then it is a
+workflow dependent behavior and related constraints/checks must not be
+in model -- because processing requirements can change in future.
+--|---- Related to topic to doing validations in model.save():: If you
+have multiple datetime fields in model, and let's say they have a
+chronology associated to them, like it has to be in order, and there
+shouldn't be a missing former value is latter value is present.. then
+such validations can be done in model.save() -- because following the
+logic, they are defined at table level even before any data is put in.
+
+
+
+In Python and in interpreted language, note that you have an option to
+use "local import" for unavoidable "circular import". Local import
+means that the import statement is called inside the function body
+rather than at the very top of file. See
+https://stackoverflow.com/questions/3095071/in-python-what-happens-when-you-import-inside-of-a-function
+--|---- NOTE: This should not be done outside bootstrapping failures,
+which means - in your code you must not have circular imports that
+then needs to be bypassed. Even during bootstrapping, the issue can
+arise due to improper construction of the service provider pattern --
+but doing it properly can become verbose. So, in all don't use it as
+much possible. But if things come to it.. then know that it is
+possible.
+
+
+
+API Design: If making a PATCH call that allows updating a field ..and
+the field can be nullable - then one design question to ask is whether
+there can be a requirement to update the field from a non-nullable
+value to null value. The problem is that when user sends a request,
+and if the value for a field is null (either because user didn't send
+the field in request body, or sent the field with value null), then
+it's not clear whether it indicates that the field be reset to null,
+or if no change be made there.
+--|---- One solution could be to say that if empty field is passed,
+then it means setting value to null. Note that this works perfectly if
+the table column being updated is string valued, where null=False,
+blank=True. And so null and blank means different things. However,
+this can't be used for say, datetime fields. There we need null=True,
+blank=False.. to prevent storing ill-formatted date-string. In this
+case, the serializer can be made such that if it sees empty string, it
+interprets it as "set-to-null" command. And now this is different from
+not seeing any field - which means leave existing data as is.
+
+
+
+
+XSS : Internal XSS attack.. means, best don't run metrics on user
+data. Do it on id, slug, created date, etc.. generated by you
+XSS: better to use accept list than deny list.. because things can be escaped..
+use content-security policy
+
+Security and access control::
+3 key items: Authentication, Authorization, Access control
+--|---- RBAC -- if using, then make sure you always change access by
+role.. not anything else!!
+
+Security issues:
+IDOR (insecure direct object reference)
+CSRF
+SSRF (Server side request forgery) -- force a server to make request
+to unintended destination. This is bad because it breaks the trust in
+server. If there is any place in request-body or request-param where
+it is taking a url, that's bad. Can try putting in code in docx, pdf
+if you know it's going to get parsed/transformed and that can cause a
+hit on attacker webpage
+
+Example:
+-- file vulnerabilities: If you take a file-path param from user.
+Appication goes there and picks up file
+--|---- abuse#1: use file-system pathway, like starting with ~, or
+../../ - to go to other directories
+--|---- abuse#2: use filename like http://server.com/some-path - force
+application to do http call and download some bug, etc.
+--|---- In both cases, if downloading file, first do virus scan
+-- Model level access:
+--|---- Say there are following table:
+--|----|---- Object: Some table containing data
+--|----|---- User: user table
+--|----|---- Action: Actions, like, create / read / update / delete
+--|----|---- ..the make, Policy table: combines object, user, action :
+so, it tells what user is allowed what action on which object. Object
+can itself be expanded to have (id, tableName). This model is similar
+to how spring security does object level security
+-- CSRF:
+--|---- double submit cookie -- send cookie in header and request body
+also ..but this can be bypassed by XSS
+--|---- Use Samesite cookie flag
+-- Don't rely just on referer or origin.. specially since referer can be changed
+
+
+
+
+On adding timezone in date and time
+https://stackoverflow.com/questions/6410971/python-datetime-object-show-wrong-timezone-offset
+https://stackoverflow.com/questions/11473721/weird-timezone-issue-with-pytz
+https://stackoverflow.com/questions/35462876/python-pytz-timezone-function-returns-a-timezone-that-is-off-by-9-minutes
+
+Bottom line.. to always use localize() and normalize() functions.Saw
+following when ran commands from shell
+
+In [17]: datetime.combine(date.today(), time(),
+tzinfo=pytz.timezone('America/Chicago'))
+Out[17]: datetime.datetime(2020, 8, 26, 0, 0, tzinfo=<DstTzInfo
+'America/Chicago' LMT-1 day, 18:09:00 STD>)In [18]:
+pytz.timezone('America/Chicago').normalize(datetime.combine(date.today(),
+time(), tzinfo=pytz.timezone('America/Chicago')))
+Out[18]: datetime.datetime(2020, 8, 26, 0, 51, tzinfo=<DstTzInfo
+'America/Chicago' CDT-1 day, 19:00:00 DST>)
+
+
+
+***IMPORTANT: Note that a "disabled" button in html is particularly
+different from others.. like, you cannot right click and inspect it;
+**AND** if you wrap it with a React-Bootstrap-Tooltip, then tooltip
+won't trigger. So, if your design requires adding tooltip around a a
+disabled button.. say, to let users know that it'll get enabled in
+future.. then be careful when using disabled.
+-- See https://github.com/react-bootstrap/react-bootstrap/issues/2428
+: "disabled elements don't receive mouse events and as such can't
+respond to mouse triggers like hover or be focused. This is how
+disabled elements work in browsers. you can wrap the disabled element
+in another div or span if you need to" ..also, "See also this note
+about it here: http://getbootstrap.com/javascript/#tooltips"
+--|---- RELATED: use "readonly", if you want button to look disabled,
+but not actually be disabled.
+
+
+
+-- IMPORTANT: If you really need to show user data.. like html from
+other site, or take html formatted rich text from user.. best use
+<iframe> with attributes set of sandbox, datasource -- to control the
+behavior.
+
+
+
+React/Redux UI DESIGN (in ascending order of requirement complexity..):
+1) Break in router / container / component portion
+2) Move hooks outside
+3) If there are separate component that can have their own
+redux-reads/updates, then break then into their own component having
+its own container.. rather than channeling everything through central
+container. Point being, if needed, don't shy away from using
+`useDispatch()` multiple times in code.. it doesn't need to be
+occurring just once. Actually, it'd be better to keep its use as much
+atomic and context-relevant.
+3) Switch from 'useState' to 'useReducer', and couple as needed with
+local and redux updates
+4) **This is likely most complex -- needs more hashing: The idea here
+being that you use useReducer to make react level state and dispatch..
+and now, you set it up in context. So, if you have a page/component
+that has multiple child component who can need a certain value, then
+rather than continuously passing it down, you set it in context. And
+give ability to certain members to trigger update on it.
+--|---- Is this even feasible? -- should be, the idea is similar to
+redux, but at a more simple component level
+--|---- In this case, likely you'll have different
+sub-functionalities. Best is to create sub-folders, etc. with code
+belonging to same requirement-context (even if of different type),
+rather than same type but of different requirement-context. For
+example, you should collect together, button, form, modal related to 1
+function at a place.. and same again in another place... rather than
+collect all forms in 1 place, all buttons in different place -- avoid
+that!
+--|---- BEST : in the router / container / component breakdown.. wrap
+the component being returned by router-code with a context. This way,
+the data picked up by router will be available to everyone. Going vice
+versa.. if you can't think of how a context could apply.. then likely,
+you don't need a router --PLUS-- if you can think of how a context
+could apply.. then likely you need a router!
+--|----|---- One code-level restriction on being able to add router is
+that if you want to block history change - to prevent navigation out
+of page, then likely, you shouldn't look for creating sub-router!!
+
+
+
+React/Redux UI DESIGN -- Questions:
+-- Should the slice that is created look like the form it is serving,
+or like the server response? The best confusing example in this regard
+is supposing you need to store a "date-time" field. On server side, it
+must be stored in 1 field, but on UI side, it makes sense to have 2
+separate fields.. one for calendar, other for clock. So now.. how
+should the REST-serializer and Redux-slice look like. It makes sense
+to have serializer look as much as the model, and have it contain only
+the datetime field (which.. is serializable). BUT.. on slice side, we
+definitely need 2 fields.. one main reason why.. is because if user
+misses one of the 2 fields, then we want to show error for that
+corresponding portion. So - how to have the 2 ideas match up?
+--|---- The best solution.. if you can control serializer, then just
+have it send 2 separate date and time fields, but the internal view
+logic combine them to form date-time object before storing it in DB.
+However, realize that sometimes some things make more sense when
+combined than when broken.. for example, a separate date and time
+field does not define timezone for time. Maybe you need different
+serializer for time, or maybe you need to set a convention, like, the
+time is always UTC
+--|---- Another solution could be to add extra logic around
+corresponding slice-actions.. where it combines the many fields in
+forms to 1 request-body field when making call; and then break it from
+one big field to many fields when rendering value back in form using
+data obtained in server response. The problem here are:
+--|----|---- in case of errors, the UI now takes responsibility of
+translating the errors coming for the combined field, and translating
+to appropriate value for each smaller field. So, extra UI coding.
+--|----|---- More importantly, consider that when user gave erroneous
+input, say, empty just "02" for date and "12" for time.. so the
+combined datetime string sent to server is "0212" to which server gave
+error. But how does the UI now know to reconstruct the date and time
+back from it. So, in cases, where difference between UI and server
+fields arise in context of UI being a form that collects user data,
+then **don't update UI form's data from Redux, just update its error
+field". This allows you to properly display user entered data. and, in
+case everything is successful, the form will be closed anyways!
+Realize that this consideration of handling wrong user data doesn't
+come if you GET or LIST type of call.
+--|----|---- **A good conclusion could be: Always have your slice
+match server call. If your same slice can make multiple calls based on
+a radio-button selection by user, then have the slice structure be
+union of all possible fields that can be sent to server. In case,
+where slice is being used to back server response for POST, PUT
+request, then (1) have a useReducer to store form data, (2) send data
+to redux state only during submit, (3) from redux state, only collect
+updated error and meta (loading / lastCallTime) value, (4) close the
+form on success call. This, along with, (i) When making redux call,
+combine smaller UI fields to single, big redux state field which is
+then sent to server, (ii) When getting server response, just send it
+directly to Redux on success or error. The advantage here is that you
+can get a simpler code, where server data is directly sent to redux
+store, have easy one-to-one matching. Obviously, another alternative
+here could be to transform server response first using a function
+before saving to redux. In such case, will also need a transformer for
+error-response before saving to redux. So, this is the trade-off.
+Either add transformer for each redux updating saga. Or, for forms,
+you can only update error (with corresponding error transforming
+function, if applicable) which means, you must close the POST/PUT
+triggering form once it is done.
+
+-- When making action names: start them with verb. On other hand, when
+making slice name, or corresponding sub-store name, keep it as noun.
+
+-- **IMPORTANT**: If using `useReducer` - define the reducer function
+outside the hook wherein useReducer is made - else it gets called
+twice the first time. See
+https://stackoverflow.com/questions/54892403/usereducer-action-dispatched-twice
+
+-- Sometime in past note it is said that a better UX design is to have
+aspect like behavior.. so having tooltip on every element is likely
+not a good thing because it's not independently configurable. In
+similar spirit.. having a "Modal" as popup IS GOOD design. This way,
+you can have modal component made with corresponding button (whose
+clicking opens up modal) as its own separate component.. and
+regardless of where the button is put, the modal will always show up
+centrally when opened!!!
+
+-- In react, people break-down/destructure props object in component
+input. I'd say to NOT do that unless the component is simply a return
+statement. This way, having props prefix identifies external
+dependency. Maybe, it could be a factor is propelling better design by
+reducing the number of dependencies.. or by instead using a context to
+prevent channeling dependency down a long chain of children
+components.
+
+
+
+redux - with backend integration: Let's say you have a REST backend,
+giving list values for a resource, Within it, there are endpoints for
+CRUD operations. In Redux-side, you have a list slice. Then you need a
+single-item slice to create/update single item.
+Think about it for a while, when you Create/Update a resource, you
+then just return that one value back, not the list. On UI though, once
+you have a list locally.. as you create/update, you can then also
+modify the list!! This way, you create a local copy of entries in DB.
+The problem here is that this is not sync'd up with truth-data, which
+is only in DB. HOWEVER.. is that more of a concern than it could be
+helpful to have local stored data. This comes back to previous comment
+that when you do Create/update backend call, it returns with just 1
+element and not a list (because it is built on DB which is store of
+truth data).. but UI is built on its own data stored in Redux.
+The suggestion is that when you make list type slice in redux, that it
+should come lower in DAG that single-item slice (and corresponding
+reducers). This way, the list-slice can trigger on single-item actions
+to add/update values in the list. Also, **be careful** in not always
+using this indiscriminately.. maybe use it only for enum type fields
+that are go cyclically in a processing pipeline. The idea is that if
+there's a state difference between UI cached data and backend, then
+it'll trigger a failure. Else, the difference in caching does not
+matter and it continues to work.
+-- **IMPORTANT**: The also highlight why having a POST/PUT call should
+return you same serialized form for object as GET. If they all return
+same serialized object, then the UI can also coordinate. However, an
+issue does come up in what should be serializer for PATCH?? The
+response should likely have same structure.. but request can take
+different form.. maybe when making a PATCH call serializer, have
+different to_internal_value method, or use selective write_only
+fields, or modify serializer fields, read_Fields based on what is
+needed.
+-- In similar though process.. add "filter" in meta for the
+list-data-store in redux. This way, you need not perform forever
+updates in your list by making new query param to API and get new data
+for display. You can just pull once and use local filter to show data.
+The thing to be careful about.. do the ui side caching only if the
+data is slowly changing. If it changes too much and very quickly, then
+it's best/required to not cache.
+
+
+
+
+MAKING FORMS:
+--|---- **VERY VERY IMPORTANT**: Realize that there are 4 main pieces
+when making a ui form: individual form field component display /
+style; collection individual pieces to make form; ui-validation;
+server-send and form-update accordingly. If you want a good form.. you
+should have flexibility to add components, while minimizing css
+overload, but be free in doing validations and also be able to update
+values based on user-input and display server error. Thinking about it
+more..
+--|----|---- individual pieces can be in some utilities/components
+folder in the codebase.
+--|----|---- Now, you can make a component joining all those. so this
+is one file. Since this is just a form, it should depend on data and
+also take handler function that is called when data is updated.
+--|----|---- The initial data, handler function for the form, update
+on server side call can all be combined in a `useReducer`. [NOTE the
+difference between when updating fields in form based on user-input vs
+when happening from server. User-based updates only updates data and
+then it comes down on code to add errors/etc based on user data.
+Whereas, server side calls simultaneously updates both the data and
+errors.]
+--|----|----|---- If trying to make "useReducer" for a form and
+returning 2 values like [formData, setFormField] to have it look
+similar to useState returning the 2 items.. remember that forms are
+complex, and maybe return 3 functions, 3rd one being "clearForm" to
+trigger clearing entire form. This is useful so that based on a
+dependency, you can trigger a cleanup of form. **ALSO** -- do this
+rather than adding a dependency in form to a context based on how the
+form is used. This brings in some decoupling where "form" logic is
+independent of context.. and then the component using the form bears
+responsibility to wire the context. This enables obtaining a
+"repetitive" like self-consistent design structure in forms.
+--|----|---- With above understanding, one can always place
+form-component and corresponding hook inside a separate folder.
+HOWEVER.. realize that onSubmit for a form need not depend only the
+form.. it can also depend on other external elements that can get
+triggered as a side-effect on success/failure. For this reason,
+onSubmit of form should be outside the form. So, if you do make a
+sub-folder to collect only the form related code, then onSubmit()
+should not be there.
+
+--|---- forms are ephemeral -- so every individual change shouldn't
+touch redux.. but how about when server call is made? Should Redux be
+updated then? One advantage of doing so is that this gives ability for
+a "reset" button, where form is rest to last user input! On flip side,
+realize that generally forms are used to create/update.. which means,
+data will exist in it only up to the 1st success call.. and then needs
+to be deleted.
+
+--|---- REALIZE: (1) form can consist of various <section>. (2) A
+form-control, speaking most simply, is the input element (See
+https://stackoverflow.com/questions/31739685/what-is-a-form-control-in-html/55369100#55369100).
+(3) (3.a) The HTML <fieldset> element is used to group several
+controls as well as labels (<label>) within a web form. (3.b) The HTML
+<legend> element represents a caption for the content of its parent
+<fieldset>. (3.c) So, ideally, it should look like
+<form><fieldset><legend/><input/>...</fieldset></form>. (3.d.i) A very
+simple but easy way to think about fieldset is that it'd make more
+sense if fieldset markup had a border around it, and the border had a
+heading embedded it in, which is the legend. (3.d.ii) Another good
+place to put a fieldset is around "complex ui objects" that are "one"
+on server side. For example, "enum" like fields where UI needs to show
+all value in radio, but server will have just one value. Or date-time
+object that show as separate in UI, but as one in server.

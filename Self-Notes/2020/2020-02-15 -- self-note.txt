@@ -1,0 +1,33 @@
+Good article to understand difference between various test methods in Django
+https://medium.com/@nhatcuong/django-test-fixture-setup-setupclass-and-setuptestdata-72b6d944cdef
+
+"flex: 1 1 auto" --> https://www.freecodecamp.org/news/even-more-about-how-flexbox-works-explained-in-big-colorful-animated-gifs-a5a74812b053/
+
+about flex in general: https://www.freecodecamp.org/news/understanding-flexbox-everything-you-need-to-know-b4013d4dc9af/
+https://css-tricks.com/snippets/css/a-guide-to-flexbox/
+
+resizable table: https://www.brainbell.com/javascript/making-resizable-table-js.html
+
+
+css:
+* when you use flex in table, then each component becomes own independent.. so the margin / padding associated with each are applied
+* However, if you use normal table display, then margin is ignored. Only padding works.. but remember that "overflow" can continue to show on top of padding. It only doesn't show up on top of margin!
+* other good style properties: border-collapse, table-layout, box-sizing:border-box, overflow:hidden (on cells, but on table, having overflow-x:auto) allows it to flow out of window, text-overflow: ellipses (so that overflown text changes to ellipses), whitespace: nowrap (so that cell doesn't start wrapping on space. If it wraps it becomes taller)
+* css: width: auto vs width:100% and why "auto" is preferable :: https://stackoverflow.com/questions/17468733/difference-between-width-auto-and-width-100-percent
+
+
+
+Few reasons to avoid query-param as much possible:
+1) In terms of architecture, queryParams means you are doing filtering - so there is no parent-child relation.. which could be if there is a strong "sibling" relation. That means one cannot nicely form parent-child classifications and so should pull all data in and then filter.
+2) Use query param when you can have multiple of a value in a single call.. then its not one resource but list of resource - and that is then filtered
+3) See https://stackoverflow.com/questions/12682952/proper-url-forming-with-query-string-and-anchor-hashtag -- if using both query param and hash, then hash should come last
+
+
+UI and url design:
+* We already know from PTO that different roles can have different UI/feature accessibility. This can be controlled with a REST endpoint exposing switches
+* When it comes to hierarchical roles, things get more interesting..
+-- if the hierarchy is for access of certain sub-portion, then that is a simple case, it's like having a more granular role and so the above case of having an API control the front end is sufficient.
+-- However, consider if hierarchy controls access to one or more data. 
+--|---- For example, ceo, manager, worker. Here ceo can see all managers and workers correspondingly under them. But for manager, they shouldn't be allowed to see other managers. For managers, the url to see workers is /workers/{workerId}. It's redundant to add "/managers/{managerId}/" prefix to their url because that is a constant for their profile. BUT.. it does matter for ceo who should have url of /managers/{managerId}/workers/{workerId}. 
+--|---- On backend, one way could be to make /workers/{workerId} logic under a controller, have this available only to manager, and have db query uses clientId associated with user (passed from controller to service). Now, when ceo comes, they'll have another controller of /managers/{managerId}/workers/{workerId}, which is permitted only for them.. and now this makes same service call, but instead passes {managerId} read from url. This way the service logic is reused based on the person calling the url. 
+--|---- On front end (using React), an intermediary page can be constructed which is allowed only to ceo and where they can see "/managers" info. And React router maps to the workers component but with url of /managers/{managerId}/workers. And for managers, configure it in API call to not show them the intermediary page. If they try explicit REST call, they'll still get permission denied. In the workers UI page, when they click to see worker information, either (1) append the managerId if it could be seen from url, else don't append, or, (2) just call the same path as available in react-router's match.path. This way, the difference in UI path translates to making different REST call. Another advantage of #2 over #1 is that in #2 code, the manager will never realize that ceo has a different REST path available - so even that information is hidden. Other option could be break js files properly and make them available via the backend server that now serves different js based on if the role is allowed or not. However, it can lead to having duplicate code, hard to manager and hosting js on same server as backend server adds more load in backend server

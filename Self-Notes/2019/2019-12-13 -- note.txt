@@ -1,0 +1,150 @@
+React / redux - udemy
+
+
+
+Section-9
+
+* in js.. be careful whether you are creating new array.. or whether you are modifying existing one. Most always.. focus on creating new array. Map() function creates new array. Note its docs.. wherein you can get the index and array as 2nd and 3rd argument
+
+* React complaining that each item should have a "key" tag. This is needed to help react be more performant ..because when react re-renders a "list", it want to check whether the list has already been rendered. If it has been, then it doesn't do any changes. This is the virtual dom mapping. Since such kind of situation come up only when a "list" object is rendered - because that means that there can be more than 1 element with same jsx.. so that's why React acts for key to be provided for rendering of list. However, if you manually end up making multiple similar divs - react won't complain.. but then this is also a static list, so it won't change! This also creates a best practice -- i.e. when getting value from REST calls and the response has a list, then always provide an "id" value. The only time when that is not needed is if the list is considered as a whole. NOTE: Add the "key" property at top-most level.. so, if you are rendering list-item, and each of them is wrapped in an enclosing div, then add "key" only i the outermost div.. so just once there per element
+
+* VERY VERY IMPORTANT: Section-10, lecture 103: A "called" react component <CALLED> is made that uses, say, prop1 and prop2 in its rendering. However, it is invoked by a calling component, like, <CALLED key={id} prop1={prop1} prop2={prop2} /> -- and this works, without any warning! Note, how react expects a 'key' property to be given to an element that is used in list otherwise it raises a warning.. however, it does not raises a warning, when the key is given, but is not used in rendering. This is useful - because now someone can create component without identifying a 'key' element or that getting used. However, when that module gets exported by someone else later, they can now add a "key" to it and use the same "called" component as a list-element. So, this design is very "forward-open". **IMPORTANT** one take away from it now is that when defining React component - DO NOT destructure the props within constructor or within the function argument.. because doing so restricts the possibility of using the component as a list element ..and this is a design not "open for modification". So, best to always have "props" as a single element, and then define its default value and required/optional fields separately ..and not by destructing - within the method argument.. you can destructure it within the function / constructor.. but DO NOT DO SO at the argument level.
+
+
+
+
+Section-10
+
+* Ref = to get access to single dom element
+
+* NOTE: If you are looking at functional component.. or the ones that don't have any state variable - say because state is managed externally.. then ideally it should NEVER be needed to write componentDidUpdate().. because component will never update.. it will get remounted.. and so the logic will go in componentDidMount() alone
+
+* VERY VERY VERY IMPORTANT: Use of this.ref <--> this.state <--> component-managing-its-own-lifecycle : in a Redux world where component is supposed to be purely functional and stateless. The Section-10 of video is a good example on how the above elements.. which are otherwise considered an anti-pattern actually are relevant and should be used properly. 
+
+* EXAMPLE: Let's say we did an api call that gave a bunch of image url. We make a react component whose render method has the <image> tag. So, there is some "calling" component that makes the api call and based on the result-list, it invokes the "called" component repeatedly. Now, we want to have the height of each image to be dynamically adjusted based on user client environment and based on the height of image - for example, we do grid css, and we want each image to have same grid-width, but different number of vertical grids based on height of image. ALSO NOTE that this requires: (a) getting height, and (b) getting it from that very image which was just rendered, (c) as a constraint, it cannot be done before the very first render - so it will likely get done in componentDidMount(), and so we need a way to access dom-reference to the created div element in render(), but within componentDidMount(). HOWEVER, just putting an image-src tag does not bring out the image. It simply instructs the browser to go load an image. So, we need a callback that gets invoked when image is loaded - and after which it changes the grid-height allocated to the image. NOTE again, we don't want to re-render the element saying that we now know how big it should be.. because doing so will create new <img> tag, which will discard old image, and do a new call, and this is repeated work. So.. how to handle this requirement??
+
+* As mentioned : we just want to do something in componentDidMount(), i.e. wait to see if image loaded and then do processing.. but we want to do this on a dom-element which was created in render(). So, how to: (a) store the reference across call, and, (b) particularly, to store a dom-node reference. Storing a dom-node reference requires use of "ref" method. And to be able to take the reference across different method - you need to make a class based component, and have the ref be stored in a class variable. Also see https://reactjs.org/docs/refs-and-the-dom.html   Also note that use of "ref" is also suggested for animations.. where only a few things are changing in dom, and changing very fast, and you don't want to go through entire re-render to get handle to those changes. Now - a small section can be pulled out from above guidance, i.e. to make different "called" component, and then when things change in a small portion, just have that small portion/component get re-rendered instead of whole. This helps! but still re-rendering, and then working with redux could be a huge system resource waste.. plus.. maybe, for animation, we want to do change but don't want to update redux with new info. So, for such cases, where you just need dom-manipulation (for better ux) and you're not working with any stateful logic or data important to business.. that's where you bring in ref -- when something needs changing, but it is purely display and there is no backside data change. 
+
+* NOTE: that a different/related work style could be to mix "ref" alongwith redux.. where you update Redux not on every immediate change, but after some time. Since there is still moments where you are not directly using React's render mechanism.. so use of ref comes up in picture
+
+****Comments below taken from docs**: https://reactjs.org/docs/refs-and-the-dom.html
+
+* Ref can give handle to both the dom element and react component made in the render method. When a ref is passed to an element in render, a reference to the node becomes accessible at the "current" attribute of the ref. React will assign the current property with the DOM element when the component mounts, and assign it back to null when it unmounts. ref updates happen before componentDidMount or componentDidUpdate lifecycle methods.
+
+* When the ref attribute is used on an HTML element, the ref created in the constructor with React.createRef() receives the underlying DOM element as its current property. When the ref attribute is used on a custom class component, the ref object receives the mounted instance of the component as its current. You may not use the ref attribute on function components because they don’t have instances. HOWEVER, you can, use the ref attribute inside a function component as long as you refer to a DOM element or a class component
+
+* See the code below.. here the ref callback function is an arrow function, so "this" binds to <Parent>. However, it is passed as a prop to <CustomTextInput> which then invokes it like a "ref". Thus, the ref that finally ends up getting created gets bound to parent component. Just something to keep in mind.. in case you want to pass "ref" back from child to parent. HOWEVER, in most cases, that should not be the case. Also, don't be too free in passing refs around anywhere.
+function CustomTextInput(props) {
+  return (
+    <div>
+      <input ref={props.inputRef} />
+    </div>
+  );
+}
+
+class Parent extends React.Component {
+  render() {
+    return (
+      <CustomTextInput
+        inputRef={el => this.inputElement = el}
+      />
+    );
+  }
+}
+
+****IMPORTANT**: A "second" level use of this.state in "functional" component like behavior. If we consider redux to be the final data store, it could be argued that this.state should no longer be necessary because this is now handled by Redux. react components should just pull the data from Redux as props and render and then get unmounted. However, in above example - the component wants to apply a "rule" (i.e. resizing vertical grid to match image size) which itself is dependent on image loading, which itself takes time. Due to this behavior, even this "functional"l behaving like component need to actually end up saving state information (i.e. vertical size = 0 on first load, and vertical size redefined after image loaded, which should now trigger a component re-load to now show image in correct grid size. The point being that even a functional component may end up having "this.state" -- so be open to that design. This brings to another important aspect - that even functional behaving components may want to use lifecycle methods.
+
+* In above example: To get desired effect, we can take the ref to the image node created in render step, and, in the componentDidMount() step we add listener to it [[Like, this.imgRef.current.addEventListener('load', function-with-this-binding); Note that this.imgRef is ref, and, so, this.imgRef.current gives the actual dom-element]]. Now, a question is whether it is possible that between the end of render(), and before the start of componentDidMount().. could it be possible for the image to finish load. If this happens, then the onLoad event listener binding  - if done in componentDidMount - will get missed. This also requires getting an understanding of how react works.. and what does "mounting" means. See https://stackoverflow.com/questions/31556450/what-is-mounting-in-react-js    
+
+* One more thing to note is that in above implementation, we are calling setState again after the image has initially loaded, then we got its height out from it, and then we called setState in the handler. **I am assuming** ..that as part of second render() call.. now the React-dom will see that every thing in the component is same except setting of new property and so that will now ensure to prevent reloading image node - and thus, not losing the original image which was downloaded. This shows the importance of virtual dom!!
+
+
+
+
+
+
+* A good thing to note:: https://stackoverflow.com/questions/31556450/what-is-mounting-in-react-js    
+
+* The main job of React is to figure out how to modify the DOM to match what the components want to be rendered on the screen.
+
+* React does so by "mounting" (adding nodes to the DOM), "unmounting" (removing them from the DOM), and "updating" (making changes to nodes already in the DOM).
+
+* How a React node is represented as a DOM node and where and when it appears in the DOM tree is managed by the top-level API. To get a better idea about what's going on, look at the most simple example possible:
+
+// JSX version: let foo = <FooComponent />;
+let foo = React.createElement(FooComponent);
+So what is foo and what can you do with it? foo, at the moment, is a plain JavaScript object that looks roughly like this (simplified):
+{
+  type: FooComponent,
+  props: {}
+}
+
+It's currently not anywhere on the page, i.e. it is not a DOM element, doesn't exist anywhere in the DOM tree and, aside from being React element node, has no other meaningful representation in the document. It just tells React what needs to be on the screen if this React element gets rendered. It is not "mounted" yet.
+
+You can tell React to "mount" it into a DOM container by calling:
+
+ReactDOM.render(foo, domContainer);
+
+This tells React it's time to show foo on the page. React will create an instance of the FooComponent class and call its render method. Let's say it renders a <div />, in that case React will create a div DOM node for it, and insert it into the DOM container.
+
+This process of creating instances and DOM nodes corresponding to React components, and inserting them into the DOM, is called mounting.
+
+Note that normally you'd only call ReactDOM.render() to mount the root component(s). You don't need to manually "mount" the child components. Every time a parent component calls setState(), and its render method says a particular child should be rendered for the first time, React will automatically "mount" this child into its parent.
+
+
+
+
+
+Section-13:
+
+* Provider, and Connect - Using React-redux, we'll create these 2 new "components" - we'll instantiate it and pass props to it. Store - is given by Redux. We pass "Store" as props to the "Provider", which is rendered as a component at topmost level.. even higher than the App component [Provider "provides" all components within it with "store" information]. "Connect" communicates with Provider not via props, but via "context" system - which allows any child component to talk to any parent without going via props. In terms of how it's added, "Connect" comes in between the lower react-components and App react-component. "Connect" tells "Provider" to let it know when data changes.. and when it does, the Provider reaches back to connect and gives it the new list of data, which the connect then passes down to the corresponding component getting rendered (This is the callback mechanism by which react is made aware by redux when things change and then have the component get re-rendered). ALSO, the action creator is also sent to "Connect", which then sends it as a prop to the component below.. because Redux can only be changed via the reducers
+* With redux coming in: How to arrange code:: should there be components folder and separate action / reducer folder.. or should it still get divided by business function [[Lecture says to make separate folders for /component, /action, /reducer]] -- But would that create a DAG structure.. and would it be easily distributable or combinable if so needed in future
+
+****Good idea: Having index.js in a folder to convert a whole directory to a module
+
+* Having payload property on Action is optional.. but type is mandatory
+
+****Good design: If you are looking at a possibility where you're currently displaying static data, but which can change in future.. then you can still make a reducer to display static data. This reducer will not take any arguments.. since it'll not get an action and ..will anyways get an initial data as undefined. So, this reducer will not have any args
+
+****Good design:: Based on domain.. make bunch of reducers, and export default combineReducers({...}) out - this is redux side. Maybe, just export out the createStore using the combineReducers({...}) - not sure. The point is.. you can make different store if needed -- but can it be added differently in react?!
+
+* Check code below on how to setup the top level React component which is using redux..
+import {Provider} from 'react-redux';
+import {createStore} from 'redux';
+...
+ReactDOM.render(<Provider store={createStore(result-after-calling-combineReducers)}><App/></Provider>, document.querySelector('#root'); -- The first argument in input is what's modified for redux by using react-redux
+
+****IMPORTANT:: Note that sinec each React component, has its own "connect" whose job is to pull the data/reducers down from redux-store, so by convention, each connect is called in that particuar file only.. BUT, I'm not sure if that's good because.. in terms of testing, now you have tightly coupled code.. and testing React itself becomes hassle outside the Redux.. plus, you cannot change the store-management to different system. In shorter terms, it breaks SOLID pattern, because now the code of react-redux is coupled to code of react..?! **MAYBE find a pattern that would make it easy to switch from redux to using Hooks!!**
+
+* Note that "connect" is from React-redux library. It is a function that returns a function.. so in its implementation, you'll see "connect(...)(...)" like syntax. The first arg takes mapStateToProps and mapDispatchToProps -- so, connect simply says that it is taking these 2 methods which reads from Redux store and passes on the data and reducers to "WHATEVER" component comes next.. and the second bracket is the actual React component to which it gets applied -- to finally create a wrapper where React and Redux are now integrated. SO -- could you have applied it to more components.. yes (..i think so)!!
+
+* In the lecture.. when only a custom mapStateToProps was made, and then a console.log of this.props done.. then it showed new fields added --AND-- it also added another function-field called dispatch(). SO.. MAYBE.. if no arguments are given to connect.. it will do some default wiring and make the state and reducers get available to react component. Adding the custom mapping functions - probably helps better define what is actually passed and making custom definitions. ALSO NOTE that the above definition for making static data via Redux terminology.. that still works, and you'll have the data even on the first call
+
+* An observation made in lecture 152 is that : (a) mapDispatchToProps is made an object rather than a function that returns an object. Common examples show that as a function which takes "dispatch" argument and then returns a json with fields that are function that take argument and apply it in some way to the bound dispatch method; and, (b) the function is json is an action creator - that's it! There is no call binding of dispatch done explicitly by author. so, the question is how does it work in that case? Does redux do some different binding depending on if the 2nd argument is a json and not a function?! Per the docs (https://react-redux.js.org/api/connect)
+
+* MapDispatchToProps -- can be either an object or a function! -- more on it later
+
+* (From docs) MapStateToProps:: **If a mapStateToProps function is specified, the new wrapper component will subscribe to Redux store updates**. The results of mapStateToProps must be a plain object, which will be merged into the wrapped component’s props. If you don't want to subscribe to store updates, pass null or undefined in place of mapStateToProps. A mapStateToProps function takes a maximum of two parameters. The number of declared function parameters (a.k.a. arity) affects when it will be called. This also determines whether the function will receive ownProps. If your mapStateToProps function is declared as taking one parameter, it will be called whenever the store state changes, and given the store state as the only parameter. NOTE:: If your mapStateToProps function is declared as taking two parameters, it will be called whenever the store state changes or when the wrapper component receives new props (based on shallow equality comparisons). It will be given the store state as the first parameter, and the wrapper component's props as the second parameter. The second parameter is normally referred to as ownProps by convention.
+
+* (From docs) MapDispatchToProps:: Start by noticing the arg-signature:: It can either take an object, or a function with either 1 or 2 args - that returns an object. ALSO: Your component will receive dispatch by default, i.e., when you do not supply a second parameter to connect() -- this behavior seen in lecture video. Docs say that "mapDispatchToProps may be an object where each field is an action creator. In this case, React-Redux binds the dispatch of your store to each of the action creators" -- this is a shorthand form and is what's done in the lecture video. If using function form, your mapDispatchToProps function is expected to return an object. Each fields of the object should be a function, calling which is expected to dispatch an action to the store. In function form, the first argument is dispatch,a nd the second argument is the ownProps passed to the component
+
+****DESIGN: A good ux is that when a particular value is null, then instead of rendering empty/blank.. give user a message on what they need to do - this prevents app from breaking and also tells users what to do. ALSO NOTE: do not set this message as a default value in Redux.. think of redux as a store of "good date" and above as a sort of exception handling.. don't mix the two. This way, when you do testing, you'd know how your redux should look like during a ui message, and vice versa!!
+
+
+
+
+Section-14
+
+* In terms of design.. should we do async call in componenetDidMount such that when it ends it dispatches an action to redux.. or should we do this in the the action-creator?
+
+* Why it's wrong to use an action-creator that has is made/defined using async keyword.. because "Async" immediately returns a promise.. however, Redux wants the action-creator to return a json object
+
+* "synchronous action creator" vs "async action creator".. latter requires some time before it can make an action. Anytime you need async action creator.. you have to install middleware in redux. Middlewares come after "dispatch", i.e. instead of dispatch sending the action to reducers.. it sends them to middleware.. and middleware now sends it to reducers..
+
+* NOTE: We can actually have more than 1 middleware..
+
+* Middleware:: From redux docs: It provides a third-party extension point between dispatching an action, and the moment it reaches the reducer. People use Redux middleware for logging, crash reporting, talking to an asynchronous API, routing, and more. (from lecture) They are functions that get called with every action that is dispatched. They can do anything to the action - can stop, start, modify.. or make side-effects, like console-logging. DO REALIZE that take care of async actions are one of the things that middleware help with.. but that is not its only/primary purpose!! It is all purpose ..just that most important activity is async handling
+
+* Thunk : If it receives an object which is a function -- it invokes it by passing dispatch and getState as the first 2 arguments. getState() is called on redux store and it returns all data inside the store. Thus, note that via "dispatch" we can modify any data we want, and via getState we can read any data we want. Plus, note how this becomes a cycle.. because if you give anything to dispatch.. it will again first come to middleware -- so this way, we can "aspect" add different operations. Coming back.. Thunk invokes the function and lets it finish. When finished, that's when we can now dispatch the action. You can actually go in thunk's source code - which is just 6 or so line of code in single file!! Th e"next" in thunk's code is it passing action down to other middlewares that could be configured.
+--|---- Adding thunk to Redux.. look at docs.. this is very simple.. just need to modify how the Redux store is formed.. and add middleware there
+--|---- The lecture shows that the initial response from action creator is synchronous.. and it now returns an async function which is now given to Thunk. In this case, Thunk just wait till the execution of that async method (which came as output from the function which was given to dispatch instead of action) is done. User should call dispatch('new-action') as last step of that function

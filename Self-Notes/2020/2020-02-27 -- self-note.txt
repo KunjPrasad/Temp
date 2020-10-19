@@ -1,0 +1,87 @@
+SELF-NOTE:
+**Are you working on "proof of concept" (POC) stage? Then don't just use design pattern - but also explore - do things that people may not like.. because then you'll have different template on moving forward beyond POC stage and a better understanding of what fits better to business need. Unless some concept is really generic - try to push the limits and break it!
+
+
+About init.py
+-- See https://stackoverflow.com/questions/448271/what-is-init-py-for : The __init__.py file makes Python treat directories containing it as modules. Furthermore, this is the first file to be loaded in a module, so you can use it to execute code that you want to run each time a module is loaded, or specify the submodules to be exported.
+--|---- BE CAREFUL OF WORDING THOUGH.. if init.py can be used to load submodules, that means it should be last in DAG, even though it is first file loaded in execution order. So, if you want some code that should be available to all other files in the directory.. that code is best not kept in init.py but in some other utils file. Have that be referenced in other files, and finally have submodule functionality exported out via init.py
+
+
+ON CONSTANTS:
+-- Python: Nice trick for constants:   http://code.activestate.com/recipes/65207-constants-in-python/?in=user-97991
+-- JS: If you want to use a "constant" marker in js.. do "const ABCD = {};" ..and NOT do "const ABCD = 'some-txt'" -- because former is backed by object so triple equals work only if same object is used.. which will only be if the const object was exported and used (so, it is a singleton); And it will not work if user provided some spurious string, or code was wrong, etc. 
+--|---- HOWEVER, above should be done if intention is to form a "control" object for some behavior, i.e. make a marker, and then do some behavior somewhere in code if marker is given as a case.. INSTEAD, if the intention is using a string/number but maybe add some meaning to it, then just define it as a constant. For example, WAI-aria says that when giving aria-rowindex, it should start with 1, not 0. Now, one can either just do (+1) to rowIndex when putting to aria, or you can do (+ARIA_ROWINDEX_OFFSET) which will be more meaningful, and won't leave someone wondering why it is done ..or if there is a +1 somewhere else in code, then won't leave wondering if the 2 cases of +1 are same or not.
+
+
+Using key in react:
+-- VERY VERY IMPORTANT: https://reactjs.org/docs/lists-and-keys.html#keys-must-only-be-unique-among-siblings -- keys must only be unique in siblings!! THUS.. don't proactively ask for keys in component api. 
+--|---- On similar lines - generally you don't want to actively add "id" everywhere. Wait till it is needed. There is NO html best practice to always add id. In fact, it may hinder browser performance wherein it'll want to cache all the "id" so that it can make a jump if user adds a hash in url
+-- Say you have a stateful 3rd party component whose state reset if its parent state changes in some way. The proper way to do this is possibly to add hook in the child component that refreshes it when parent refreshes -- but that can't be done. To be able to achieve same behavior.. one way is to pass a key to the child 3rd party component and have the key change between invocations. react will now think that element changed and instead of just passing props to same component with its old state.. it will make new component with new state!!
+-- **IMPORTANT**: Say you are using Hooks and have factored out code for hook in some method and now you want to reuse it. In this case, any useEffect() made in factored method will keep on getting re-effected unless a key is added to component that calls that effect. Once key is added, then useEffect gets called just once.. Essentially, it's a good practice to add key to everything, not just list. 
+-- ON SAME NOTE: Say you have an element which has refactored hook-method that also adds an event listener. It is necessary that you also: (1) add key, (2) remove event listener on unmounting. Adding key prevent react from making new component and thereby making new hooks.. Removing event listener is a good cleanup. Say, you passed an element reference to listener in hook, but did not remove it.. then it will keep on getting invoked with value null. So, remove it on cleanup.
+
+
+Table design:
+-- **UI: IMPORTANT** See https://developer.mozilla.org/en-US/docs/Learn/Accessibility/HTML and then see https://developer.mozilla.org/en-US/docs/Learn/HTML/Tables/Advanced . When using tables, properly use:
+--|---- thead for headers, tbody for data, tfoot for footer / table summary. Preferably also add caption. 
+--|---- Add aria-keys and roles: see https://www.w3.org/TR/wai-aria-practices-1.1/#table . If in doubt about how to add roles, see https://www.w3.org/WAI/PF/aria/roles -- and see the baseConcept associated with a role. Along with role, also add headers (See https://www.w3.org/WAI/tutorials/tables/multi-level/ )
+--|---- Add tabIndex as needed on keys (unless it is sr-only)
+--|---- Many examples show using "scope" attribute. Don't do that since it is for HTML4 and deprecated in HTML5. Instead use headers.
+--|---- See https://getbootstrap.com/docs/4.0/utilities/display/ -- if you want to hide columns, or control print behavior. If you really want to change table behavior for different screen size, i.e. for very small screen, the headers show up vertically in a column, then you can probably use this. HOWEVER, I'm guessing a better way may be to simply change the component that react displays based on media-width. RELATED: See https://stackoverflow.com/questions/13649569/css-hide-table-column-for-print
+
+-- **UI: VERY VERY IMPORTANT**: ALWAYS try to design the table such that each row in <tbody> ALWAYS looks like the other in a repeated pattern. For example, use https://www.w3.org/WAI/tutorials/tables/multi-level/
+--|---- IMPORTANT
+--|----|---- When in bind, realize that linking by "headers" attribute for a cell is far better than spending time wondering where to put rowheader/colheader
+--|----|---- If using class of "sr-only", realize that it is totally collapsed, so change your row span and colspan to always avoid the row/column for which one element is "sr-only", else it will cause a break between cell ordering in display vs non-display device
+--|----|---- The example page above shows "blank" cell. Don't do that in practice. There is always a cell header for a cell.. maybe it is sr-only hidden.Higher level col-spans can have their own headers if needed by logic.
+--|---- HEADER
+--|----|---- Header can be different from <tbody> layout if it wants to show column grouping (or if tbody has row-grouping, more on it later). Note that the example page does not show of a case on how to properly set [id, headers] for a <tbody> column and <thead> column for multi-level header. There is such an example on https://www.w3.org/WAI/tutorials/tables/irregular/ -- but that uses "scope" which is now deprecated. HOWEVER, Example-1 on that page (i.e. https://www.w3.org/WAI/tutorials/tables/irregular/) can be mapped to Example-2 on example page (https://www.w3.org/WAI/tutorials/tables/multi-level/) by pulling "Mars", "Venus" in their own row as done for "Paris", "Rome". 
+--|----|---- Where to put role of "colheader" if you have multi-level header hierarchy? Looking at baseConcept for the role in https://www.w3.org/WAI/PF/aria/roles - it is seen that it should be put on element with scope="cell". SO.. do not put colHeader except on a cell. If you use colspan on high level header group, then they won't take role of colheader, but you can probably link to it using "headers" attribute in each cell.
+--|----|---- Always keep headers in <thead>
+--|---- FOOTER
+--|----|---- https://webaim.org/techniques/tables/data says that <tfoot> is different in that when printing a long table, <tfoot> keeps showing on all pages. This explains why <tfoot> is always said to be good for putting summary. One problem though.. it does not have any header -- so always design it to be in a way that it is very intuitive/descriptive based on table data and avoid huge nesting. Best keep it in form of "description | value", i.e. just a 2 column row
+--|---- BODY
+--|----|---- If you have a scenario with different "type" of data corresponding to same must be shown, then realize that there is a "leftmost" sr-only column that is joining them. So when you look in screen, it'll look as is you had 2 different rows, but actually they are joined together by hidden common-column. ..and "headers" for the cell links to corresponding header on row and columns
+--|----|---- A good way to identify where all should a cell link for as header: Think of an object (row) as not having different properties (multiple columns), but instead just having 1 "id", and then being a list of {propName, propValue}. Thus, a "propValue", links both to corresponding "propName" and to "id" of the row. If there are more than 1 dependency - put them all in headers.
+
+-- **REACT: IMPORTANT**: A table in UI means that a "list" type REST endpoint is getting queried. When queried, lists can then be filtered by various arguments. A good design is to have also these filtering logic / handling reflect in UI-url (not just REST url.. which of course will be needed to achieve the logic). This can be done either as history-push or history-replace (Note that history-replace prevents history stack from getting full, BUT.. maybe user would like to have history of filter logic - do as needed). There are 2 fold advantages now: (1) The url becomes sharable, and, (2) all the filtering state information are processed at router-component level before getting passed down to redux-container-component. This increases usability of corresponding redux-container: either it can be called when user navigates to url.. or it can be called by some other component to get nested table behavior!!!
+--|---- A side note: using anchor tags (# location.hash value in react-router) in table to link to particular row could be a way to share specific information. HOWEVER, in terms to RESTful url, "getting specific information" translates to doing an item-based GET call, which means that ideally it should have had its own UI page. Thus, GENERALLY (but, not always).. you don't want your page showing a table to have anchor tags, but instead give a link to particular resource information. HOWEVER, if the list-based REST resource is the last url (because data within it too small to be giving it a rest resource of its own, plus, in terms of business logic, either the entire content changes or nothing does), or if the UI table page is the last UI page - only then you'd want to put anchor tag in table, so that the particular row can be shared. EVEN IF IT IS 2nd OPTION, i.e. table is the last page on UI.. you should prefer to not proactively add anchor tags but wait unless a need for it arises.
+
+-- **UI: VERY VERY IMPORTANT**: Using divs vs table : Using divs give flexibility.. but it breaks inherent table structured html content; It's like the difference between wood that is shaped like plank vs wood chips glued together and shaped like plank - just because it works in some situation it may not be good thing to "always" do. One argument always raised is that divs give more flexibility in terms of styling -- but is that true?! Why can't flex styling be applied on table?
+Think along following lines:
+--|---- Read "Table design" piece above - particularly the one that if you really think you need 2 "separate" rows per data, you should probably join them with a rowspan=2 column at very beginning which becomes row-header, and then hide it using class=sr-only. If using sr-only, make sure to have your rowspans/colspans be proper since sr-only row/cols will not show at all.
+--|---- In terms of UI dev, use react Row/Col (maybe add no-gutters option in Row), and use it as table. This can help with initial styling.
+--|---- LAST AND LEAST PREFERABLE.. if you are coming here, it is most likely you are wrong. Still: if you really have to use divs, then at least use ARIA "role" attribute. See example in https://stackoverflow.com/questions/49946960/accessible-div-table  related to use of WAI-ARIA which is also adopted in html5: https://www.w3.org/TR/wai-aria/#usage. Use roles, "table", "rowgroup" (to correspond to thead, tbody, tfoot. NOTE to not use rowgroup for any sub-selection of row which for some common id -- see https://www.w3.org/WAI/PF/aria/roles for roles and look at base-concept), "row", "rowheader", "columnheader", "cell". Note that there is no rowspan or colspan.. there is aria-rowspan and aria-colspan, but those are properties, not values of "role"
+
+
+
+BOOTSTRAP:
+-- Use bootstrap "no-gutters" css-class to remove unnecessary margin/padding added by bootstrap on row. 
+-- Realize that bootstrap adds 15px cellpadding for Container element, and then for "Row", it uses -15px (negative margin) 15px (padding). Don't know why.. but this causes an effect that if you make border around the table, then it shows different outline for container and row (since borders go between padding and margin). Using no-gutters can help with it.
+-- See https://www.codeply.com/go/lzv9b9TgeD/bootstrap-4:-columns-with-fixed-width -- essentially if you want to make a column of small size that bootstrap's division, (1) on that particular column, use css of 
+{
+    -ms-flex: 0 0 [custom-size]px;
+    flex: 0 0 [custom-size]px;
+}
+(2) at least have one column which is just "col" as so it auto-fills all remaining space. 
+-- About sr-only: See https://stackoverflow.com/questions/19758598/what-is-sr-only-in-bootstrap-3  and  https://webaim.org/techniques/css/invisiblecontent/  ALSO see docs for "sr-only-focusable" property!!
+-- See https://getbootstrap.com/docs/4.0/utilities/display/ -- if you want to hide columns, or control print behavior. RELATED: See https://stackoverflow.com/questions/13649569/css-hide-table-column-for-print
+-- Note that you can also control the width of row to be less than 100%. See https://getbootstrap.com/docs/4.0/utilities/sizing/
+-- IMPORTANT:: IS it necessary to put Row inside Container only.. what if Row is used with no-gutters option?? Good article: https://medium.com/@erik_flowers/the-subtle-magic-behind-why-the-bootstrap-3-grid-works-1779c0f36611
+--|---- Although there are articles that say that Container should be outermost, followed by Row, followed by Column.. this is not necessarily true. Here's the explanation. Container (or container-fluid), fills the required viewport and adds 15px padding horizontally - to prevent text from coming all the way to the edge of viewport. Skipping rows for a bit, go to columns.. they have padding of 15px so that columns look separated from each other (however realize that padding does not prevent overflow). Now, if we look at 1st and last column, they have 30px (15px padding from container and 15px padding from column), so rows are added with -15px margin so that they go all the way against the container and now it looks like columns uniformly filled container area. HOWEVER, with no-gutters options, the extra padding from column is removed, so there is no need to also have -15px margin on row, so that is also removed. ..And then Container can also be removed with elements like div and then controlling width (if you want to fully fill the screen).
+--|---- A good github ticket: https://github.com/twbs/bootstrap/issues/20120 -- where the last comment says that the container is needed else 15px padding of last column gets pushed out -- but then again, that should not be a concern if no-gutters is used
+
+
+CSS:
+-- Flex : use margin-left:auto on items in css flexbox to move them all the way to right!!
+See https://hackernoon.com/flexbox-s-best-kept-secret-bd3d892826b6
+However, this won't work if put alongwith Bootstrap's Col: because "col" class adds "flex-grow:1" which will cause the element inside to grow big to occupy all space that should have instead gone to margin!
+-- Use "classnames" npm package to change class-names based on condition
+-- Good read on margin vs padding: https://uxengineer.com/padding-vs-margin/
+
+
+REDUX:
+-- Want to make singleton component that is shared across multiple other components? See https://stackoverflow.com/questions/44726316/reactjs-how-to-create-shared-singleton-components-across-all-the-platform -- either put data in Redux (duh!) or use React-context (still-duh!) -- both are classic examples of their use case... particularly Redux. This is one way in which Redux will clearly be different from using Hooks.. which will just remake multiple components with same behavior.
+-- Can make higher-order-reducer since requestStart, requestSuccess, requestFail is always going to be there
+-- A good practice is to always clean data from redux-container on exit. So, in addition to above also add onClear(). But make sure to clear data only if action's id matches store's id. 
+-- For list type data in REDUX, it means you can also be doing filtering which changes data. So, good to have "id" field and a idEquals() method that controls behavior of how init/success/fail methods behave. When working with single data.. only a slug is needed (or maybe collection of slugs - of item and all its parent -- so the design still holds)

@@ -1,0 +1,346 @@
+DJANGO:
+1) Sometimes you'll be having a denormalized DB table because that is most helpful.. but they you have to handle request which requires deduping it
+OR... you have a table-0 which has foreign-key to table-1 and table-2, and you want to return data grouped by one of them.. and Django doesn't let it do naively because whenever you "group-by" a field, then you're only allowed to pull a summary-statistic from it (AND you are in a case where this CANNOT be offsetted by a deeper REST url path, or by query-params)
+One solution.. but without sacrificing the utility from "ModelSerializer" --> is that you start with "fields", "read_only_fields" definition as if you'll be serializing in denormalized way.. and then at the very top.. you make your own to_representation() method inside the serializer.. which takes its data, and then modifies it to make it appear normalized!!
+
+2) In case I missed previously -- Doing various tasks in a single transaction is preferable.. but if that can cause transaction to get bound for long, then run each command in its own transaction (auto-commit mode). Also note that latter does not guarantee non-changing data
+https://stackoverflow.com/questions/9271497/do-transactions-add-overhead-to-the-db
+
+3) Understanding http cache directive: https://www.asimkt.com/posts/http-cache/
+
+4) **VERY VERY VERY IMPORTANT** Is CSRF protection needed with GET call? -- Generally NO. 
+--|---- In most case, CSRF is restricted to attack where an attacking website tricks user to make a request that causes a mutation (in favor of attacker). However, when server returns a response --in these cases-- it will not have CORS' allow all origin header. So, even though a mutation is made, the response of it never goes back to attacker.
+--|---- HOWEVER consider the case where the server is of a business that is an utility-provider, say, like USPTO. Now, server can and should expect that different domains will be calling it - and so, it now needs to set CORS header to allow all origin. But this opens up a different problem in that even for non-mutating calls (GET call), the attacker can now see sensitive user data - and the webpage won't restrict it because CORS is effectively disabled. In such cases, it is necessary to have CSRF protection even on GET calls. 
+--|---- **VERY VERY IMPORTANT** The advantage of JWT comes here in that JWT created by one can be used by other.. token can be passed on front-end.. back-end.. etc. As long as token passes, the authentication continues and there's no need to worry of CSRF token. 
+--|----|---- RELATED: https://engineering.mixmax.com/blog/modern-csrf/
+--|----|---- RELATED: IF HOWEVER you're using cookie.. use "SAMESITE" setting on cookie
+
+5) **VERY VERY IMPORTANT**: When making model, you may want to put "editable=False" for slug, id, createdTime fields - ones that don't change
+--|---- On related note, you can use "uuid_lib.uuid4" in Django to assign a default uuid value to a field
+
+6) Pdf pg 232 of "2 scoops" -- using django rest framework to instead do a procedural call.. this is a good usecase for using APIView rather than Viewset. realize that this also comes in if we want to expose additional sub-methods beyond simple POST / PUT / GET / DELETE - for whatever reason (One of most common reason is to expose a state mutating endpoint)
+
+7) **VERY VERY IMPORTANT**: Pg.220 and 235 of 2 scoops.. on usage of http-status 410 when an old version of api is expired.. and how, when showing that view/response - then also give link to new api, documentation, etc
+
+8) Pg 247 of 2 scoops:: It’s fine to disable CSRF if the API ONLY accepts JWT authentication; it’s WRONG it if accepts cookie authentication.
+
+9) Add Django-admindoc : Admin page is something of high power, but will be quite infrequently used and by very less number of people. So, it is preferable to ensure than any admin-page user has sufficient docs to guide them in what they are doing.
+
+10) Pg.266,267 of 2 scoops give important info: (1) Change the default admin url to something not guessable; (2) Add an admin "honeypot" <-- good option to use generally for every case to log info on users who are attempting non-standard interaction
+--|---- **VERY VERY VERY IMPORTANT**: On same note, keeping whitelist servers for critical pages is a good security practice. Don't just allow anyone / anywhere to log in
+
+11) "@receiver(post_migrate)" can be used to run a signal after migration has ended -- this can be used to do some action everytime after a migration
+
+12) Look at Django's contenttype :: https://docs.djangoproject.com/en/3.0/ref/contrib/contenttypes/
+
+13) **VERY VERY VERY IMPORTANT**: Read highlights/comments in Chpt-20 of 2 scoops (Dealing with user models).. it's a small-ish chapter
+--|---- Use "get_user_model()" to get handle to User model used in code.. except when wanting to do foreign key reference
+--|---- For foreign key reference, always use "settings.AUTH_USER_MODEL" rather than explicit user object
+--|---- A good idea is to make "Profile" based on available roles that can then be accessed directly via user object. However.. be careful in designing it..
+--|----|---- if User can have more than 1 roles, then it'll be more than 1 profile.. which one takes precedence
+--|----|---- can there be active / inactive profiles -- using inactive ones for historical auditing
+--|----|---- keeping referential link between profile vs group. Is it better to override user.group in Django as a property that then delegates it to user.profile. How does this work when wanting to add group / remove group ..specially, if we want to keep profiles for historical auditing.
+--|---- **VERY VERY VERY VERY IMPORTANT**: By considering the idea of User vs Profile has multiple advantages: (1) Now each app can make its own "Profile", associate it to its own RBAC rules, make data models with its own ownership idea independent of other apps. The privacy/data-ownership driven development starts from group up in each app rather than an after-thought. Models that could have been mired in ownership ambiguity are kept separated from get-go. All the while, the home-project still has ability and final-say on how it wants to join the profiles offered by each app and whether it'll make keep the distinction between profiles offered by various apps, or if it'll join them. The home-project is the one that converts abstract models to actual ones which then drives the migration. Serialization can still work off from abstract models
+--|----|---- OR, maybe have each "app" make its own model (non-abstract) and Viewset.. but the home-project is the one that overrides it with actual implementation and that's where all actual Viewset are made and wired to public url. Realize how a simplification of this could be to have [[models in home-project, viewset in app, urls in home-project, linking to those in app.. which link to corresponding viewset in apps]] -- this is a good simplification, but be cautious to not undermine the effect of app-dependent "Profile" when doing so.. which guides specific data-ownership
+--|---- **RELATED**: Is there a way to tell Django that "when my queryset refers to a model, then don't use the one I defined, but instead use the one from somewhere else.." -- almost like how its done with "User" and settings.AUTH_USER_MODEL.. but now, instead of being done for just 1 model, it is done for all models in the app --- See definition of "get_user_model()" -- maybe something like that can be done, which takes "Implementing app" name for a model, with default value being current app. So, when overwritten, it picks the corresponding model. This also matches with design of "AbstractUser" -- note how it is "Abstract" instead of concrete.. but default behavior is to make it concrete.. maybe understand how that happens!!!
+--|----|---- How to code so that if user has overwritten a model themselves, then it is kept abstract and not migrated.. otherwise it is migrated. One option could be to use a combination of something like "get_user_model()".. along with.. in the __init__.py, have a script to check settings.py for a particular value. If it exists, mark some constant, say "is_external_managed" to true, and in your app's model, set a model as managed vs non-managed.. or abstract vs non-abstract based on that value of "is_external_managed". So, if a setting is present, that is picked up and used by app to signal that a model is externally managed, so mark your own one as abstract - so it does not migrate. NOT SURE THOUGH how this design will allow switching from non-abstract in beginning to abstract midway in project, or if it'll just work without issues.. still, it's a good start
+
+14) **VERY VERY IMPORTANT**: Good practice: when making models.. include "help_text" in model fields
+
+15) VERY VERY IMPORTANT -- KINDA.. really good to know:: Django Packages (djangopackages.org) is a directory of reusable apps, sites, tools and more for your Django projects. Unlike PyPI, it doesn’t store the packages themselves, instead providing a mix of hard metrics gathered from the Python Package Index, GitHub, ReadTheDocs, and “soft” data entered by users. 
+
+16) **VERY VERY VERY IMPORTANT**: Look at https://docs.djangoproject.com/en/1.11/intro/reusable-apps/ -- Also in relation to #13 above, maybe this can help in how each app can have its own manage.py
+
+17) **VERY VERY IMPORTANT**: TESTING
+--|---- Pg 298 of 2 scoops: Using "coverage.py" to test coverage and see code portions that are not covered
+--|---- Pg 298 of 2 scoops: It suggests having test in each "app". I am not sure how to go from there to a deployment where the "tests" module in each app is excluded. Having separate tests in each app do keep things modular and thus parallelizable. Also, now, you can distinguish between the behavior of model is each app in corresponding test, vs test written for home project. 
+
+18) **VERY VERY IMPORTANT**: See Pg320 of 2 scoops.. "Documentation" - of non code related things, like, installation, deployment, and architecture.. this is where "Restructured text" (.rst) is great. This also plays nicely with having all docs outside of API Swagger docs, and is also separate from docstrings, code comments. Realize different usage / scope of each documentation and how each interplays with the other... ONE THING TO STRIVE FOR -- avoid duplicate information at any point!!! - even in documentation. And then.. avoid non-updated info!!
+
+19) Some google rules to speed up webpage:: https://developers.google.com/speed/docs/insights/rules
+Avoid landing page redirects
+Enable compression
+Improve server response time
+Leverage browser caching
+Minify resources
+Optimize images
+Optimize CSS Delivery
+Prioritize visible content
+Remove render-blocking JavaScript
+
+20) About async tasks: Pg 339 of 2 scoops gives nice guidelines... at least read them.
+
+21) Why have signals, or for that matter even transaction.on_commit.. if you want something, then write it in save() method.. or use decorator. For async tasks, use transactional-outbox - or should you?
+--|---- 2 scoops, pg343 has link https://www.fullstackpython.com/task-queues.html - for async tasks,.. and this page has link http://blog.codepath.com/2012/11/15/asynchronous-processing-in-web-applications-part-1-a-database-is-not-a-queue/ -- which goes into why using a DB is bad for message. Some assertions are false there -- but one is correct that even if using DB for messaging, it puts a heavy strain on DB which is for data search and retrieve (i.e. a Map like behavior), rather than a queue like behavior. A solution could be to use a different DB for doing so, but then we're back in XA domain. Using a mix of SQL and NoSQL DB is bad because then even XA does not work. Going back to basics -- the behavior we need is to do "something" if a transaction succeeds. First, notice that if a XA criteria isn't put, then things will mostly still work as long as "post-commit-success" actions are queued in MQ after transaction success. A failure (and thus a need for XA) arises for a very limited case when failure may happen at the very moment when DB transaction is successful but the message for async action wasn't queued. Maybe such minor cases are just the cost of business!! Another possibility however could be to do a distributed logging -- when request comes, goes to DB, success/fail in DB, goes in MQ, goes out of MQ. Now, some "timely" (hourly / daily / weekly) async aggregator can instead look at log counts to see if counts are consistent. If not, then it represents a XA failure and efforts can be concentrated. The advantage is that this frees up immediate XA processing -- even by using transactional outbox.. which relieves pressure from DB. But it comes at cost of other housekeeping to be done some other time!!! -- As an exercise: Think how Twitter's Diffy would work with whatever you come up with
+
+22) **IMPORTANT**: Security - chpt 26 of 2 scoops - go through it
+--|---- Basic thing for security:: see "Server Hardening", section 26.2 in pg.346 of 2 scoops:: Server hardening measures include but are not limited to things like setting up firewalls (help.ubuntu.com/community/UFW), changing your SSH port, and disabling/removing unnecessary services.
+--|---- **VERY VERY VERY IMPORTANT**: Good practice -- You should disable the HTML field autocomplete browser feature on fields that are gateways to payment. This includes credit card numbers, CVVs, PINs, credit card dates, etc. The reason is that a lot of people use public computers or their personal computers in public venues. In fact, consider changing the form field itself to PasswordInput. Also on that line - never store credit card data.
+--|---- Section 26.13 on Pg.357 about file handling. 
+--|----|---- Use CDN for file (I think this is more of a performance thing and to prevent getting your server drowned in false request).
+--|----|---- Since user uploaded file can have xss content, so don't have it open in browser by only allowing it to be downloaded - done by setting "content-disposition:attachment"
+--|----|---- When storing user-uploaded file, make sure they never get the "Executable" permission, even by self. Be very very careful if your workflow requires you to process files. Have it done somewhere else. Maybe also put upload size restriction; rate-limit based on ip / user-role-type; do virus scan. Wonder if a good thing would be to always encrypt file on disk - both for data security, plus the file gets jumbled so cannot execute. When storing user-file, never make the file-extension visible, instead have it only be in DB. Maybe also randomly chunk the file so it never makes sense on own (do so after encrypting entire file) -- do note that if you're accepting chunked files, then do a virus scan on combined files before continuing
+--|----|---- Use "magic" to inspect file-headers. For example: python has https://github.com/ahupp/python-magic
+--|---- **VERY VERY VERY IMPORTANT**: If working with custom user data which can be xml.. then realize that there can be a ddos attack done. See https://en.wikipedia.org/wiki/Billion_laughs_attack -- the article mentions that this attack can be done on any language with references (like, on YAML)
+--|---- **VERY VERY VERY IMPORTANT**: Displaying sequential primary keys is to be avoided because:
+--|----|---- They inform potential rivals or hackers of your volume
+--|----|---- By displaying these values we make it trivial to exploit InsecureDirectObjectReferences <-- important
+--|----|---- We also provide targets for XSS attacks
+--|---- **VERY VERY VERY IMPORTANT**: Links
+--|----|---- https://owasp.org/www-project-top-ten/
+--|----|---- https://wiki.mozilla.org/WebAppSec/Secure_Coding_Guidelines
+
+23) Using mce editor in your front end to collect rich-text.. best to use an editor that returns a "markdown" rather than a html!!
+
+24) See https://stackoverflow.com/questions/11752355/whats-the-equivalent-of-rubys-rack-or-pythons-wsgi-for-java -- wsgi is to python what servlet is to java!!
+
+25) **VERY VERY IMPORTANT**: Look at request.resolver_match :: It can give multiple important information. ALSO NOTE: there is also a "request.session" which gives handle to a dict where you can store/retrieve value in session. Example: see https://docs.djangoproject.com/en/3.0/topics/i18n/timezones/#selecting-the-current-time-zone
+
+26) **VERY VERY VERY IMPORTANT**: Middleware arrangement
+* #0 -- BASIC -- in middleware or in the application logs -- never capture user PII. As much possible, don't also capture user request/response data -- except url or any internal data-identifiers which never make it to outside world (So, id(s) are ok, since what is sent out is slug).
+--|---- As first middleware, maybe add one that captures errors and logs it in Sentry - and then bubbles up the error. Be careful that this middleware itself must not raise exception of its own. (This is also following that: (a) don't redirect on errors on server side, and, (b) on error, instead of redirecting, show a toast - so this is an aspect-like behavior. PLUS, it conforms to design that every url is a GET link). Any exceptions that make up to here are serious business. Consider it as a "error" level log.
+--|---- Next, add middleware to report timing. This one will be most precise since apart from error cases, it captures complete time flow of request in application. BEST, don't add any code here that is dependent on knowing about handling view.. just the incoming request and response (..and any exceptions that still make it up to here).
+--|---- Next, add security middlewares. Apart from basic ones above, the secuirty middleware should come soon.
+--|---- Next, adding tracing middleware. This is almost like metrics reporting.. but slightly more. It is put after security middleware so that we don't concern ourselves with weird request [[Not sure if this should be before / after security middleware. It would be good to tag the user details (but not user PII)]]
+
+27) If you want to have your middleware do custom logic whenever sql-query is done.. this is how you can proceed:
+#0: If you're not using some middleware.. say based on some settings.. then raise MiddlewareNotUsed() so the middleware is skipped
+--|---- In your middleware's process_request() and process_response().. (a) add keys within request.META which will: (a.1) tell you that a request has been instrumented, (a.2) can act as store to keep values, and, (b) in process_request, do "instrumentation" and in process_response remove the artificial instrumentation
+--|---- As part of instrumentation, get connections from all-DBs associated with the application [About Python "connection" object https://www.psycopg.org/docs/connection.html#connection]. Then, do: 
+--|----|---- "from django.db import connections", 
+--|----|---- then iterate using" for connection in connections.all():", and for each connection instrument the cursor. 
+--|----|---- SEGUE INTO SOME IMPORTANT BACKGROUND:
+--|----|----|---- A "connection" is a thread-safe object [See object https://www.psycopg.org/docs/connection.html#connection]
+--|----|----|---- "Django opens a connection to the database when it first makes a database query. It keeps this connection open and reuses it in subsequent requests. Django closes the connection once it exceeds the maximum age defined by CONN_MAX_AGE or when it isn’t usable any longer." -- from https://docs.djangoproject.com/en/3.0/ref/databases/#connection-management -- This means that connection doesn't have scope of transaction, or request, or even session. It has its own arbitrary lifetime based on connection-age setting
+--|----|----|---- "cursor" is thread-unsafe [About Django "cursor": https://www.psycopg.org/docs/cursor.html#cursor]. The documentation also says "Cursors are not thread safe: a multithread application can create many cursors from the same connection and should use each cursor from a single thread." -- This means that if cursor() method is to be replaced, then the new method must (i) return cursors which are local to thread, (ii) allow multiple cursors to be returned if cursor() is called multiple times within same thread. Thus, the cursor instantiation must be thread-local in nature, but not thread-local singleton. 
+--|----|----|---- Not related to topic at hand, but good to know about cursor.. if you're using it to run SQL, then you may want to wrap it in transaction.. else it runs in autocommit mode: https://stackoverflow.com/questions/25592804/multiple-execute-on-a-single-connection-cursor-in-django-is-it-safe
+--|----|----|---- **VERY VERY IMPORTANT**: If you want to have above behavior of thread-local behavior, but not thread-local singleton, you can: (i) create a new class extending "threading.local" with an attribute that gives the final product. (ii) use class created in step(i) to instantiate an object, (iii) attach the object created in step(ii) to wherever needed.. maybe it is done in middleware as part of every request. If so, then maybe some efficiency can be achieved by not making new thread-local object for each request -- maybe do a double-lock check!!
+--|----|----|---- **VERY VERY IMPORTANT**: An example of creating an "around" aspect is-like adding decorator at class level. See example https://www.codementor.io/@sheena/advanced-use-python-decorators-class-function-du107nxsv 
+--|----|---- [BACK FROM SEGUE] **IMPORTANT STEP**: So, as part of instrumentation, (a) save the actual cursor() method as some temporary attribute within "connection", and, (b) create a new thread-local cursor-returning-function and attach that to connection.cursor - as mentioned above. One way to do so would be to have a function that uses actual connection.cursor() to get cursor, and then wraps it in an object whose __getattr__ method simply redirects to original-cursor.. and if the method being executed is cursor's callproc(), execute() or executemany(), then it does an "around" aspect like behavior as mentioned above [[... however, recall that in doing so, they should be made from same thread-local wrapper object]].
+--|----|----|---- In above, realize that every request is handled in its own thread.. so even with same connection, a new thread-local object with cursor-creating-method is formed for each request. So calling connection.cursor() -- even though it is same connection across different request -- will end up giving different cursor, and, if same request calls connection.cursor() multiple times, then it'll return different cursor from same thread-local object containing cursor-creating-method. 
+--|----|----|---- ANOTHER IMPORTANT thing to realize: designing the decoration logic.. if you design the decoration logic such that you pass a new argument to decorated cursor on every request (for example, you want to count sql queries made and time taken..), then you need to ensure that your middleware that does the instrumentation on start of request, then removes the instrumentation at end of request. -- BECAUSE, the thread will be re-used after the request is done and we don't want values to carry over. ALTERNATELY, the decoration logic could be such that instead of getting a new object on every-request.. maybe get a "Request-scoped-manager", i.e. a thread-local object that passes handle to current request.. and then you use it to set values. **BUT.. SECURITY ISSUE**: Not clearing a request related value from any thread-local is actually a security issue.. and is best avoided.. So, a best practice would be to enable/disable instrumentation on every request. 
+--|----|----|---- About threadlocal lifetime: See https://stackoverflow.com/questions/1478248/whats-the-life-time-of-a-thread-local-value-in-python -- mainly, a good practice is to clear thread local data on exit. ALSO.. a good alternative is to instead store data in request.META
+--|----|----|---- **NOTE** A middleware can be added that binds a reference to current request to a threadlocal object. Now, a separate method can be defined which reads the same threadlocal object and passes request. Thus, this becomes a static method to get handle to request.
+
+28) **VERY VERY IMPORTANT**: Not sure if it'll work.. but say you don't want some table/fields to be read till user is of certain role.. and want to put this constraint on DB level (because you're dealing with critical data) -- then one way could be to modify to_python() method of model field and have it raise error. NOTE: This is different from object level security as suggested by rest-framework. Here, the permission constraint is on DB level and will apply in all apps and across all viewsets that use this model!! -- unlike the rest-framework checks that only apply at view-level -- and only if configured. Plus, that can get cumbersome to add same check in all permission/roles made, even if that permission doesn't currently relate to table / fields being restricted.
+
+29) **IMPORTANT**: VALIDATIONS:
+--|---- Remember that as much possible, don't keep validation on models. A VERY VERY IMPORTANT reason to do so is that as part of testing or immediate fix, we may want to access admin functionality and make test/data or changes. This will invoke save() method in model, and will thus trigger those validations. So.. keep the validations to as minimal necessary -- rather than bringing in application logic inside model.
+--|---- Only keep those validations in model which are based on referential checks -- something that ought to have been in sql itself.. but we can't because of limitation of sql language itself. 
+--|---- ANYTHING MORE.. must go as imperative statement in serializer level, or as declarative statement in view level. 
+--|---- Uniqueness check should be realized (NOTE the word: "realize", not "performed") by catching DB failures - since DB is only one that can do uniqueness check. Application can't ever truly do uniqueness check.. and can only realize a check-failure by catching error raised by DB
+--|---- In addition to above.. if the application requires, say "just one active entry" for some foreign key.. then a trick is to have null values in column where uniqueness is suggested. This is not a good design. Best create new entry in same transaction that closes old one. If contention arises.. use optimistic locking. Note that doing so precludes the need for adding an artificial "null based" unique constraint in DB.
+--|----|---- Similar design applies if you're doing bulk operations and want to check for consistency among all of them. Here also.. best do validations in serializer, or in its update/create method -- within a transaction -- rather than pushing the checks in save() method of model. Later on.. if need arises.. also include version based optimistic lock checking to handle concurrency issues.
+
+30) **VERY VERY VERY IMPORTANT**: Use django's timezone.now() rather than python's datetime.now(). Former gives timezone aware value, but latter give timezone naive
+--|---- UTC vs GMT -- note that UTC is a time standard: see https://en.wikipedia.org/wiki/Time_standard. GMT however is a timezone.
+--|---- A bad thing about using timezone naive "in testing" -- is that some test may work for one datacenter but not other
+--|---- ALWAYS when returning datetime in string format.. have it contain 'T' in middle. That is correct ISO format. Don't have it contain space. Else front end may break.
+--|---- When returning date-time object, always use serializer to serialize datetime in correct text form before returning.. else, you don't control the text going out - which will be just str(date-object) and this thing can change!
+--|---- Understand difference between "America/Chicago" vs "-05:00". Former has daylight change implicit in it. Latter, on daylight change, will need to change the offset. **BUT A BIGGER IMPLICATION**: This means **never ever** set tz offset in DB entry. Always keep UTC date and change it to a timezone as needed using TZDB string entry -- and have the latter take care of offset while taking care of things like daylight saving.
+--|---- moment().format("L") -- gives locale aware format
+--|---- **IMPORTANT**: Let's say our data model has school, teachers.. and teachers need to report time they worked in school. School has a timezone based on its location. In this case:
+--|----|---- when teachers send in updated time to the server, the time must be interpreted/deserialized as a timezone aware object with same zone as that of school. 
+--|----|---- when these values are persisted in DB, it should be changed to UTC - since as mentioned above - never store offset value in DB. Also, as part of data normalization, you don't want to store timezone info of school - both in school, and also as part of teacher's reported time
+--|----|---- **UX / DESIGN**: In this case, a good UX would be to tell the teacher on the web-page, before they've entered time.. the timezone of the school. This way, the otherwise "hidden" information of school-timezone, which will get applied as part of request processing, is now explicitly communicated to the teacher. This gets even more important if teacher can have their own profile with its own "timezone" setting which may/may-not be same as that of school. Think of case when the school is located near timezone change boundary and teachers are coming from another side.
+--|---- **SOME MORE FROM DJANGO CODE PERSPECTIVE**:
+--|----|---- **IMPORTANT** To begin with, look at this page https://docs.djangoproject.com/en/3.0/topics/i18n/timezones/ -- and look over and understand "concepts" section.
+--|----|---- See https://docs.djangoproject.com/en/1.11/_modules/django/utils/timezone/ -- and now() method in it [search for "def now()"] -- this is timezone.now() -- see its definition, when USE_TZ is true, then it gives datetime in UTC, otherwise it returns timezone-naive value. SO.. if your setting has USE_TZ=true, then not using "timezone.now()" method would actually be a wrong thing to do!!
+--|----|---- See https://docs.djangoproject.com/en/3.0/topics/i18n/timezones/#selecting-the-current-time-zone -- it shows how a middleware can be used to store timezone for a user. Few things to note: 
+--|----|----|---- (a) Middleware can be used to set some values -- can do it either in request.session["..."] (as shown in example), or can be done in request.META["..."] - to be done at request level.
+--|----|----|---- (b) SIDE-NOTE: See https://stackoverflow.com/questions/49613897/how-to-define-middleware-only-for-certain-paths-in-django -- middleware can be restricted to act on certain group of url by modifying "process_view()" method in middleware. request.resolver_match.kwargs can used to get kwargs sent to view / viewset.
+--|----|----|---- (c) See activate() method : both in docs and also in code -- https://docs.djangoproject.com/en/1.11/_modules/django/utils/timezone/ -- notice how it uses a thread-local object
+--|----|----|---- (d) Look at definition of dateTimeField in django-rest. It uses "timezone.get_current_timezone()" - which means if timezone.activate() is called in middleware then the serializer field will automatically pick it up and use it!!! Other option is always to send a datetime string to server with timezone portion included.. however, not every REST call might acknowledge or work with that behavior.
+--|----|----|---- (e) Note that https://fixes.co.za/django/make-django-rest-framework-date-time-fields-timezone-aware/ suggests extending to_representation() method of serializer field if you also want it to format time with timezone string included. HOWEVER.. if timezone is activated on the request.. then that's not needed!!!
+
+31) **VERY VERY IMPORTANT**: See https://stackoverflow.com/questions/6062576/adding-information-to-an-exception/46091127#46091127 -- use "raise [newException] from [oldException]" -- this raises new exception but preserves stacktrace. Related Python 3 manual: https://docs.python.org/3/library/exceptions.html#built-in-exceptions
+
+32) **IMPORTANT** Example of passing extra args when logging in python:: See Pg.374 of 2 scoops.
+logger.warning('Some text (%s): %s', "firstString", "secondString", extra={'status_code': 403, 'request': request})
+--|---- NOTE that "extra" kwargs don't come after the log message, but before it.. as example, see https://docs.python.org/3/library/logging.html#logging.debug. One drawback is that it requires the knowledge of some variable getting used to be present before event the system is made, and so may be restricted to evolution. Maybe a better way is to add a middleware that adds a "log-context" key in request.META wherein different processes can put values as needed. And then when making a log at any time, use request.META['log-context'] and log that!!
+--|---- Pg.377 of 2 scoops, To capture stacktrace: either use log.exception(..), or like log.info("Message", exc_info=True)
+
+33) Pg.378 of 2 scoops says: "When you create a new Django project with startproject, your default settings file is configured to email ERROR and higher log messages to whomever you list in ADMINS. This occurs via a handler called AdminEmailHandler that comes with Django." -- this is a good thing to generally have for any webproject.
+
+34) **VERY VERY VERY IMPORTANT**: Making custom model-manager: See https://stackoverflow.com/questions/29798125/when-should-i-use-a-custom-manager-versus-a-custom-queryset-in-django/53972793#53972793 -- and also the answer before it.. The idea is that ONLY if you want to collect under a new method name some particular queryset method/chain with given parameters.. then make a custom manager - else - do NOT make a custom manger. Most webpages suggest making custom manager for custom logic on save(), etc.. but DO NOT DO SO.. as said here, make a custom manager only if you can do same using queryset
+--|---- ANOTHER VERY GOOD ARCHITECTURE REASON FOR NOT DOING SO.. see https://docs.djangoproject.com/en/3.0/topics/db/queries/#retrieving-objects -- realize that "manager" is available with model class and not with a particular row. So.. if you want to do an operation / logic that works on object or even collection of objects.. then don't put it in manager. Manager is for methods that can are defined at class lavel.. or think of it as something that can be done on table-definition level even without having any data inside table. In terms of stackoverflow post.. one can define portrait and landscape even before any data has come.. so it goes in manager!!
+--|---- ONE WEIRD SCENARIO.. is if you want to create a new entry. Just like POST in http calls maps to list-like url but creates a single object (i.e. is an operation for single object).. one can think of saying that since "manager" should have methods that apply for at class level, this also applies for creating entry which is also defined at class level. HOWEVER.. BEST.. do not try to create new manager just to modify default create() method from manager. Also.. any custom logic here does not change update() logic.. and save() - targets both create / update / changes-from-admin-screen. **Maybe admin-sreen uses create().. but you see create() is something that can be bypassed by making empty model object and calling save() on it.. but save() cannot be bypassed.
+--|---- ALSO IMPORTANT: Don't use above as excuse to now move non-simple logic to signals.. if needed, instead first use mixins, then helper utils, change serializer's create/update..
+
+35) **VERY VERY IMPORTANT**: can use combination of namespace, app-name, view-name (obtained from request.resilver_match) to look up in db and get the flag information on whether the request should be allowed to proceed. This can act as feature-flag for rest-framework.. rather than doing it at template level as is generally done in django templates
+
+36) Getting and setting cookie in Django: https://stackoverflow.com/questions/1622793/django-cookies-how-can-i-set-them
+
+37) **INTERNATIONALIZATION IN DJANGO**:
+--|---- Process: https://stackoverflow.com/questions/16768809/django-internationalization-minimal-example    http://www.marinamele.com/taskbuster-django-tutorial/internationalization-localization-languages-time-zones
+--|---- Note that when writing _("some text") in code, then "some text" is the key which is used to look up corresponding language-specific text to put instead but looking in message files. The advantage of having the key itself be like a message rather than a code (like: some.message) is that this is useful in debugging. Also see https://docs.djangoproject.com/en/dev/topics/i18n/translation/#how-django-discovers-translations
+--|---- See https://docs.djangoproject.com/en/dev/topics/i18n/translation/#message-files -- it mentions that "makemessages" command from django admin goes over all py files and pulls all messages that need translation.. so that prevents any error. **I am not sure how it forms for message that take dict input.. but at least that's not something for me to worry.. since python will do so.
+--|---- **IMPORTANT**: From 2 scoops, Pg. 471 (setting utf-8 encoding for code), Pg.472 (quick breakdown on meaning / usage of various internationalization methods), Pg. 473 -- important thing to note that -- keep as much grammar and verb within the message that gets internationalized. Noun, dat should be passed to it as kwarg.
+
+
+
+DB:
+1) If you have, say, "N entries" out of which you want only 1 to be active at a time.. then one way is to have say an "active" field that can be true for just one entry. For all others, it should be null. The "null" isn't used in unique and so it behaves as if there's just one active at a time.
+--|---- HOWEVER, it's not a good thing to do. BEST to create a new entry only when closing the previous one -- and then do so in a transaction, and do it with versioning. This helps cut out concurrent modification ..and without using select_for_update. **VERY VERY VERY IMPORTANT**: Realize the difference between select_for_update vs versioning for concurrency control. Both have their own merits and use.. as mentioned in previous notes
+--|----|---- To mention/clarify again: select_for_update is best done when you want to lock a table during update. For example, say you only want certain column to have sequential numbers. The way to getting it would be to get the current table size and use it to get next number. Thus, synchronization is inherently needed and using optimistic locking only may not be helpful - because in creating new row, it'll have a version of 0. And you're not modifying old entry's version.. so optimistic lock will end up creating overwritten entries.. but not so if done using select_for_update
+--|----|---- ALSO.. If your object has a lot of concurrent updates you are probably better off with the pessimistic approach. If you have updates happening outside the ORM (for example, directly in the database) the pessimistic approach is safer. If your method has side effects such as remote API calls or OS calls make sure they are safe (Taken from https://hakibenita.com/how-to-manage-concurrency-in-django-models)
+--|----|---- **IMPORTANT**: Optimistic Locking is particularly good/useful for cases where partial update of row cannot be done. Thus the row completely updates in each operation. In such cases, row-versioning in optimistic locks prevent update on an old version of data. Note that optimistic locks are good to use when there is a low write/concurrent-update rate. Also, having this paradigm requires both an understanding from client and server side. Client must understand that they're trying to update a "version" data and that the operation can fail in which case they'll need to retry. However, depending on use-case server side may add some retry logic. On the other hand, select for update pauses the execution rather than causing failures like optimistic locks - so it is good for high write rate. Implementing optimistic locking is not available out of box so it needs extra coding work. RELATED: (i) Realize that model.save() can have additional referential checks before data is saved. Those checks get bypassed if using queryset.update() used for optimistic locking; (ii) since queryset.update() is getting invoked, then model's save() signal will not get invoked; (iii) save() method has an argument "update_fields" that can additionally be used for performance gains and to enable concurrent update of different portions of model. This feature can be used instead of update() for optimistic locking. **ALSO** don't worry about optimistic/pessimistic lock unless you're starting to see db contention.
+
+
+
+UI:
+1) Pdf page 245 of 2 scoops:: VERY VERY IMPORTANT: 2 important things to note: (1) As much possible, try to store webpage state in the url - in path and/or in query params. (2) UX and usage pattern research isn't trivial. Maybe what is needed is better UX understanding so that the site can be made so.
+
+2) Include a logic that when any "context" variable in UI is changed, then all stored data is deleted, and refetched if necessary. 
+--|---- The best example of "context" variable is the login/logout. So, its best to clear Redux or any state / local js variable when a user logs out. Would be better to also clear js-script, css, etc -- if they were loaded from part of page that is accessible only to a certain role. But realize that there may be other operations that are not login / logout but which that change context for many other operations - so be careful with them.
+--|---- A nice way to clear local js data is to send a new template view in django response. This triggers a page reload which clears data. Realize that for login -- this also means triggering page load even if user session expires due to inactivity. -- But in a cloud ready world.. we'd be instead talking of using JWT
+
+3) **VERY VERY IMPORTANT**: UI design pattern: 
+--|---- As much possible, don't show duplicated data.
+--|---- As much possible: don't show, or at least don't delve deep into showing individual "resource" data when showing the "list" data. Even more, as much possible, don't show "list-within-list" data in a single card.
+--|---- Generally modal show/hide is controlled via url or internal state in react-component. However, sometimes it may be necessary to trigger server action from modal - such that modal closes on success, or for things like preventing navigation out unless some successful server resource is created.. in such cases, it'd be good to have a redux slice to contain state information for modal or otherwise.. and now server-saga changes this value on success/fail and this gives larger UI coordination.
+
+4) UX: When designing front end: keep consistency in patterns. For example don't make different type of form with slightly different styling; or different type of modals. try to keep as much homogeneity. This will help devs and keep css style variance low
+
+5) **IMPORTANT**: In React, it is normally not needed to give a name / id to an element. However.. if given then a benefit could be that the name / id gets used for automated-logging
+
+6) https://css-tricks.com/the-hooks-of-react-router/ -- useRouteMatch() can be passed arguments and then it returns true/false if path matches the current path
+
+7) **VERY VERY IMPORTANT**: For JS regex, note the options to use $1-$9 (for corresponding parenthesis match), "$_", "$`", "$+", "$&".. see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/n -- not suggesting to use ReqExp.$& or like that.. but instead use it in string form like "\\$&"
+
+8) **VERY VERY IMPORTANT**: A good option for UI side error reporting and debugging is to send HAR file (see https://support.box.com/hc/en-us/articles/360043696054-How-to-Generate-Network-Captures-for-Troubleshooting) -- there are tools to load har file. When loaded, it shows request, response, etc. tabs
+
+9) NOTE: When opening developer mode -- at top left there is an icon (small rectangle in big rectangle) -- it is to change from desktop view to mobile view.. to see how webpage loads in cellphone screen
+
+10) Check out https://www.w3schools.com/cssref/css3_pr_word-break.asp  -- word-break css. However, most likely, I don't see it getting used.
+
+11) **VERY VERY IMPORTANT**: See https://jasmine.github.io/2.0/introduction.html for details about Jasmine API.. particularly note the section at end about "done()" function and async processing. This is probably the only argument getting passed to 2nd function arg under it().
+
+12) **iMPORTANT**: Understanding difference between jest.fn(), jest.mock() and jext.spyOn() --> https://medium.com/@rickhanlonii/understanding-jest-mocks-f0046c68e53c#:~:text=Mock%20a%20function%20with%20jest.fn&text=jest.,allows%20restoring%20the%20original%20function
+
+13) **GOOD TO UNDERSTAND**: In relation to yield vs yield* in JS (see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/yield*), see https://stackoverflow.com/questions/47533738/when-should-i-use-yield-vs-yield-in-redux-saga -- The point is that ideally yield and yield* are different commands. However.. redux / saga has its magic where if an iterator/generator is given to it, then it will automatically iterate over it. So, even if the correct thing in a saga would be to do "yield*".. if you instead do "yield".. that'll still work!
+
+14) Using manual mocks in Jest to override a module behavior - globally : https://jestjs.io/docs/en/manual-mocks#mocking-node-modules
+RELATED -- construct __fixtures__ folder to create data fixture for help with testing
+
+
+
+SELF-NOTE:
+1) Ability to send deprecation warning for an api -- must be included in Governor-service
+
+2) VERY VERY IMPORTANT: realize the difference: REST is like a "remote state information call", so it does not cause state-mutations.. vs a mutating operation done by a remote user - thus the name "Remote" "procedural call".
+But what if we consider functions as first-class object. Then we can have REST urls like "/api/v1/resource/{id}/operation-1"; or ""/api/v1/resource/{id}/operation-2", etc. BUT whenever doing so, try to keep "operation-name" as much succinct as possible so it knows what to do with the state but without taking user-input. Doing so preserves context information associated with an operation.
+
+3) Pdf page 272 of 2 scoops -- it agrees with your "DAG" analysis.
+
+4) Recall that JWT gives client side cloud-readines.. and this applies even if website is interacting with single domain
+
+5) CIS-20 : 20 point guidelines for various aspects of software security released by Center for Internet Security (CIS): https://www.cisecurity.org/controls/cis-controls-list/
+
+6) 12 factor app development: https://12factor.net/
+
+7) Cloud-readiness: That involves not relying on session. So, authentication via cookie goes out and JWT comes in
+
+8) If you are having different project that can talk with each other.. then make sure that can also be done in local. It can be needed later on to be able to have this feature.
+
+
+
+GIT:
+1) On checking if a branch exists: git branch -a | egrep "remotes/origin/${YOUR_BRANCH_NAME}$"  See https://stackoverflow.com/questions/8223906/how-to-check-if-remote-branch-exists-on-a-given-remote-repository
+
+
+
+**VERY VERY VERY IMPORTANT**: using opentracing / lightstep: 
+
+In JS
+npm install --save lightstep-tracer opentracing
+
+
+In your app's main entry point, add this code to wire up basic JavaScript tracing. The main thing here is starting a trace and injecting the tracing/span context for every XHR request. Was unable to get this to work without using thrift transport.
+
+import * as lightstep from 'lightstep-tracer/browser';
+import * as opentracing from 'opentracing';
+ 
+/* eslint-disable camelcase,no-undef */
+opentracing.initGlobalTracer(new lightstep.Tracer({
+    access_token: 'INDEED_ACCESS_TOKEN',
+    component_name: 'YOU_APP_NAME',
+    xhr_instrumentation: true,
+    default_span_tags: {
+        environment: ENVIRONMENT
+    },
+    transport: 'thrift',
+    collector_encryption: 'tls'
+}));
+
+
+In Django:
+
+django_opentracing==1.1.0
+lightstep==4.1.12
+
+Put some basic settings at the bottom __init__.py under settings.
+
+# This will trace all requests
+OPENTRACING_TRACE_ALL = True
+ 
+# defaults to []
+# only valid if OPENTRACING_TRACE_ALL == True
+# This can be anything
+OPENTRACING_TRACED_ATTRIBUTES = ['path', 'method', 'DATA']
+ 
+# Callable that returns an `opentracing.Tracer` implementation.
+OPENTRACING_TRACER_CALLABLE = 'lightstep.Tracer'
+ 
+# Parameters for the callable (Depending on the tracer implementation chosen)
+OPENTRACING_TRACER_PARAMETERS = {
+    'component_name': PROJECT_NAME,
+    'access_token': 'INDEED_ACCESS_TOKEN',
+    'tags': {
+        'environment': ENVIRONMENT,
+        'dc': DCNAME,
+    },
+}
+ 
+# Tracing agent
+OPENTRACING_TRACING = django_opentracing.DjangoTracing(lightstep.Tracer(**OPENTRACING_TRACER_PARAMETERS))
+
+The custom tags can be augmented with anything you'd like to query in Lightstep.
+
+You'll need to include the OpenTracing middleware to create the initial tracing span, and to extract any incoming spans. It needs to be the first middleware, which can be accomplished if using the django-skeleton webapp like so:
+
+# opentracing has to be first.
+MIDDLEWARE_CLASSES = ('django_opentracing.OpenTracingMiddleware',) + MIDDLEWARE_CLASSES
+
+# If using ViewSet - then can create a new middleware extending "django_opentracing.OpenTracingMiddleware", where "process_view" can be overriden.. first run super()'s process_view; then get current-span using : span = self._tracing.get_span(request); then if the "view_func" has initkwargs (then its a viewset), then also collect basename, detail, name (to identify ad-hoc method handling a url) values from it. Can even look at kwargs passed to view_func and tag them in lightstep scan to identify all slugs involved in call.
+
+OPENTRACING_TRACED_ATTRIBUTES indicates what parameters in a Django request to add as attributes to the trace. A full list of possibility can be found here: https://docs.djangoproject.com/en/2.1/ref/request-response/#django.http.HttpRequest
+
+This will get you basic tracing on every request. When tracing a viewset call, the name of viewset is used. The http-method can be used to different between GET vs POST vs PUT vs DELETE calls. BUT.. not sure (i) how to differentiate list-type call without looking at url, but lightstep doesn't give any regex search option there, and (ii) What about one-off url-handlers within the viewset!
+
+An example where we augment tracing:
+
+tracer = settings.OPENTRACING_TRACING
+def list(self, request, *args, **kwargs):
+    queryset = self.filter_queryset(self.get_list_queryset())
+    with tracer.tracer.start_active_span('new_span_name', finish_on_close=True) as _:
+        .....
+    ....
+
+You can create a decorator so that it can be reused
+@optional_arg_decorator
+def trace_function(f, **_kwargs):
+    """
+    Creates a span around this function.
+    :param f:
+    :return:
+    """
+    @wraps(f)
+    def decorator(*args, **kwargs):
+        tracer = settings.OPENTRACING_TRACING.tracer
+        with tracer.start_active_span(f.__name__, finish_on_close=True) as _:  # noqa F841
+            return f(*args, **kwargs)
+    return decorator
+
+
+DATADOG also gives a opentrace implementation:: https://docs.datadoghq.com/tracing/opentracing/python/

@@ -1,0 +1,97 @@
+Saga:
+Difference between take, takeEvery and fork in Saga: https://stackoverflow.com/questions/47909392/best-way-to-listen-for-actions-in-saga-whiletrue-take-vs-whiletake
+Good intro: https://flaviocopes.com/redux-saga/
+Testing Saga : https://redux-saga.js.org/docs/advanced/Testing.html - NOTE: A good thing would be ensure that the Saga being run has only yield methods and no internal function call..  If a function call is needed, then best separate it out make make a saga call-yield -- The point being that the goal of using Saga was to work with serializable objects so it can be tested. So, if it seems that an unserializable thing is coming in logic, factor it out!!
+How to get action payload in Saga method.. Say you have an action
+...
+const someAction = () => ({
+  type: "FOO",
+  payload: "BAR"
+})
+...
+and are watching said action with a takeLatest which invokes a saga for instance
+...
+const action = yield takeLatest('SOME_ACTION', doSomething);
+...
+takeLatest will pass the action as params to the saga you invoke, so you can just call:
+...
+function* doSomething(action){
+  console.log(action.payload)
+}
+which will output "BAR"
+regarding use of "fork" in saga, see https://stackoverflow.com/questions/42938520/redux-saga-when-to-use-fork   -- In general, fork is useful when a saga needs to start a non-blocking task. Non-blocking here means: the caller starts the task and continues executing without waiting for it to complete.
+There is a variety of situations where this can be useful, but the 2 main ones are:
+
+grouping sagas by logical domain
+keeping a reference to a task in order to be able to cancel/join it
+
+
+Django:
+(1) The equivalent to Java-filter is Django Middleware - **I guess!!** 
+
+*A better option could be to make a mixin - and add the necessary details; Or maybe just decorate/extend the View/ViewSet to add own logic -- see how DRF's APIView class modifies Django's View class, particularly the "dispatch" method!!
+
+(2) Project level setting.py can be used to add Django settings. Some modules may have their own settings and can look into settings.py for overrides.. like Django-rest-Framework!
+
+(3) The auto make primary key field by Django will be type int -- so if you are expecting many entries to be there, then override it to be BigInt
+
+(4) In Django's ViewSet methods it could be seen that a "request" object is passed which is not available in get_queryset(), but only "self" is available. SO, how to get request object? Use "self.request". ALSO, to get query-parameters, use "self.request.query_params" (which is DRF's better naming of Django's "self.request.GET") -> it gives a directory with key as query-param-key, and value as list of corresponding values! So, if more than 1 values are given.. it comes up as a list of size more than 1
+
+(5) **VERY VERY IMPORTANT: See https://stackoverflow.com/questions/48032280/where-are-the-historical-models  -- and doc for RunPython (https://docs.djangoproject.com/en/3.0/ref/migration-operations/#runpython) - where the first line is "Runs custom Python code in a HISTORICAL CONTEXT ...the first is an instance of django.apps.registry.Apps containing HISTORICAL MODELS that match the operation’s place in the project HISTORY"
+
+
+
+
+Python:
+* Look at Pep-8 standards
+* To "simulate" a field in model, use.. NOTE.. the "simulated_field" name is same in 3 places!!
+    @property
+    def simulated_field(self):
+        return self.some_other_value
+    @simulated_field.setter
+    def simulated_field(self, value):
+        # do some logic
+        pass
+
+
+General-architecture:
+* **VERY VERY IMPORTANT**: See notes in Pg.154 of DRF-docs:: on how an error raised in child-DTO can either get listed as a list-type or object-type, and that this is super confusing for front-end, and may seem to indicate some design flaw. This can be seen as a good reason to best have a DTO design that does not have child components.. and best just give URL (via HATEOAS) to allow make those calls if needed. This also simplifies interpretation of what "modification" means and thus, in use of "if-modified-since"
+
+* Why not use Redux-form?
+According to Dan Abramov, form state is inherently ephemeral and local, so tracking it in Redux (or any kind of Flux library) is unnecessary (See https://github.com/reduxjs/redux/issues/1287#issuecomment-175351978 ).. ON SAME NOTE, ALSO SEE -- https://redux.js.org/style-guide/style-guide/#avoid-putting-form-state-in-redux -- Now official redux docs says to not do so.
+Redux-Form calls your entire top-level Redux reducer multiple times ON EVERY SINGLE KEYSTROKE. This is fine for small apps, but as your Redux app grows, input latency will continue to increase if you use Redux-Form.
+
+* React: https://reactjs.org/warnings/legacy-factories.html -- if you want to make methods that return dynamically formed components.. you need to include React.createComponent(...). The point is.. you must distinguish between component and function that accepts object input and does something.
+* Memoizing component: see https://medium.com/@rossbulat/how-to-memoize-in-react-3d20cbcd2b6e
+* Good topic: https://tylermcginnis.com/react-elements-vs-react-components/
+
+* Denormalization for data ownership: A user signature is personal to a user. However, a signature can also be used to signify that user signed some document - in which case, the signature is property of other party. So, if we just add signature under a user and just foreign key link the user, then the other party cannot get explicit hold of shared data.. so even when same data changes ownership from one to multiple party.. it's good to explicitly mention it.
+-- Now, let's say there are more tables that go down from the top-level table where 2 higher level data-domains with different permissions mixed. To ensure that all following sub-tables will continue to have mixed ownership, a denormalization field can be added to all following tables.. but what denormalized field(s) to add - depends on functionality and what would benefit from doing so.
+-- Another place to denormalize for efficiency.. let's say you are going down the chain of tables A -> B -> C, then the REST url path becomes /TableA/{A}/TableB/{B}/TableC/{C}. To ensure data security, it is needed to check for match between parent and child record when traversing the linkage.. thus, one ends up doing multiple join operations. This is another good place to have a denormalization.
+As a benefit, now, unique constraints can be made using the denormalization
+
+* A good practice in DB design moving forward is to think of data ownership.. who owns data on deletion. Answering this question may force making different design.. or going more denormalized than what you would have initially thought of
+
+***IMPORTANT: Dynamically skipping unit test in Jest.. this is useful if you want to add integration test https://github.com/facebook/jest/issues/7245
+A question is how to pass the server url to use for testing down to local env -- rather than hard coding it
+--|---- Hacky Workaround:
+let someTestName = 'some test';
+let someTestCB = () => {
+  it("Should skip", function () {
+    notInvoked();
+  });
+};
+if ( process.env['RUN_ALL_TESTS'] == 'yes' ) describe(someTestName, someTestCB);
+else describe.skip(someTestName, someTestCB);
+--|---- Another possibility
+if (thing) test.only('skipping all other things', () => {
+  console.warn('skipping tests');
+});
+// ...all other things
+
+* Data modeling: When making tables.. think about all separate business instances that can happen and make tables for them. Sometimes, a business-instance-table can be seen as only providing a set of feature covered by a 3rd party provider and it can come in discussion to want to remove that intermediary table -- don't do that because (i) it is good for compliance, auditing - since you don't have any data-hole on your end, (ii) you're not super-reliant on 3rd party and policy changes at their end, (iii) Even though the tables may seem to be only providing functionality that is done by 3rd party.. having that tables provides capability to then have enriched data and enriched business flow on own end. Now the extra data can be added to that intermediate table
+
+* in REST url.. when do you add REST path vs when do you filter. In terms of thinking about directory structure.. when do you put data within a directory vs when do you just keep everything in one directory. From DB level.. it may all look same.. so, when to do what? Particularly consider a hierarchical user permission where a sub-hierarchy can look at only one particular chunk of data. Now, from higher-user perspective, you can have rest url with the top level data since top-level user can access multiple values there.. but from perspective of sub-user which uses just one set of data, it is wasteful to have them type the high-level path prefix - since it'll always be same for them.
+One may say to just make url suited to lower hierarchy user and then add filter for higher hierarchy user.. but then, what guarantees that in future an even lower hierarchy won't come. Or, when just making higher-user, maybe you didn't think that a lower order user will come, so the full path REST structure would have looked good. 
+There's also the idea of YAGNI. Why have filter params just with consideration of future low hierarchy user even when though they don't exist now. **EVEN MORE**: I would say that one should think of filter params as only when it is possible to have an array of values that can get passed to queryParam. If you have a queryParam that can always only take 1 value.. then it may be good to instead have it in path..
+..and then to enable hierarchical structure - instead have your views/controller logic route from one to other and setting values based on user-role for sub-user, or from query-param for super-user.. as you go from one view to another.

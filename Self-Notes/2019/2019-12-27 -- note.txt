@@ -1,0 +1,22 @@
+doing a componentWillUnmount in Hooks: https://reactjs.org/docs/hooks-effect.html#example-using-hooks-1
+-- essentially, if the method returns another function, then that function will be called during unmount step
+
+
+useParams(), useLocation() in react router
+https://reacttraining.com/blog/react-router-v5-1/
+
+
+See https://medium.com/@jonchurch/how-to-fix-react-error-rendered-fewer-hooks-than-expected-e6a378985d3c -- don't put hooks within a conditional logic. react errors. If you want, add the conditional logic within the hook
+
+
+**IMPORTANT: If trying to render a list in React:
+(i) Make sure it has "key"
+(ii) to convert from list-of-values to JSX, use .map() function, not .forEach()
+-- forEach is suppose to do some action on each, but not collect the result of that action. Like, if you want to do [arr].forEach(console.log) to log each element
+-- .map() collects the result of function application in an array. Thus, the array of elements get transformed to array of JSX which it then renders
+
+
+Look into react bootstrap..
+Look into redux logger (..can also be done by redux devtools)
+
+input type="number" step="any" : to accommodate decimal values. Use step = "0.01" for just 2 decimal values

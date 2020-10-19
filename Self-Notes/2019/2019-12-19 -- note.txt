@@ -1,0 +1,244 @@
+React / redux - udemy
+
+
+
+
+
+Section-15 (contd):
+
+Let's say we want an action creator that does multiple api call in succession, and invokes dispatch after each of them to update redux.. how to do this? 
+Start by making an async/await function that takes "dispatch" as argument. Within it, call the api and await on it, then call dispatch with suitable action.
+Make another async function -- This is where the main action happens. 
+It will have dispatch as argument. This function should start by calling the function in #1 above, and awaiting on it, i.e. till first api call is done, then dispatch called to update store with that info and that is also done. **IMPORTANT: NOTE:** by awaiting on first function, it will be over only when the first full function is done, i.e. till after the first dispatch is done. This is achieved by returning a function AS RESULT FROM an action-creation, such that the last line of returned function makes a call to dispatch with valid action to update Redux
+Since dispatch is done before next step starts.. means the Redux state is updated - so you have information about the state via getState() method. So, in this function, also pass getState() as second argument. We can use the same name as used in combineReducer to get any data out from the store.. we'll use the name corresponding to the field that got updated to get the updated data.. then do processing on it to get arguments for next set of single-call/multiple-calls; and finally invoke all those call/calls parallely - and after which also call dispatch correspondingly. Note, that the second set of api calls and dispatch call can further be pulled into an async function which could be invoked. ALSO.. if we don't have any more api chained calls, then we don't need to await on these calls, we can just let it be. DO NOTE.. that it is possible to call multiple await within a single async method if needed - and the method will just cycle through them all. Realize that use of "await" is a syntactic sugar.. you can always go to use .then() of Promise. ALSO note to add logic for error handling.
+Side Note: If you do want to wait on all 2nd level api calls to complete before leaving the method.. you can wrap them in Promise.all(..) which will now have the method wait till everything is resolved. The thing to note is that async methods return a Promise - so you can use promise-methods on them
+Look at .chain() method in lodash : It turns callback like structure into a nice sequential structure for sync method calls.. like what happens during java stream
+
+
+
+
+
+
+Section-16:
+
+RTMP server : "real time messaging protocol" server; and "Open Broadcaster software" -- see how video/audio data input/output works from server-calls point of view
+For React routing, you need to install  --> react-router-dom dependency
+There is react-router package: This has core logic for routing. 
+The react-router-dom also installs react-router and then adds supplementary methods to help with dom navigation. This is what we install
+The react-router-native is for react-native applications
+There is also a rect-router-redux which tries to store navigation information in redux. However, this is severely discouraged.. because this is now the job of browser. Best don't use
+REALIZE that "react-Navigation" is the another alternative for navigating between url(s). 
+React-router-dom : 
+Has BrowserRouter element -- within which add just a single div, and within that div, add multiple Route elements. Each Route takes a "path" and component as prop. BrowserRouter internally has a "history" object which extract the path portion after the domain:port portion. So, just doing localhost:3000 extracts path of "/", and adding other path extracts the path correspondingly, starting with "/". This is then matched with Route path which is configured and that component is then rendered.
+If you put two route to same url, then when user calls the url, both of the components will get shown one after another. ADDING ON TO IT.. it can broadly be considered that react-router identifies what to render by trying to find whether the path-prop in a Route is contained in the extracted string. If it is, then that component is shown. So, if the url is : www.server.com/path, then the extracted portion is "/path", which will match <Route> with path of "/", or "/path", but not match prop of "/path/abcd". So, for this case, it will render the 2 routes one after another. However, if you want Route with "/" to match only the string of "/", then add exact in the Route definition, like <Route path="..." component={} exact /> [[Sidenote: in JSX, if you add just one prop without any value, it is given value of true]]. Also, note, if you have 2 <Route>, both being mapped to same url, say, to "/", with one of them being "exact", and other not having that, then the other will still continue to show up when calling www.server.com/path (..from above example) 
+VERY VERY VERY IMPORTANT: Within a react application.. never ever add an anchor tag, i.e. <a ..>..</a>. What anchor tags do, is make a new call to react server, and so it will be given a new index.html. When it gets that, it drops all previous html and JS, including Redux, and Redux state information. So, you get the page, but all data is lost. So, never ever do it. Likely, this reason can also be related to doing a event.preventDefault() on form submit -- i.e. to forcefully prevent a refresh of application. 
+INSTEAD, use <Link> from React-router. Check the documentation. BEST: don't pass any state information in link.. Have your React design be fully functional, and use redux only as store of data. Note that <Link> renders itself as <a> tag, but with the modified behavior that clicking on it won't do a refresh (event.preventDefault())
+Followup -- see https://stackoverflow.com/questions/37195590/how-can-i-persist-redux-state-tree-on-refresh    - it suggest using middleware like "redux-persist" or "redux-storage" to save redux information across refresh
+To handle back/forward button in react/redux:: considering the fact that state information is stored in Redux, a good design would be to make a component that : (i) binds to redux, (ii) from redux, it gets the information to display based on value in "location" or url. This will give react component a stateless design.. leaving all "state" data in redux. Now user can click back/forward and the browser will not refresh.. and the react component will load data from redux. 
+**HOWEVER**: above is based on assumption that when we do any "action", then the url changes, and not just the query param change. Thus, there will be concrete changes in url when forward or back button is pressed. So.. What about "filter" operations that do a queryParam change. In this case, now you'll need to use "history" to push queries, and then also add logic during mapping to pull information from location.search (Why use history.. because browser's default behavior is to trigger a refresh when search param is changed -- unlike when changing hash-value wherein it just triggers an event). So, on top level you'll still be using BrowserRouter that will bring request to same component.. but now, the mapping (mapStateToProps) will change depending on what search params are available and that will modify the render. Pushing to history is only good to move back and forth. Notice that in this design, the data is still not stored in "history.state" object.. it is still only in redux (..so redux is still the only data store), and react is fully "functional"-code in design, and window-history is just to store the navigation history information, and react-routing is to just to identify how to load components based on the url.
+In case above is not functioning as expected.. then maybe try adding a "onPopState" handler within you <App> (topmost level), and see if that helps... not sure if it would!
+**VERY VERY IMPORTANT**: A good design consideration is to NOT make a page with url, such that going to that page triggers any NON-GET operation. This is because each url call in browser by default is a GET operation.. so when providing a url, let it be such that it loads a page that then displays data by making server call.. and doesn't try to then automatically do any kind of NON-GET calls unless user authorizes to do so again. A good design could be to, say, start with '/' that gives list-and-link of resources that can be accessed, like, "ResoucreName1", "ResourceName2", etc.. and also add buttons for "create new resource name", "update" or "delete". The idea is that each url should map to a GET call, and the rendered page should now have buttons to enable doing POST, PUT, PATCH, DELETE on that entire collection, or if GET returns a single object, then on that single object. And this can continue further down in a RESTful manner. However, note that POST calls for a new resource have same url as GET call for resource-list; So.. maybe the delete/update button is something that shows up with individual resource (having a resourceId), but create button shows up on the collection page.
+3 different routers: 
+BrowserRouter :: Everything after domain as path, so always starts with '/'. However, it has a weird behavior that if user gives it a path that is not added in Route, that will cause it to return index.html file, unlike a traditional server that returns 404. **IMPORTANT**: Note that even though your url has path-pieces that trigger rendering of different react-components, this is still an illusion -- and on back end, this is still a single page application. The router is making it appear as if it is causing response on different path.. but overall, its the same application that is working
+HashRouter :: Everything after # as path, so, while implementing have a '/' come after #.. like www.server.com/#/path   and NOT www.server.com/#path <-- NOTE: no leading '/'. Doing so makes it canonical in implementation with the BrowserRouter. The # is added by HashRouter itself. Why the need for '#' -- because this makes initial server call to only the url portion before the #, i.e. the domain. So, if there is anything broken.. that will just be on client side.. and won't look like some url on server is broken (..I guess). However, one bad thing is that hashes may be ignored by most websites on sharing url
+MemoryRouter :: The url does not update at all when we navigate. The navigation information is purely in memory and not put to url
+**IMPORTANT**: Good design: In lecture 206, it shows how to arrange application to show the "Header" and "Login" button as being outside the router container that routes to different applicaton logic. THIS IS A GOOD EXAMPLE OF DESIGNING ASPECTS IN UI.. with react / react navigation. Here, the idea is that Since Header and Login button is not specific to a particular application logic, nor is it needed/mandatory for any of those.. but it still needed as an attachment to the application.. so it exists outside the application structure around url breakdown.. this makes it an Aspect, and so, it is best put outside those elements in UI. This element will now always be visible. Also note that any other aspect behavior element can be put here, and it's visibility can be controlled separately.
+In lecture, it happens to be that Header also uses links to some Route.. so it was ultimately pushed back inside.. but existed outside the various <Route> list. Something similar is done here - https://tylermcginnis.com/react-router-nested-routes/  <--- **VERY VERY IMPORTANT**: good example of nested BrowserRouter, path-param capturing, keeping url generic, etc.
+Some extra information:
+To ask user to save data before closing browser, use :::  window.onbeforeunload = function() { return "Your work will be lost."; };
+To detect change in url and handle redux / react appropriately, can do ::: window.addEventListener("hashchange", function(e) {...}) -- the idea is that when user clicks back and forth, the hash portion of url changes. You catch that event and act accordingly. However, this means that you have to have "hash" in url
+**VERY VERY IMPORTANT**: REALIZE that the need to have proper design is so that users can even bookmark page and then come back to it to get the appropriate behavior - regardless of how that design is done. Also, don't unnecessary add/show data to places that shouldn't be holding it.. like in url, or history, or otherwise
+**IMPORTANT**: NOTE that adding different entries to router element does not mean that the current page forwards to those components.. A better way is to think that those components are rendered "within" current - and what gets rendered is identified based on url matching. So, if there are extra elements beside <Route>, like the <div> element containing header, they are also rendered.. in fact the "header" element gets always rendered, and so it becomes like a "constant" fixture. This is the say way how toasts are put!! that then end up showing on all pages
+**IMPORTANT**: DESIGN.. Look at <ConnectedRouter> from react-connected-router package. From a Packt book :: The connected-react-router library provides Redux bindings for React Router; for example, the application's history can be read from a Redux store and you can navigate to different routes in the application by dispatching actions to the store. In terms of use case.. you can think : Let's say user is given a form to create new entry. Let's say that if the creation step is successful --at some later time-- then we may want to add the GET to newly made object in the history. The idea is that without this history-push, had user clicked back link, they wouldn't have seen the fact that they made new entries. Adding to history is like a POST-redirect-GET like behavior for front end. Adding a connectedRouter is now helpful in getting such behavior - where the users can see their past "js" induced behavior concretely rather than possibly overlooking it. Thinking about it again.. I'm not sure if this still needs the ConnectedRouter library. using the async/await syntax and thunk.. we can just await till some operation is done and can do a history-push after that!! Not sure why it'd be necessary to store the history data in redux - since browser already has a history store to do same thing
+
+
+
+
+
+
+
+
+SECTION-17:
+
+
+
+Adding google OAuth in your application -- Shown in lecture 212. Need to make a new project on "console.developer.google.com", get clientId, and hook it up to a React Component. The js file for invoking google api is provided by Google (not on npm) and so it needs to be downloaded via script tag in index.html. In doing so, the "gapi" variable is made available in window scope. So, it can be accessed from within the react-component by doing window.gapi. NOTE: To use the gapi for client authentication, you'll need to do gapi.load('client:auth2'), and a callback that runs after client is loaded -- this is to then pass your clientId and "scope" (i.e. user info that Google should provide to you) into window.gapi.client.init. This needs to be done just one time.. so it can be done in constructor, or in componentDidMount() -- doing it in latter method is better/suggested.. because remember that constructor should be as light weight as possible, and not do async calls.. or long running calls - for example any network call. Finally you can get auth handle by : window.gapi.auth2.getAuthInstance()
+A good design could be to disable the google auth button on our own webpage till gapi is loaded. **ALSO** don't initialize gapi more than once
+We should also be able to detect user sign out, and also able to store info on whether user is logged in or logged out (..in Redux) so that we can then use it to enable/disable resource access for user.. and instead ask them to sign in again. **IMPORTANT**: There are actually 3 states here : User signed in; User not signed in; and.. this application has just loaded, so user hasn't had time to sign in - ask them to do so. This insight can be used to apply a default value of null for flag (..stored within React component) identifying whether user is signed in
+Regarding how to divide the code.. note that there is react-component and eventually we want it to be fully "functional" in nature, and have the boolean valued state of auth to be stored in redux only. And also.. we should try to move the google authenticator logic outside in a separate class with appropriate bridge methods. The idea is to easily be able to swap google with some other authenticator.. or maybe even chain different OAuth providers allowing them to log in via multiple ways
+In lecture 224, it is shown that window.gapi.auth2.getAuthInstance().currentUser.get().getId() can be used to get the Google-assigned-id to this person.. If you're thinking of storing that and using it as "userId" for own application, then: (a) Still assign a self-generated userId on back-end, and, (b) Also store the fact that you got this "id" from Google. Now, why are we doing this? Because in future, we may want to allow more than 1 ways to authenticate.. and in that case we'd want to disambiguate that the id is from Google and not someone else. ALSO.. now we can reference user using any id from external OAuth providers. And to be able to collect all this information and store under a single "umbrella" on our end.. that's where us assigning an id by ourself becomes a good design. **ALSO** remember to code in a way that when user signs out, then this id is cleared -- ALSO, don't store this value anywhere else.
+Another good idea could be to use the googleId and pass to our server.. and let it return a JWT that can be used to CSRF secure the call. In future, this framework can be transferred to even using a login service made by own server (..if going away from OAuth)
+
+
+
+
+
+
+
+
+SECTION-18:
+
+Chrome Redux Devtools -- is a good tool for debug. Look at its github page for advanced configurations - which needs to be made in dev code also (lecture 225) In addition to allowing to see the store information at different time, it also allows up to jump to different time when some dispatch was done. If react application is made in a fully functional manner (as it should), then by jumping to that state will also change how page renders!! So, just by changing/controlling state information, we control all stateful data shown by webpage.
+Lecture 226 shows that we can make debug session in redux-devtools, which are now persisted across refresh action. Also, multiple such named sessions can be made and one can jump from one to other
+Not shown in lecture.. but another good option is to use redux-logger. This comes in as a middleware, and for each action, it logs the prevState, action and nextState in console.log ..so a good logic would be to add it to middleware list only the environment is not Production.. nor test!
+
+
+
+
+
+
+SECTION-19:
+
+Install redux-form package! The benefit is that it provides convience "mapStateToProps" and "mapDispatchToProps" (..or actionCreators). This way, it reduces some work burden for forms. So, as long as correct props are used, and correct handlers are called.. there isn't any extra work needed.
+It has: 
+"reducer" : This is a redux-form generated reducer function, which should be added to createReducers, with a key corresponding to a particular form
+"reduxForm" : Note the name.. it starts with small "r". This is a function with similar functionality as connect(..) from react-redux library ..this also helps understand the way "reduxForm" gets used with react Component.. just like similar to connect(). Among the various fields provided, one of them is handleSubmit() function. This function does common operations, like, event.preventDefault(). It takes as argument a function that is provided the form values as json. The idea is to let that function do manipulation/validation of form values. In your main render() method, the returned jsx containing the <form> element should be given a onSubmit which is = {this.props.handleSubmit(this.customFunc)} -- note, no brackets after writing "customFunc".
+"Field" : This is a component. Lectures shows it with 2 props: name - with name for form field (like html "name" tag); component -> This prop takes a function/component returning JSX that defines how that form-field is rendered. It is passed an argument which is json consisting of various fields auto-made by redux-form, including the handlers - most of which are within the "input" fieldName of the props passed to the function as argument. **IMPORTANT**: If we pass this field element any extra props, it's just going to collect it and pass it down further to the component function as extra field in the props. This can be used to customize. Note that the argument passed to component-prop function of a <Field> is different-from/is-subset-of props passed to full component which is handled by redux-form.. that which gets wrapped by calling reduxForm(...) method
+**VERY VERY IMPORTANT**: This is not done in React lecture.. but.. In terms of design.. I believe it is a good idea to not do any validation o UI side.. let server handle it!! This keeps all validation logic on just one place. However, do check that your front end code now works properly when receiving empty fields. For example.. maybe date objects don't get parsed if they are empty. You should ensure that even such cases don't cause front end breaks. This is not validation logic.. but just ensuring that things work. All validation logic is best left in just one location.. on server.  ALSO.. ensure that when user gives an improper input that fails after server validation, then that value is not lost in next render() call. It should continue to stay, unless user clicks "cancel" or "clear" button - best keep those 2 buttons separate. **THIS ALSO COVERS** the case of not doing any validation when the form is rendered for the first time
+Just to mention, in lecture, it is shown to use validation logic by hooking it appropriately to redux-form, during reduxForm(...) call. It works as follows: create a validating function and hook it in redux-form. This function takes a json of form-field-values, and returns an error-json. If the error -json is empty, there are no errors. If the error-json is not empty, then redux-form takes the error message and passes it as a form-prop to <Field> element (..in render()) that has same 'name' value associated to it - it is passed in 'meta' property. **NOTE** matching field names is necessary.. best use a const variable name to store field names and reference it if using redux-form validation step ..as said above, it is better to not have validation logic separately housed in front-end.. let it be all in server side alone. Thus, it now comes up to the component function assigned to that <Field> to display the error message appropriately. In 'meta' property, there is a 'touched' field which is false unless user has entered that field in form. So, maybe don't give any error message till the user has touched a form
+
+
+
+
+
+
+SECTION-20: Skipped for now
+
+
+
+
+
+
+
+SECTION-21: Deals with creating modal window
+
+**IMPORTANT** React modal: ..allows showing some react component within a different html id, rather than inside the #root tag that is generally used for all react (Other way to think is that it allows showing JSX in a different html element outside the react flow). Since these are ultimately different tags as child of <body> element, so, it gets easier to apply css rules - this is helpful in showing modals that supercede others. It won't run into "stacking context" issue that breaks css styling had the modal been shown as child within root element.
+Code for Modal:
+Make a component, but in render() method return ReactDOM.createPortal(<JSX...>, document.querySelector('#modal')); --AND-- in index.html file, as a sibling to <div id='root'></div> ..and another node <div id='modal'></div> (Note that the id 'modal' should be same as that used in selector). And then export default the component
+**IMPORTANT**: Good design practice for modal:
+In the modal main div, i.e. the one within which the partial opaque greyed window is there.. add an eventHandler: onClick={() => history.push('/')}. The idea is that we want the user to be able to click anywhere on the window except the modal window and be taken back to some page. Ideally, we'd just want the modal to go away.. in this case here, clicking anywhere goes to home screen, so, : history.push('/') -> which then triggers navigation to home screen
+With above code, now, even if user clicks on actual modal window, but not on buttons, it causes a 'click' event which keeps bubbling since it is not handled anywhere below, and comes up to topmost level where we added an onClick handler above to dismiss modal.. this is likely not what we want. We want to dismiss modal if user clicks anywhere in greyed region, but not if user clicks anywhere except the button in the modal window. So, in the modal window div (..within the outermost div where we added above handler), we add another onClick handler: onClick = {(e) => e.stopPropagation()} This now stops bubbling up of event and going to above elements. [[NOTE: the difference between stopPropagation -- used here to prevent bubbling of event vs preventDefault -- which can be stop default behavior, like bubbling.. or in case of form, other behaviors like page refresh!! In this case, stopPropagation() is more in line with what we want and so, better to use that]]
+Another good design would be to lay everything out in a way that modal shows up on top of the immediately previous page  the user was on, rather than loading a separate delete page. the advantage of doing so, is that user can see there then page in greyed out region. It is now as if the modal window showed on top of whatever they were doing. Also, now clicking on the greyed region cancels the modal window and takes them to whereever they were. I'm guessing for now.. I feel using react's context mechanism may be good design!!?!
+Note that earlier we said that any react router links should correspond to GET calls on server, and NON-GET calls should be modeled as buttons, which when clicked, trigger js (..and also make changes on history so that user knows what they did). This means that for each modal corresponding to a create/update/delete, we can wire some url going to making a GET call to some resource. That helps with achieving that cancelling a modal button bring user to same place where they were.. but how to keep the same window while showing modal?
+NOTE the implementation of 'react-Toastify'. The idea is to put a ToastContainer in the root - along with the <BrowserRouter> but below it (IMPORTANT - Placing the ToastContainer below means that it gets z-index precedence and is always shown on top of any other element). Also note that initializing the ToastContainer that also configures a eventManger. Now, when "toast" is called from anywhere in the application, it goes to the eventmanager and adds an entry to show in toast, which is then picked by ToastContainer, and since ToastContainer is on the root page and written latest there.. so, it gets z-index precedence and gets shown. Maybe we want-to/can take the same idea and push it for modal.. so adding a ModalContainer on root page, below the BrowserRouter, but say, above the ToastContainer (to be able to show any error during modal calls), and then anywhere in application, add a modal command to emit modal that then gets shown. The advantage of doing so is that the concept of Modal still remains as an "aspect" in the code and can be called from anywhere. Since the modal gets called as part of application logic, there is no new rendering. Other solution could be to instead do a setState() on component causing a re-render, and this time show conditionally render the Modal component with necessary bindings.. where the Modal is created via react-Portal. Note how the use of setState(..) is not a bad practice here because, the data is not being stored in react component.. just showing or hiding of modal is which doesn't change data. If user does end up doing some non-get operation within modal.. that should trigger a handler method which now calls redux dispatch.. because this is now something where data change is coming and so it should be handled by redux. If you think about it.. this logic is similar to what you said earlier about doing something like ToastContainer.. in this case of there is a conditional logic. The only difference is that earlier there is a utility method call that delegates modal-component formation to different component.. now, that is done via explicitly calling a container that uses React-Portal and displays in another html node in index.html position below '#root' element (..rather than displaying it in ToastContainer which is in same html node, but exists at topmost level, and also exists below <Router> element). In both cases, note that the new window gets shown on top of the existing rendered jsx. **DO NOTE (I'm guessing)**: when trying to conditionally render the modal on top of existing rendered view, the <Modal> element need not be positioned lowest.. because regardless of where it is.. it'll be react-portal-rendered in a html dom which is at a lower location than '#root' and so will get higher z-index
+Just like we want to send user to some page after the click cancel on modal. we also want to send user to some page after, say, they've created / updated/ deleted an entry. The lecture asks to do so by putting a history.push(/new-url) in the action-creator-returned-function handled by thunk. But, if we look at above design to always show users the pages corresponding to GET calls.. then once the "modal action" is done.. it will change the redux-store-data, and that should re-render the page - causing the modal-display-flag to get reset, and causing display of same page but with refreshed data and no modal.
+
+
+
+
+
+
+SECTION-22: SKIPPED FOR NOW...
+
+**except last lecture.. it shows example of componentWillUnmount() --> For example, if we are streaming video, then we open a video player in our component. However, if we move away from this component, then this component will get unmounted, but the media player doesn't know this and will keep on trying to pull data. This now throws exception. This is where componentWillUnmount() method comes in handy to do cleanup.
+
+
+
+
+
+
+
+SECTION-23: Context system
+
+When we want to convey information from parent to deeply nested child but no-one in middle cares about it
+Using context: There are 2 ways to push data in Context, and 2 ways to pull data out of context
+To push data: set a defaultValue; Or, make a "Provider" (not same as that in React-redux which has same name) component within the parent-component
+To pull data: use "this.context"; Or, make a "Consumer" component within child-component
+Code#1: Showing how to consume value in a context object
+	Make a Example1Context.js file : export default React.createContext('default-value');  <-- instead of export default, if you plan to do export, then assign it to a variable starting with Caps. In later code, you'll see examples with calling context's Provider or Consumer component, so it'll look like <Context.Provider> and <Context.Consumer> in JSX. However, if not exported with caps, then it'll look like <context.Provider> in JSX.. and anythings tarting with small and not-caps, will be considered by react as vanilla html element.. so it can get error. Thus, if assigning context locally, or doing named export, always assign it to variable name starting with caps
+
+	If you want to use this in some ChildComponent.js, do: 
+
+	import Example1Context from './Example1Context'; <-- this identifies what context the child component is using. That further guides the default value it'll see
+
+	class ChildComponent extends react.Component {
+
+		static contextType = Example1Context; <-- IMPORTANT: It has to be 'static' type, and it has to be named 'contextType'
+
+		render() { console.log(this.context);} <-- To retrieve the context value, use "this.context". In this example, it will pick up the default value which was set
+
+	}
+
+Code#2: Showing how to modify the context value. This assumes that Example1Context.js is already made in above step
+	import Example1Context from './Example1Context';
+
+	class ParentComponent extends React.Component {
+
+		render() {
+
+			<Example1Context.Provider value={this.state.someVal}><SomeIntermediaryChild /></Example1Context.Provider> <-- In the main parent where the value is changed, find the JSX which either itself, or in its own nested child uses the value set by parent. Here, it is "some-intermediary-child" (..again, the context will be available to all child of some-intermediary-child and within). You want to wrap that JSX with another JSX which is <{context}.Provider> (this is another component auto-made by react when context object is made), and pass it a prop called "value", with value of what you want the context's value to be (just happens to be something from state in this example.. it can be number, string, array, json, anything). This now, updates the value and communicates it down to the whichever child that may use the context.
+
+		}
+
+	}
+
+In above.. note that each Provider creates a different "pipe" of context value. So, if you make multiple JSX of <Provider>, and update value in one of them, it won't carry over to the second or any other pipe! ALSO, you can even continue to make <SomeIntermediaryChild /> without wrapping it in Provider. If done so, it will always only read the default value from context and won't see any updates
+Code#3: Using Consumer to consumer value in context
+	Don't use -- static contextType = Example1Context; -- as done in Code#1 example above. Instead, in render method, use the code below where you define "funcThatAcceptsContextValueAndMUSTReturnJSX" function as needed by logic. Note that funcThatAcceptsContextValueAndMUSTReturnJSX-function must return JSX. So, if the context value is used to determine some behavior at very high level in hierarchy of returned JSX, then we'll have a function returning whole JSX and then getting called itself in render()
+
+	<Example1Context.Consumer>
+
+		{(value) => funcThatAcceptsContextValueAndMUSTReturnJSX(value)}
+
+	</Example1Context.Consumer>
+
+**IMPORTANT**: realize the importance of Code#3.. it enables accessing values from different context objects at same time within same target component. Code#1 only allows pulling value from 1 context only.
+
+
+
+
+
+
+SECTION-24: Went through it.. is sort of unnecessary - got to see but not useful in actual coding. DON'T DO using React-Context for Redux like behavior
+
+
+
+
+
+
+
+SECTION-25: Hooks
+
+Hooks : Make it easy to share logic between components - more reusability
+useState (Allow functional components ..to use component level state); useEffect (..to use component lifecycle methods); useContext; useRef (..use the ref system); useReducer (..to store data through Reducer??!). 
+"import React, {useState} from 'react';" <-- this is the import statement
+For useState:: const[data, dataModifier] = useState('data-initValue'); <-- think of this statement as: 
+setting this.state if not already with just 1 fieldname (NOTE that this is not totally correct.. the state in class based component is supposed to be json, but hooks stores individual fields, and to store multiple fields, just call useState multiple times.. react just asks to maintain the order of call. ALSO, don't confuse it -- you can still store json in hooks.. just that it is stored as value of a single field)
+initializing fieldname to have value of 'data-initValue'
+the variable 'data' in functional component is given that state.field value
+dataModifier is a function that should be given the new value to set in that field. When this is done, it's like calling setState(..), it updates the state value and also triggers re-render. In re-rendering, since the state is already defined, so, it is no longer given the default-value provided as argument to useState
+useEffect(function, [array of values]) :: useEffect runs only once after the component is rendered, if the array-value which is 2nd argument is different. The 2nd argument array is the one which is passed to the method as arguments. So, even if a functional componenet in re-rendered, but the value remains same, then the function of useEffect is not re-run. In the function provided to useEffect's function-arg (1st arg), a call to setResource() method - the 2nd array value when calling useState() - that can be called to trigger a re-render. NOTE:
+If the 2nd array is not passed, the useEffect fn is always called
+If passed an empty array.. it will be called only 1 time only ::: this is like componentDidMount
+If to array, you pass a json like {color:'red'}, and 2nd time you pass same json -- then the arrow fn will still be called, because json equality check by JS is done based on reference equality.. and not based on value!
+If the first and 2nd time are different size of array, the function will be called
+If you want to use async function.. then DO NOT define an async function as 1st arg to useEffect.. instead pass a function to useEffect that invokes the async function
+**VERY VERY VERY IMPORTANT**: With Hooks system: There is input props.. there is output from function, and everything in between is just "Hooks". So, as a refactor, we can pull out all Hooks logic in a separate function that takes some input and returns some output.. and the functional react component simply gives the inputs to hooks-containing method, and takes it output, and displays it. This is how reusability come in.. now the hooks related code can be pulled out.. and can easily be used by some other functional class that needs same logic.. the 2 functional components will be able to get data and get similar side-effects and WILL NOT EFFECT EACH OTHER.. but they are still reusing same code. This is reusability because we are able to pull out everything that acts as "side-effect" and put it in Hooks!!! NOTE: With redux containing state information, we said that a componenet can now still have have state if it is trying to render some html element with state.. here the actual store data is not changing, but only the renders are changing.. Now, even that portion can be pulled out using Hooks.. since they'll be common behavior even when done within different components!
+
+From Section-26 :: Note that when pulling out the hook logic and returning data, the community convention is to return an array with data in same positioning as it was called in setState hooks.. but not sure if its good.. maybe if you want, return object!!
+
+
+
+
+
+
+
+
+
+
+**SIDE-NOTE: 
+
+In JSX, if you do <Comp {...someJsonObj} />, then it makes a component, and passes it props by destructuring the "someJsonObj" - using same field name as propName and giving it corresponding values
+You can make const variables that are assigned to JSX code on right side. You can have functions that return JSX code. Now, in the main return method, you can use the const variable, like {constVar}, or use the function like {jsxFunc()} -- to either insert the jsx at that point OR EVEN to pass the JSX code as props to other component
+When returning a JSX from a render() method.. or assigning JSX to a const variable, or returning jsx from a function (as described above), NOTE that it is requirement that the jsx code should all lie within a single top level html element. So, you CANNOT do: return (<div id='a'>...</div><div id='b'>...</div>);  YOU HAVE TO DO: return (<div id='wrapper'><div id='a'></div><div id='b'></div></div>); 
+NOW.. while this is a react-requirement, it may sometime happen that out styling goes off unless we pass a list of div, rather than passing them enclosed in some outer wrapper div. When this behavior is needed.. you can do: return (<React.Fragment><div id='a'></div><div id='b'></div></React.Fragment>);  -- The job of React.Fragment is to tie entries within it. However, when it gets rendered, then react simply ignores the <React.Fragment>. Thus, the react side of requirement is fulfilled, in that a single JSX is passed, and also the user side of requirement is fulfilled, that top level wrapping node doesn't get shown. <React.Fragment> can also be shortened to <> ...maybe best don't do it - because it looks like "not equals" . Plus, some code checkers may say this is bad, also this is good for communication
+With redux doing all stateful data handling.. one big advantage is that it prevents race condition between react lifecycle methods trying to do async and/or long-running calls which can override each others' data -- because now, this all is done by Redux.
+See https://codedaily.io/tutorials/6/Using-Functions-as-Children-and-Render-Props-in-React-Components  -- on passing functions as children to JSX.. this works if the JSX knows how to work with the function passed in props.children. One example if <{context}.Consumer> which expects a function.
+componentDidUpdate is passed with prevProps, i.e. props corresponding to component before the current update. Note that it is also given prevState.. see API
+
+
+
+
+TODO: Look at Link, Switch, Redirect in react-router; 
+
+How do you do componentDidUnmount with Hooks??

@@ -1,0 +1,369 @@
+CSS
+1) Use svg as much possible.. and use <title> inside <svg>. This way,
+when you hover on the svg, the mouse pointer will show what the icon
+does ..and this is helpful.
+
+
+
+Python
+-- Let's say you have a module with multiple sub-packages inside it
+containing "vendor specific implementations". You can then go to
+__all__ in __init__.py and modify it to point to only certain imports.
+This creates a kind of abstraction where codes outside calling import
+from package don't have to change themselves.. you just go to
+__init__.py and modify __all__ as needed
+
+
+
+DJANGO
+**In general about REST: check out 4xx level status code and see if
+there are others that are more apt, rather than just sticking to 400
+or 404. Few things to note:
+--|---- restrict 400 to if you're taking user data in request (hence
+POST, PUT calls).
+--|---- For ad-hoc actions, don't always make it a POST. If
+idempotent, make it PUT. If using GET with ad-hoc @action call, first
+check if you're doing things ok. Generally, that use case never comes
+--|---- If you're doing ad-hoc action , with either POST/PUT, without
+taking any user data.. and some time-based logic fails, then using 409
+is a better option than 400. If you haven't taken any data, then what
+field/value are you validating that failed? -- and that can confuse
+user
+--|----|---- In coding.. have a utility method that checks for object
+and raises NotFound error. Then, in your POST handling code, catch
+NotFound, and instead raise other code that translates into 409
+status. If you're thinking to code such that a boolean flag controls
+raising error or returning null.. don't -- it'll be really messy. Best
+just raise exception, and then catch/translate exceptions as needed.
+--|----|---- If you're on some POST call, AND, you took request data
+from user, and have error in it, and can't use 409.. then raise 400
+with a non_field_error -- BUT use it as a last resort only ..and
+ideally, never!!!
+--|---- Optimistic locking failures is a straight 409 response use case
+--|---- Use 404 if the url slug matching fails.. but if there's
+additional filtering getting applied due to business logic
+--|----|---- If on POST/PUT/GET whatever call, and url + header forms
+some reference check and that check fails, even though slug may be
+present in itself -- then raise 404 - because your application is not
+just "collection of different data type slugs", but is also mix of
+related references. So, if reference check is missing, raise 404. This
+is a good place for 404 rather than 410 (see below)
+--|---- If something that was previously available, but is now is
+permanently unavailable, use 410 Gone instead. 404 can also mean
+temporarily unavailable. However, 410 forces search engines to more
+quickly drop a page.
+--|---- Use 404 or 410 only when a GET call is made. If you are having
+a POST call, then see if another code, like 400 with a
+"non_field_error" or a 409 could instead be used. The reason being
+that "what does a resource GONE means when user is actually asking to
+create one. Are you instead saying that the parent resource is not
+available.. then that's a 409 Conflict". For PUT calls.. use best
+judgement. 404/410 makes sense for it since the url contains a slug..
+but maybe you'd like to send 409 instead
+
+
+
+**If you are doing request validation and there's a validationerror
+that occurs due to data contained in more than 1 field.. then a better
+alternative to use could be to associate an error message to both
+those fields -- but only if user did give request data containing both
+those fields. For example, in PATCH call, if user just gave 1 such
+field and error happened because of failures when compared with
+existing data, then don't raise error for both field.. only raise
+error for the field given by user. Prefer this than raising
+non-field-errors.
+
+
+
+***VERY VERY IMPORTANT: DRF -- ListSerializer vs ListField:
+--|---- On outset it seems ListSerializer allows taking values like
+partial, context, etc. But looking in code, it's not clear if it
+allows using that!
+--|---- If the list serializer expects entry like {"field":["abcd",
+"efgh"}}, but instead you give {"field": "abcdefgh"}, i.e. a string
+instead of a list, then the error message shown is : {"field":
+{"non_field_errors": "Expected list.. got string}}. However, if using
+ListField, it shows error as {"field": "Expected list.. got string"}
+-- Note for latter that: (a) It shows error as a string to field
+because insput is a string, (b) there is no non-field-errors. But is
+this good/bad.. dunno.
+--|---- Just like above if you give value: {"field": [null, null]},
+then with ListSerializer, you get response {"field":[["This field
+cannot be null"], [...]]}, i.e. as a list of list.. which is just
+plain wrong. However, if you use ListField, you get response as
+{"field":{"0":["..."], "1":[...]}} which is correct form.. so that is
+definitely wrong with list serializers
+--|---- Conceptually, one associates instance with a "Serializer" and
+not with "Field".. so if a list-instance needs to be associated with
+list of entries, then it seems sense, at least semantically, to use
+ListSerializer, not ListField
+--|---- As said above, when ListSerializer errors, then it gives a
+list of error, one for each entry in request-list. This can be
+specially cumbersome, say, when you are doing some complex check - out
+of which you can say that the 3rd entry errors. If you instead use
+ListField, you can write out errors with "3" as key and error as
+value.. but for ListSerializer, you need to iterate over all errors!!!
+And for some entries.. it sends out errors as list, and for some as a
+dict!
+
+
+
+**VERY VERY IMPORTANT -- Validations for Model:
+--|---- When working with DRF while also using forms (like django
+admin forms), there are different level of validations: Model.clean(),
+Serializers.validate() and Form.clean_form(). What's the difference,
+why one doesn't use the other and how to get reusability?
+
+--|---- Look at this answer from StackOverflow:
+https://stackoverflow.com/questions/29908157/is-there-any-relationship-between-models-clean-method-and-forms-clean-meth/29908463#29908463
+-- Model.clean() contains validations that apply at model level.
+Likely, this is the place to add referential checks, or any checks
+that should hold at DB level but likely isn't getting applied due to
+limitation of SQL language. On the other hand, Form.clean() is to
+clean the data that is read in the form from user-request. For
+example, if your form take a time-in, time-out.. then Form.clean()
+would contain validation like the date-time is not in future.. but
+Model.clean() will contain validation like time-in < time-out . Note
+how Form.clean() is user-data and business-process related, whereas
+Model.clean() is model-definition related. This also explain why
+`ModelForm` in Django calls `Model.clean()` in its
+`self._post_clean()` method, which is run separately after the form's
+`self.clean_form()` method ..and these are different from form's
+`full_clean()` which by its name, must do all sort of cleaning.
+--|----|---- A side but important digression: Look at
+https://stackoverflow.com/questions/9048108/django-overriding-model-clean-vs-save
+-- In that, (a) don't use `save()` to contain validation logic. It
+should precondition that data is entirely valid and just needs saving.
+Things like compression, format standardization if necessary should
+come here (..it's better if that can be done within field definition
+itself in the way field is serialized/ deserialized. If not, then try
+to do here, and not in cleaning-data portion); (b) Other thing not
+mentioned in discussion but to realize is that it is possible to
+configure `pre_save` and `post_save` signal. So, in doing so, it must
+now take only the cleaned/validated data!!!
+
+--|---- With above understanding, let's look at Serializer.validate().
+This is best seen as corollary to `Form.clean_form()` in that it
+validates each field, like a multi-field validation. However, there
+are differences between serializer and form. Taking a detour to look
+at differences..
+--|----|---- When working with Form, even a ModelForm, that is exposed
+to user via a FormView, realize that: (a) You only ever play with GET
+and POST calls (the view logic calls same logic as post when a PUT
+call is made) -- See `ProcessFormView`, `BaseUpdateView`. So, if you
+want to create new entry, `BaseCreateView` sets self.object=None,
+which causes form_kwargs to not set `instance`, which goes to
+`ModelForm` setting it with `instance=None`, which translates to
+making a form with blank entries (or an initial value if
+`Form.initial` or `Field.initial` is set). The submit action is a POST
+call which creates a new entry. When changing an existing instance,
+the existing object is set in `BaseUpdateView`, which causes
+`instance` kwarg to be set for form-kwarg, which cause GET call to
+pull data from the instance and make form with fields populated by
+instance data. Like previous, the submit action for modifying an
+existing entry is a POST call that verifies new user data,
+(**IMPORTANT: NOTE) updates instance with new data, calls
+`instance.clean()` triggering `Model.clean()` during
+`ModelForm._post_clean` step. If no error is raised, then
+form.is_valid happens, which calls form.save(), which calls
+instance.save(). If looking at code, realize that the `FormView` has
+`object` prop, because it gets available for template-rendering, along
+with a `form` kwarg. However, if an object is available, then
+`ModelFormView`, making a `ModelForm`, also sends out `object` as
+`instance` form-kwarg when creating form.
+--|----|---- Since you have different ModelFormView class for create /
+update, you have make it available via different URL - because both of
+them will want to use GET and POST on that url to show / update data.
+Thus, to prevent one from interfering with others' call, they need to
+be exposed on different url. Plus, they are different views - so
+different url.
+--|----|---- Also realize that if you have errors in form, you still
+get a 200 status response. However, the text html data in response is
+the one that contains error.
+
+--|---- Coming back to DRF serializer:
+--|----|---- You work with same url. Ideally you should have same
+serializer class for POST, PUT, PATCH call (in default framework code,
+DELETE does not use serializer because instance data is deleted, not
+soft deleted.. and since data is deleted, there's no use of returning
+a json, because there isn't any data to populate it!); And for each,
+you work with multiple http response codes.
+--|----|---- When working with form, you show some data/empty-form and
+then get updated value from user, and then save it. So, any field that
+is pre-populated is already there in form but as hidden field.
+Contrast to it, when working with serializer, you may need to work by
+creating object after pulling data out from request. This can be seen
+in how DRF allows passing additional argument in `serializer.save()`
+which is then mixed on top of `serializer.validated_data` to form new
+`validated_data` argument passed to `serializer.create()` or
+`serializer.update()`. Note that in doing so, serializer does not
+change `serializer.validated_data`, but instead sends out new data.
+NOT SURE THOUGH what it affords, because by construct of DRF,
+serializer must handle all logic!!
+--|----|---- When working with form, you can have a formset --
+collection of forms that allows making multiple changes at once.
+Still, it's NOT the case that you start with just one form, but on
+backend code, you instead need to create/modify multiple objects. If
+it is needed to work with multiple objects, then it is expected to be
+provided with corresponding count of forms in formset. HOWEVER, for
+serializer and REST calls, it may be the case that user gives a small
+request-data, but on backend, it triggers multiple changes in
+different DB. Your business logic could even be that as part of
+serializer's custom create/update call, you need to update/create some
+other object, or both and/or in different transactions!!
+
+--|---- **VERY VERY VERY VERY IMPORTANT** Above is the reason why
+using `Model.call()` in serializer isn't easily integratable. Hence,
+following is suggested to prevent code duplication between form and
+serializer validation - while still having flexibility to deal with
+different use cases: (a) Keep Model side validations (..only the
+required and proper ones relating to model definition and not to
+business process) in `Model.clean()`; (b) In serializer's `create` and
+`update`, don't use Model.objects.create(...) or
+Model.objects.update(..). Instead, either make a new model object or
+update self.instance -- but not save. Then call `Model.clean` on it.
+Then call `save()` on it -- In other words, think of serializer's
+`create()` or `update()` as mix of form's `post_clean() and save()`;
+(c) If you end up needing to create/update multiple objects, then
+follow the paradigm for each of them!!; (d) Since serializer's create
+and update methods are doing Model.clean -- which is a validation..
+ensure that you don't have any logic in ViewSet up until
+`serializer.save`. If you do need to have extra logic, it's best to
+have it in serializer. If it must and can-only be in viewset, it must
+then only happen after serializer.save() has been called -- because
+only after then does the data's integrity hold - unequivocally
+--|----|---- DO NOT: (i) ..try to add Model level validation in
+Model.save(); (ii) ..try to push form.clean() and/or
+serializer.validate() logic in Model.clean() just to get reusability +
+reduced code line. They server different purpose -- maintain the
+difference;(iii) ..duplicate validation logic for form/serializer
+[NOTE: If you feel your form/serializer logic to validate
+user/business process data is getting repeated, i.e. code in
+serializer.validate() and form.clean(), then DON'T add that code in
+Model. It must ideally go in some utils.py where both the form and
+serializer can access it]
+
+
+
+**Know how a different value can be returned from serializer's
+`validate_{field}` method: A good example where this applies is when
+reading html string from user.. You'd want to sanitize it before
+pushing it out. Still, a far better option would be to just make a
+different field that does it automatically -- reducing possibility of
+missing validation by mistake and causing security hole. Also, doing
+so promotes reusability.
+
+
+
+
+
+React: Formik / Redux
+-- Redux should be seen as a global context / data-store. This is also
+valid since Redux Provider goes at very top.
+-- The thing that's different about forms is that it is a one-time
+time. Generally, you use data that is elsewhere to populate forms, but
+the actual form data is useful only up until a success change has been
+done.. once done, you'd want to close form and clear data. This is
+different from redux where you want to global data to be there and
+continue remaining - since that data can get used elsewhere at
+different places. This is partly reason why storing every single form
+data in redux
+
+
+
+DB DESIGN:
+--TODO: if want to block select for update when "creating", then do a
+select for update on parent. Does it work though?? will it also
+prevent reads? -- check
+
+-- Writing once again to emphasize.. use data-domain based modelling
+to identify ownership of data to a high-level entity and to a user
+profile. If you want data A to be owned by Domain D1, and data B to be
+owned by Domain D2 (meaning only D1 sees A, only D2 sees B).. but if
+overall processing requires A-and-B to be together/related, then now
+you make a join table A-JOIN-B. This way, D1 sees A and not B; D2 sees
+B and not A, but your application sees both A and B via the join table
+A-JOIN-B.
+--|---- If you instead just make a Table C that foreign keys to D1 and
+D2.. and then assert that C must only be seen by D1 (or only by D2)..
+then that'll lead to multiple downstream confusion - best avoid that.
+This also bring up the point to treat bridges between two massive
+data-domain carefully. Particularly, if they are anything more than a
+simple join-table, then you'll likely run into issues during
+TAKE/SANITIZE handling, or just decoupling to have just one domain be
+able to edit it/see it.. and not other. If the problem won't be in
+terms of coding.. it'll certainly come in terms of team communication
+and design.
+
+
+
+
+Productionizing Productionizing:
+TODO: Add about breaking ticket; writing self eval; writing level up
+
+Requirement analysis (also put on local file)
+-- Make new channel in Slack.. not group message
+-- Start by asking how urgent is something needed. If something is too
+urgent, go for quick implementation of base case.
+-- Look at use case. Look at AC. Based on all AC points: see if they
+are clear in terms of being able to "immediately" code. Don't worry of
+edge cases.
+-- If the AC points seem contradictory to how code flows, that's an
+improper ticket. Ask to be taken back to drawing board.
+-- If the AC points mentions something that isn't in code yet, then
+ask for portions to be broken down. This way you can proceed on things
+that are clear, and other things can be pulled later.
+-- If the AC points mention something that's not directly in code, but
+there is another thing like that, then try to see if you can get
+things sorted out soon enough, else break into separate ticket.
+-- From the AC points (or from discussion of previous point), you need
+to use a data domain that is used elsewhere in a different feature and
+can trigger a different interaction pattern in that separate feature..
+and the side-effect isn't mentioned in ticket, then that is something
+you can clarify
+-- If something is partly clear: Then progress with portions that are
+clear, leaving the other ones. -- If they get sorted out soon, good --
+else it becomes separate ticket
+-- Ask about edge cases/questions when in normal progression you come
+across it. this way you can show something is done, present options --
+else if no one objects, you continue.
+-- If some edge cases are identified in code review: If it is too
+small, fix it. If it is going to be big, then discuss with PM and make
+it a separate ticket. maybe, you can still launch something with
+partial development.
+
+Identifying impact by notes in JIRA.. devs do work.. but PMs can later add jira
+
+Devs take ticket and complete it. A good idea could be for PMs to add
+details in how it impacts business later. This way devs can know how
+their work impacted business.
+
+The fields - from Indeed:
+Business Alignment
+Ownership
+Enterperise Impact
+Independence
+Skills
+
+
+
+
+**Productionizing Productionizing "Ethically":
+#0: Everything anyone says is prefaced "To my understanding..". If in
+a sudden and blind vote, the group doesn't "unanimously" agree that
+they know this, then there is a bullying problem
+#1: Business First, Every
+#2: With more power must comes more Transparency
+#3: A Lie has a lifetime
+#4: People who claim to Multi-task lie. So do people who claim
+multi-prioritization
+
+Everyone has a prioritization difference. The misalignment causes
+friction that slows product development capacity. A good manager
+balances out the priorities so that each concerns are identified and
+addressed, and does so while maximizing productivity. If however, the
+disagreement is very large, then that causes team break-up. This being
+said, forcing someone to change their priority order is wrong. You can
+however present your reasoning, take others' reasoning and then both
+parties mutually agree that they want to realign their priorities
+based on new information.

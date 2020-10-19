@@ -1,0 +1,3 @@
+UTF-8 based security issue + using utfmb4 type in MySQL:
+* https://mathiasbynens.be/notes/mysql-utf8mb4
+* https://speakerdeck.com/mathiasbynens/hacking-with-unicode

@@ -1,0 +1,36 @@
+
+* Confused about what the serializer is doing.. open the console and do print(repr(serializer)) -- as shown in docs
+
+* See https://stackoverflow.com/questions/27591574/order-of-serializer-validation-in-django-rest-framework 
+
+* Remember that in migration file, when you do apps.get_model(appname, modelname) - then this does not give you the model based on DB schema at that time.. it just pulls the model you from apps that are registered.. and validates that all binding is done properly before returning that. So, at later time, if you add more fields in model.. then this will change!
+
+* realize that queryset is a lazy evaluation.. just getting queryset does not trigger actual DB call. It waits till later when a .get() is called!!
+
+* Good thing to know about verbose-name - see http://www.learningaboutelectronics.com/Articles/verbose-name-and-verbose-name-plural-in-Django.php
+
+**look at how sentry / lightstep works
+
+
+
+
+
+django: Model.Meta
+
+# these tables are not managed by Django.. so Django does not make it. In this case, if a class has managed=false, and permissions.. Django will just make permissions but not make actual table
+
+managed = False
+
+# not sure what this does...
+
+default_permissions: List[str] = []
+
+# to create new permissions which are appended with other django permissions
+
+permissions = (
+
+    ("access_role1_api", "Can access the role1 api"),
+
+    ("access_role2_api", "Can access the role2 api"),
+
+)
