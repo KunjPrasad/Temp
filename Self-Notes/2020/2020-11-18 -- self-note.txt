@@ -1,0 +1,615 @@
+Structure and Interpretation of Computer Programs -- read first 3 chapters
+https://web.mit.edu/alexmv/6.037/sicp.pdf
+
+Upcoming book: Software Design for Flexibility -- get it!
+
+
+
+TODO: Does ref forwarding in React relate to difference between inner
+class vs static class?!
+-- likely, yes!! This is a good way to see when to actually use inner
+class (which is mostly none - for server side coding).. or maybe, it's
+useful in language that use prototype-based-inheritance??!! -- so, not
+in object based inheritance
+
+
+REST
+-- "null" value in json
+--|---- if returning a response, then showing fields with "null" value
+or not showing such fields at all should not cause different logic.
+Between the two.. not showing fields with null value must be
+preferred, because this way, you can return different output to
+different user based on role.
+--|---- Accepting a null value in JSON - in request.. must only be
+done when serializer handling the request can unambiguously say that
+the corresponding view/controller logic will not interpret null to
+mean "add some default value". This is generally the case when mapping
+to database columns that are both nullable and don't have a default
+value. Only in such cases, can you say that "null" value coming in
+request means -- delete the column data if row already exists, else
+don't add anything there.
+--|----|---- RELATED: If your database column is such that it can take
+null value.. but your business logic is such that once the field is
+set to non-null value, then it must not be set back to null.. in such
+cases, force the serializer to not accept null during update calls.
+--|---- Related.. Don't accept an ill-formatted or wrong value to
+imply some special processing. For example, saying that datetime json
+entry shouldn't be null, but instead be empty to imply that field be
+deleted - is wrong logic, since empty string is an ill-formatted
+datetime. Similarly, if you've decided to use blank for strings, then
+don't go on to say that null string should be used to delete an
+existing string column in database.
+
+-- Reference for REST ..or maybe not (some points are weird):
+https://www.vinaysahni.com/best-practices-for-a-pragmatic-restful-api
+
+-- OpenAPI spec for REST has almost become standard. If your project
+is out of proof-of-concept stage, add an openApi spec for it. Since
+the spec is now a feature, also add tests to ensure your spec is up to
+date with expected values ..specially when a new endpoint is added.
+
+-- **IMPORTANT: Maybe I covered this earlier too**: When trying to
+figure out whether 400 or 403 or 404 should be raised.. ask:
+1) if it is not directly based on entries in form-data, then 400
+should not be raised - as much possible (..to the point, almost
+always. Don't know of contrary scenario). Also, 400 error should only
+contain the fields given in form, or if there is a form level
+validation that then goes with non_field errors). If not 400, then 409
+is a good code
+2) Realize that 403 vs 404 may not be as easy to identify. An simple
+case for each being: should a user be not allowed to know of something
+(404) or should user be allowed to know something exists but they are
+unauthorized (403). The trickiness comes in whether a user should not
+even know of an existence/absence - regardless of whether it exists or
+not - because it is owned by someone else. The bottom line.. whatever
+you choose, keep it consistent. Giving 404 in one case but 403 in
+other leaks out the existence of data/data-relations belonging to
+another user, even if data-content is not leaked. If you're using
+REST, it is accepted practice to return calls to "GET
+/root/parent/{parentSlug}/child/{childSlug}" with 404 if parent and
+childSlug are present but not related. Why not a 403 after checking
+whether user can access {parentSlug} - maybe that's extra coding. What
+if you have a POST call, accepting request body with entries where
+such relations are broken -- 403 means there is a permission error on
+user entry based on request data. 404 may mean that the link is
+absent.. but it is present and only the data is wrong ..or maybe, best
+option is for 400 because this is based on user data in form.
+
+
+
+
+REST/Django
+-- (I might have written this in an earlier note.. still) Sending url
+and header information in serializer context::
+--|---- Serializer must be seen as an abstraction of request-data
+only. So, if you want to send any object being pulled out of url-args,
+or from header, that is best sent as part of serializer-context.
+--|----|---- In serializer code, particularly in create(), update(),
+etc.. maintain clear separation between serializer's validated data vs
+context data. The two must not overlap.
+--|----|---- For url like
+/grand/{grandSlug}/parent/{parentSlug}/resource/{slug}, send only 1
+item in context corresponding to parent slug, such that it also
+matches reference with grandparent slug before being sent.
+--|----|---- Since serializer context data is NOT from request data,
+if an error happens in getting it, it must NOT be raised with 400
+status, and NOT even as a non-field-errors. This also means that if
+using a non-field-errors, do verify that this is related only to
+fields in request-data. Related: If an error is caused due to
+interaction of 2 field in request data, best raise error message with
+both the fields rather than raising non_field_error.
+--|----|---- It seems OpenAPI spec's default behavior to make spec by
+reding viewset / serializer fails if data is passed to context, and if
+that can error. So, be wary of it. Still, don't think going to
+non-standard practice to accommodate the behavior is a good thing..
+That being said, if a small co-rearrangement gives you big gain and
+not hurt performance, then architecture IS something that
+can/should/must be bent to make the accommodation.
+--|---- As a good practice, if a serializer is for create only and not
+update, then define an update method and raise error in it. Don't just
+leave it hanging as that can cause accidental misuse.
+--|---- Since "request" is passed in serializer context, it is
+possible to read data from there directly and use it in defining
+serializer field instead of sending it as part of serializer-context.
+See serializers.HiddenField is you want to do so. **BUT** at least as
+of now, HiddenField will be skipped if you run a PATCH call, i.e.
+serializer with partial=True. So, best don't go that route
+
+-- Maybe.. a good practice is to never have serializer work directly
+with the "request" object.. and that "request" should not have been
+passed in serializer.context(). Instead, have a "view" or "viewset"
+contain method that directly uses `request` as an argument, and
+serializer must use `self.context["view"].method()`. This way: (1)
+there is a clear separation in that serializer only deals with the
+view and not with the request directly, and, view is the one that
+deals with the request. (2) Any common methods that uses request as an
+argument, must be made available to all view must be made as a mixin -
+and must NOT be made available to serializer. Should all serializer
+end up needing such method, then they can get it from view.. and all
+view must have that from the mixin. (3) It seems
+serializer.context["request"] is used when defining default method
+like "CurrentUserDefault". However.. it might have been best if that
+were left available as a method in viewset. (4) **IMPORTANT** Let's
+say this design is followed and serializer calls a `method()` of
+corresponding `view` passed to it in its `serializer.context`. By
+doing so, serializer code becomes reusable because now different views
+calling same serializer need to provide their own implementation of
+the `method()` - and the serializer will just use it. Hence,
+reusability of serializer is increased. **ALSO** now, each
+view/viewset can have a more contextually appropriate error message
+and failure scenarios in the implementation of the `method()` that
+gets called by serializer. Thus, end user gets more appropriate
+message rather than something generic.
+
+
+-- Let's say you are dealing with a child resource under a parent
+resource. There are 2 ways to proceed in terms of URL:
+Option-1: "/root/parent/{parentSlug}" and
+"/root/parent/{parentSlug}/child/{childSlug}", or,
+Option-2: "root/parent/{parentSlug}" and "/root/child/{childSlug}".
+When to use one vs another vs maybe-both:
+--|---- First, remember to be flexible.. the decision you come to is
+very dependent on your application needs. Both cases hold their own
+merit.
+--|---- One difference is that when creating new child, first option
+will call "POST /root/parent/{parentSlug}/child" and second will call
+"POST /root/child". First must read parentSlug from url and not from
+request body, and second must read {parentSlug} from request body
+since none is available in url. If using 2nd, don't pass a
+filter-param to pass parentSlug.
+--|---- first option is suited if you will only query for a child
+after having gotten the parent and so you want to keep a referential
+integrity. Second is lax on that.. an attacker only needs to know the
+childSlug to get the resource. Note that this concern only holds
+during GET call. For POST, PUT, PATCH, and even DELETE, you can
+require a request-body with parentSlug in it.
+--|---- If using 2nd option, you can query for child resource from
+multiple parent resource at once, like, "GET
+/root/child?parent=slug1,slug2,slug3"
+--|---- If getting a child resource must always come with some
+implicit understanding of parentSlug, then Option-2 is better. Like,
+get child-resources for most-recent/active parent resource. Then "GET
+/root/child" would work but not first option until the parent slug is
+obtained via separate query. THAT BEING SAID.. even for second option,
+use something like "GET /root/child?parent=active" -- This leaves "GET
+/root/child" as idempotent in that it gives all child resources. The
+"parent=active" filter now says to get only most active parent. This
+way, different filters can be made for different use case.
+
+-- One example of using non_field_errors: Say when you want at least
+one of some N top-level fields have a value. This is a object level
+validation and not specific to any field -- since none are present
+..and so would go with non_field_errors
+
+-- One more topic related to serializer is to understand difference
+between what can be called RESTful-handling-serializer vs
+process-handling-serializer.
+--|---- ModelSerializers can be seen as equivalent to REST calls:
+GET/PUT/POST (hard-delete not needing any serialization), PATCH. They
+specifically deal with one resource getting sent partially or wholly
+in request body, and coming out wholly in response body
+--|---- However, consider Process serializers: You want a certain
+business process to occur. The request body is a collection of related
+objects not necessarily linked to some object. For response, one may
+similarly assert that it can contain a collection of objects that were
+created/updated as part of processing. However, since the endpoint
+goes under some resource, like, `POST /root/resource/{id}/process` ->
+So, it can be natural to expect that the response structure is of
+"Resource" object - this also supports a design principle to always
+return same object for any of PUT, PATCH, POST, GET call for a
+resource, unless a list type is requested. So, with a variable request
+body, and fixed response body, how should a process serializer be
+coded?
+--|----|---- Extend it from serializers.Serializer, not
+serializers.ModelSerializer -- because the request does not follow a
+model.
+--|----|---- Update its `to_representation` method to return expected
+response. NOTE: `to_representation` method is given an `instance` as
+an argument and must return a `dict` representation for the
+`instance`. As suggested above, best to always return the handling
+endpoint's resource-data in response. More "framework support" now
+comes to this design choice, in that, sending just one resource is
+good-choice because `to_representation` gets only 1 `instance`, which
+itself happens because there is just 1 return from serializer's
+create/update method which is run when calling `serializer.save()`.
+So, it seems that returning just one resource is a good thing to do.
+That being said, if you do want to return multiple objects, you can
+also do so in `to_representation` - but that'll need some extra DB
+calls.
+--|----|---- For serializer fields representing the request body,
+realize that certain relations can get inverted.. rather than getting
+a data-heirarchical-appropriate request-body, say, as expected during
+POST call:
+{grandParent:
+    {garndParent_id
+    parent: [
+        { parent1_id, child: [{child11_id}, {child12_id}] },
+        { parent2_id, child: [{child21_id}, {child22_id}] },
+    ]}
+},
+..you'll have endpoint like `POST /root/grandparent/{gId}/process`,
+and will get request like
+{child:[
+    {child13_id, parent1_id},
+    {child23_id, parent2_id},
+]},
+..and as part of process you need to first create child13 under
+parent1 and child23 under parent2. But doing so first requires
+validating that parent1 and parent2 exist under {gId} given in url.
+Here, to make the serializer for child-list-entries, you can start
+with normal child serializer and then modify it to also include a
+write-only parent-id slugRelated field. You can add validations there.
+Since these child-serializers are very process specific, you can
+infact define these extensions classes inside the process serializer
+itself since they won't be used anywhere else
+
+-- Either in this or previous note, you covered on how to split
+validation. DO NOTE: regardless of the answer you come to -- that
+framework must also work when using Baker to make test data
+
+
+
+
+Formik (JS)
+-- Realize that all doesn't have to be about errors in forms. You can
+also have warning. -- something that isn't forbidden but the
+application things should be a good thing to do/note-for. Formik's
+status field can be used to capture warnings for different fields. It
+can then be passed on to API when the request is made.. thereby
+capturing that the warnings were shown to user and the user still
+decided to proceed. Maybe, in addition to form field, a modal can be
+added.. such that it pops open when the warning isn't set and needs to
+be shown for the first time. If following this route though.. make
+sure that you display your forms as a page and not as a modal.. becase
+then you'll end up having modal on a modal.. and that is just weird
+
+
+
+UI:
+-- In a previous UI note, you said that using a "toast" is good
+"aspect" behavior, and that it should be used instead of having
+tooltip. On flip side:
+--|---- Say you have a button which is always disabled since page
+load. In such cases, having a tooltip is necessary to explain when it
+becomes enabled. Note that having tooltips could be better because
+they give information on unexpected state of a html element.. even if
+it was initially enabled and then something happened that makes the
+button not work.. maybe better to immediately disable button and give
+reason to user via tooltip why its disabled and how to re-enable it
+--|---- ALSO.. say you're filling some form. If form is too big or for
+whatever reason.. there is failure and you show toast. But if user can
+take some action at some other place and not in form, then better ux
+to give link to correct the state at different place. Now, this error
+should not be in toast, but as an error message!! - and not just as a
+minor message, but something visible!
+
+
+
+
+
+JS+ Django -- Code org:
+-- One thing that can be placed in global scale constants file (and
+not constants defined in each sub module) is if the project is
+importing a 3rd party library, and the utilities in it use some string
+formats, etc. Since the import applies globally, so it comes to be
+that any constants being defined for use therein must also be global.
+
+-- Python/Js vs OOP Encapsulation - in module --- and its effect on Code org
+--|---- One of the major gripe with Python and JS is that everything
+you write is public. Contrast that with java where one can have
+package-private methods. However, the bad thing is when this gets
+conflated with the idea of "encapsulation" by saying that any
+constant/method you make is accessible outside the module and so the
+encapsulation is weak.. or by saying that in js code, one should limit
+the amount of export because that otherwise breaks encapsulation --
+NO!
+--|---- From https://medium.com/javascript-scene/encapsulation-in-javascript-26be60e325b4
+: Encapsulation is the bundling of data and the methods that act on
+that data such that access to that data is restricted from outside the
+bundle, or as Alan Kay describes it, “local retention and protection
+and hiding of state-process.” In OOP, that means that an object stores
+its state privately, and only the object’s methods have access to
+change it.
+--|----|---- Encapsulation is an OOP paradigm to not let external have
+access to data once it is created, and only let the related methods
+modify data's state. This means having private members. That is
+encapsulation - in Java, or Js, or Python! Arranging related code in a
+package is just that -- code arrangement. In Java now, you can hide
+certain things by using package private.. but in Python you can use
+__init__.py, and in JS you can use index.js -- though the latter 2 are
+not as strong in hiding classes/methods defined inside the package.
+This similarity of hide and seek is what leads to misconception that
+this is related to encapsulation. The only thing where you break
+encapsulation is if you allow someone access to data directly outside
+the handler methods. It can even be done in Java. NOW.. maybe your
+data is complex and composed of sub-pieces and while you don't leak
+out reference from main class, you do so via other helper classes in
+the package/module. This is where having package private is helpful.
+You cut down chance of encapsulation break. Let's say you have a
+method in some utility class that, let's say, creates a random
+number.. Having it in package is "bad packaging", sure.. but not
+breaking encapsulation. Maybe there is a reason for such packaging
+though.. maybe its a legacy code -- keep it then.
+--|---- So let's say there are extra classes/methods that are not used
+anywhere else except in that package/module by some main class.. but
+they are still getting exported which means someone can use them
+outside.. when is having such a package layout good or bad. (1) If all
+those extra exports out of a package are just functional in nature,
+it's ok! It means you just created a bunch of utilities separately..
+good.. test them thoroughly. This is one reason why functional
+programming shines. It is inherently thread safe. (2) Consider the
+case of react with now allowing hooks. Sure, it'd be good to have
+reusable hooks in separate file.. but maybe you want to keep it
+separate to help with readability or to make code look organized.
+Here's the thing, even though hooks look stateful in themselves.. but
+by React requiring that each hook be run within a component itself, it
+makes each hook behave as if it is running in a stateful way for
+separate "sandboxed" component. Thus, if you make hooks separately in
+a js package, you're not breaking encapsulation
+--|---- HOWEVER, to add to above discussion.. by going more than
+minimum number of export, you are breaking "Abstraction" because you
+are leaking more and more of implementation specific details. That
+being said, if you add index.js or __init__.py, that signals to users
+what is available from the package. If they still dig inside, well
+then you're looking ta modifying javascript itself now to prevent that
+from happening. Main question -- why??!! ..to first do something wrong
+and then try to handle it. Also, looking in various web pages
+searching for "javascript module" -- no where is it mentioned that one
+must try to minimize the exports out of package. In fact it is
+said/suggested to break down files to keep things organized.
+
+
+
+-- should you make separate file for each component, helper component,
+utils, selectors. Or should you make just one monolithic file "to
+reduce export". Personal preference.. break it down, then use index.js
+as needed. But depends on convention used in your company/group
+
+
+
+Productionizing Productionizing
+
+-- Should MR be required to remain open for a certain time since last
+update, or since last comment made before it is accepted/deployed?
+
+-- Good practice to have a repo just to have architecture discussions
+and general team behavior. Let's call it ADR (Architecture discussion
+repo)
+--|---- Tracking ADR in JIRA? I'm thinking this can be used to create
+tickets requiring architectural discussion in Triage lane which helps
+identify a problem statement on which a discussion can happen. Plus,
+code refactor tickets can link to an accepted discussion as basis for
+refactor.
+--|---- Is it possible to set it out like a cookbook, rather than
+becoming a novel. I'm thinking of having some sort of "Table of
+Contents" page where I can go and search for keywords and look at
+related discussion.
+
+-- Consider situation when you are being given a code review, but
+comments mentioned are architectural in form, is splitting hairs, but
+going either way doesn't result in bugs. SHould developer be given
+freedom to choose path forward at random?
+--|---- If yes, then this forces even the senior leads to not go down
+architectural rabbit hole without giving reason, or pushing their own
+opinion as instead be a general reason.
+--|---- When should this guideline be used by the developer for MR in
+responding to a code review comment? Example?
+--|---- When should this guideline NOT be used by the developer for MR
+in responding to a code review comment? Example?
+--|---- In response to code review, is it ok for the MR developer to
+reply with something like "In absence of observable and verifiable
+bugs resulting from code changes, and absence of reason for using a
+suggested best practice, I choose to not follow the provided opinion."
+--|---- What should have already happened before above is said?
+--|---- Is there a constructive way to move from it. Or is closing the
+comment the only action.
+--|---- Realize that the sentiment of above statement applies to more
+than just code reviews, and to general feedback/reviews -- in that,
+always give feedback that is actionable for recipient, is based on a
+reason and is open for discussion. Anything lacking, and it is instead
+a tyrannical forcing down of your opinion on others
+
+-- **VERY IMPORTANT: If any point you're saying to another person to
+not modify code else it brings in bugs, then that's a drawback on you
+for not having added tests that would have failed on changes. Be
+constructive, identify what is failing, what tests need to be added to
+identify future bugs rather than just saying to not touch/modify code.
+
+-- Don't make it a personal thing what must be decided at group level.
+For example, handling above situations, The group must come to
+consensus on how it wants to operate. Leaving it to individuals for
+their own opinion / enforcement is wrong.
+
+-- Just like other places in life, avoid being narcissist,
+machiavellian and psychopath - about your code, and even more, about
+the "architecture". If you hit the perfect trifecta, i.e. my
+architecture is best no questions, it's my duty to make others follow
+my architecture, and I'm going to do this without any regard to what
+they say.. then you've ruined the teamwork and made it inhospitable to
+collaborate.
+--|---- Side-considerations: From a lead's perspective, they are the
+code owner. If anything wrong goes in there, they are held officially
+responsible. So, this should lead to behavior that if they want the
+codebase to go a certain path, then that should be followed. However,
+it is still good practice to (a) make this transparent in group rather
+than be left implicit, (b) on disagreement voiced by a junior dev, a
+lead must be given allowance to instead ask the junior dev to follow a
+certain direction as they want. It is also ok to have the junior dev
+act as tenant on lead's codebase.. and junior dev must come back and
+help if following a direction does end up causing future issues.
+What's wrong is (a) when after junior dev has followed lead's
+directive, it is seen to imply that junior dev aligns with that view..
+no.. there can be perpetual disagreement but still a freedom to work;
+(b) Using disagreement in viewpoint as a base to think that a junior
+dev is unskilled, or must be given more work to learn -- that's just
+harassment; (c) continuing to gloat in all meetings that "the group"
+followed a certain paradigm because they all agreed with it - even
+though that wasn't the case
+--|---- An "architecture" is nothing more that "a recipe booklet for
+avoidance of problems that led to decline/death of past projects via
+lessons learnt" - hence, there is "unequivocally" and "always" a
+reason for architecture. The longer the recipe holds, and the more
+people that support the recipe, the more robust it is. So, if you feel
+like something is an architecture because "you think.." but don't have
+any other reference, then it's not an architecture - it's your opinion
+- that you're likely shoving down other people, maybe, by improperly
+stretching your authority. Similarly, if you see someone suggesting
+something not seen, that's not a good reason to quash it by citing
+some architecture reason. If it's not previously seen, it's not an
+architecture. An architecture was previously seen and it failed.
+Third, there may be scenarios where business requirement asks to go on
+a route that was previously considered wrong. Talk to business.. if
+requirement still holds, then go that route. Architecture arise and
+stay because they are backed by time, which means, as time changes,
+those considerations may no longer hold. Maybe you're in a special
+case where you won't see ap pitfall, but if you don't try.. you won't
+know -- So, business first.
+
+
+-- Deference vs consensus:
+--|---- Defer first to local style. If you don't like it.. then don't
+immediately change/break it. Start conversation
+--|---- Defer to org style
+--|---- Defer to 3rd part library docs style
+(Notice the commonality above -- Try to defer to a reason, not to a
+person. If their opinion, even of senior member's opinion.. must be
+reason backed.. though do realize that saying it is a org/local style
+is a valid reason) -- but realize that end of day, it comes on to
+Organization practice. If org same to maintain hierarchy, then do so..
+if org says to go for consensus, then do so. The worst is when the 2
+gets mixed.
+--|---- "Spontaneous symmetry breaking" : realize that aim to solve
+each and every disagreement is non essential - because some things may
+be extremely trivial and there aren't set norms due to lack of
+checkboxing. In such case, going back to deferrence / heirarchy is a
+good way to proceed. Still, this doesn't mean that an initial
+discussion shouldn't happen. Even now, each party must give their own
+reasoning for a behavior. The persistency of disagreement should get
+identified based on this discussion and not before. There should still
+be transparency. The party finally saying that they disagree but
+matter is too trivial must feel safe in saying so, and must say so. A
+consensus coming from spontaneous symmetry breaking is still valid and
+shouldn't be looked down ..thereby inadvertently pressuring others to
+adopt your viewpoint on something that's not creating bugs, nor is
+testable. The coherence of team lies in their ability to have
+disagreement and still move forward to achieve business goal rather
+than getting stuck on "reversible nits" <--- productionizing: don't
+get stuck on "non-erroring reversibles"
+
+-- when posting a comment, don't mark something as bad simply because
+you've not seen that. That is antithesis of "development". Even senior
+techs should be given opportunity to say that it's new to them or that
+they don't have an opinion -- without it getting counted against them
+
+-- in case not mentioned previously.. a good idea is to have
+continuous feedback on team members.. even if there's no place to
+write, keep a self note and write there. This way, you can write
+better feedback for them after every quarter. However, even better
+that team is in agreement that they can communicate to anyone sooner
+if there's any issue seen. The drawback though.. it lacks
+transparency.. so disconnects may happen!!
+
+-- I feel it's not a good idea to mark tickets as being "refactor"
+when it involves exploration of framework use for the first time. It
+conflates the actual refactor work with discussions around setting
+standards. When refactoring pick one technology (framework,
+implementation plumbing) to refactor in a code and just change that.
+If you find other things that need changing, do it as a separate
+refactor ticket else it becomes burdensome for dev doing refactor to
+keep track of multiple changes and then find out what's failing.
+Refactor is like changing some backend implementation details.. so
+keep it small to effect one change at a time.
+
+-- Devs use textbook words in discussion, but then also say to not
+stick to textbook definitions. Here's the thing - if you don't want to
+use textbook definition, don't use textbook words.. and if you find
+lacking for words describing what you want to say, just say it in
+elaborate manner. The goal is to keep communication straight. By
+actually using textbook words, but not textbook definition, you are
+(1) creating confusion on interpretation, (2) disarming other party
+from engaging in dialog by taking away from them a means to refer to
+existing literature.
+
+
+-- Include how to prepare for black swan events. You aren't
+productionizing if you are not covering extreme edge cases. At least
+try to cover financial crash, pandemic, terrorist activity
+
+
+-- Have a single chain of command in getting requirements and
+executing it. Contribute to help the chain link, but don't overthrow
+the chain and make it branched
+
+-- A crucial part of work life balance is not just to "not work"
+outside work hours, but to also "not think of work" outside work
+hours. You can study on related tech, think of architecture.. things
+that help your skills grow.. but touching "how does this knowledge
+apply to this case" is becoming orange level.. and thinking on "why
+this person did this thing", "how i achieve this business case", etc.
+- that's a solid red that must be avoided
+
+-- @Companies: you've worked hard to get the final candidate. Try to
+not make it hard for them moving on. Have proper guidance on work life
+balance; skill development for employee being long term worth, career
+progression guidance. This also links with interview, qs to ask
+
+
+
+**Interviews:**
+-- You:
+--|---- Silence phone
+--|----Set slack status
+--|---- You have resume?
+--|---- You understand job needs and how your role fits to identifying
+a candidate filling the need? (Helps setting standard and avoid bias
+-- Candidate:
+--|----Zoom: Is zoom working ok?
+
+-- Assessment
+--|---- Based on Past:
+--|----|---- Past knowledge (i.e. Past theory)
+--|----|---- Past performance (i.e. Past work on theory)
+--|---- Based on Future:
+--|----|---- initiative to ask known (i.e. candidate asks things about
+which they know)
+--|----|----|---- one-factor in the ask
+--|----|----|---- multi-factor in the ask
+--|----|---- skill (i.e. candidate does things about which they know)
+--|----|----|---- one-factor in the do
+--|----|----|---- multi-factor in the do
+--|----|---- collaboration
+--|----|----|---- candidate asks of unknown (communication)
+--|----|----|---- candidate does things that were previously unknown
+but were then told to them
+
+
+-- As a interviewer.. Be:
+--|---- courteous
+--|----|---- if you don't have an answer, assure candidate that you'll
+follow up with recruiter. Also, let the recruiter know
+--|---- inclusive
+--|----|---- keep open ended questions
+--|---- engaged
+--|----|---- incl. 80% listen, 20% talk
+--|---- rigorous in skill depth
+--|----|---- see assessment section above
+--|---- rigorous in skill breadth
+--|---- properly decisive
+--|----|---- Exclude interview bias, i.e. exclude:
+--|----|----|---- Similarity to : (a) my skill/experience, (b) my
+ideas, (c) others' in group skill/experience, (d) others' ideas
+--|----|----|---- Moving baseline: (a) Compare to other candidates,
+(b) Halo/horn effect
+--|----|---- invite others: never have one person do interview. But if
+more are coming, then let them only be observer, to have single point
+of contact
+--|----|---- When writing feedback, pick sentences from candidate
+response and how that shows good/bad match to requirement (note..
+match to requirement, not to culture fit)
+--|----|---- Keep it legal
+
+
+Decision
+-- Is time of work exp commensurate with performance seen; Also see
+the breadth of experience - if the person has just worked at one
+company, then the breadth may not be large
