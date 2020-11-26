@@ -283,6 +283,12 @@ to give link to correct the state at different place. Now, this error
 should not be in toast, but as an error message!! - and not just as a
 minor message, but something visible!
 
+-- Accessibility: Check following plugins in chrome. They analyze webpage
+and highlight issues. It's a good start!!
+--|---- Axe: axe - Web Accessibility Testing by www.deque.com; https://chrome.google.com/webstore/detail/axe-web-accessibility-tes/lhdoppojpmngadmnindnejefpokejbdd?hl=en-US
+--|---- Wave: WAVE Evaluation Tool by WebAIM: https://chrome.google.com/webstore/detail/wave-evaluation-tool/jbbplnpkjmmeebjpijfedlgcdilocofh
+--|---- Using jest-axe with react-testing-library: https://medium.com/hackernoon/testing-react-with-jest-axe-and-react-testing-library-accessibility-34b952240f53
+
 
 
 
