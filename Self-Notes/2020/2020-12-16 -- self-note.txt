@@ -1,0 +1,157 @@
+Django:
+-- Use Django signals for aspect programming on models
+
+
+
+HTML/UI:
+-- HTML - using semantic elements. See https://www.w3schools.com/html/html5_semantic_elements.asp
+-- Example of accessibility: Look at https://userway.org/about usage in kurasushi.com
+-- Keep single source of truth in UI
+-- If you also give an UI.. To prevent phishing, allow users to set an initial profile token that is showed when they log in. And allow this only on request coming from your UI domain
+
+
+
+DB design:
+-- For modeling constants used in model to define status, etc.. one
+can use Enum. Can even make custom properties on enum if the status
+needs to be able to do so. A concern that goes hand in with this.. is
+that in future if you need to remove/update an enum value or property,
+you must also modify old migration files so that anyone running code
+from start won't see a failure. This will also be evident because
+build scripts will start failing since they make a fresh db on every
+run.
+
+-- Add comment in DB to communicate intent, don't duplicate comment in
+table. Have team expectation for people to look at DB comment as
+source of truth.
+--|---- Side note: Always have a single source of truth!!!
+
+-- When adding a new enum, be careful of adding it to code. Because DB
+runs before application, the application won't be able to read new
+value. this is again a good reason to use status table vs enum.
+
+
+React
+-- https://react-bootstrap.github.io/getting-started/introduction/#importing-components
+--|---- TLDR: import individual components rather than the entire
+library. This will make it more performant (less code send to the
+client) after the tree shaking is done. So... instead of `import {
+Card } from 'react-bootstrap';`... do `import Card from
+'react-bootstrap/Card';`
+
+
+Testing: 3rd party API integration
+-- When having 3rd party API that reads entries from DB and modifies
+it as part of processing.. a way to add test is say, make a 3-tuple of
+(prepare, pre-validate, post-validate). The "prepare" steps makes
+data, "pre-validate" does verification on data. Then a test utility
+should be make that mocks the processing by 3rd party API after which
+the "post-validate" step runs.
+-- Even better, make a list of 3-tuple. Now, you can run sequence of
+processing and do multiple validations. This helps in covering gaps in
+testing of 3rd party API integration.
+
+
+UX: Modal implementation
+-- HTML Semantic elements -- good to know -- and use it:
+https://www.w3schools.com/html/html5_semantic_elements.asp
+-- Another good resource:: aria practices:
+https://www.w3.org/TR/wai-aria-practices-1.1/
+
+-- UX: Best stick to overall themes of company when designing. Best to
+have uniformity in component design so it's consistently used across
+multiple places
+
+-- In a previous note, it is suggested to use Modal for UX - as an
+aspect like design. DO REALIZE though.. that at least as of now, for
+React-bootstrap, this interferes with proper accessible html code
+because react-bootstrap makes modal as last child within body and
+marks all other children under <body> with aria-hidden=true. This
+creates problem though.. Since modal is like an aspect and should
+behave as if a new webpage was opened (..up to difference in visual
+effect), so modal should actually go inside <main>. Thus, a good
+pattern is to have modal div instead open up inside <main> and not
+inside <body>. However, the issue remains that pressing tab should
+trap control within modal only and not go outside
+--|---- Maybe, use <aside> for modal. This now makes more sense to
+have modal inside <main> (since it can contain actions related to
+content in main, but is an <aside> inside it)
+
+-- If you have a UI with a box, say at bottom right, that shows over
+all elements (like, what's done for support chatbox).. then where
+should it be?
+--|---- If the box contains actions related to content in <main>, then
+keep the box inside <main>, and maybe with an <aside>
+
+
+SECURITY:
+-- Fail an authentication only if user asked for a particular auth
+mechanism to apply and then it failed. For example, if you are reading
+some header values to do authentication.. but those headers are
+totally/partially missing, then don't fail authentication.. just skip
+it. I think this is general design.. but do remember
+
+
+Static html page using webpack:
+https://www.ivarprudnikov.com/static-website-multiple-html-pages-using-webpack-plus-github-example/
+
+
+VERY VERY IMPORTANT: Security: Example of information leak unless
+proper verification done "completely" : Phone verification
+-- Say you want to allow users to add phone number that they then need
+to verify. Others can add phone numbers, there can be conflict, etc.
+How to model
+-- The main point here is that unless a phone number has been given
+and verified - the user is in a state of partial non-verification.
+Going along line of "don't give any data till user and request has
+been fully verified" -- the way to go would be to wait till the user
+has verified before telling them either that they have conflict. If
+they are notified early on that they have conflict with others then
+its a data leak that someone one with that phone number has account on
+your webpage. Similarly, even if a person is verified and then want to
+change phone number, have them go through full step of verifying new
+phone number before giving them option to change the notifications.
+-- A related question is whether one should notify user that their
+phone number update step is pending and should be completed. This
+seems justified - you can say them to finish pending step.. but not
+tell them of conflicts etc. Another way to proceed could be.. don't
+tell them anything, just wait till the users log in again and then
+then tell them of it
+
+
+Authentication vs Authorization
+- define the 2. Why both different. Don't mix them
+-
+
+
+Security
+- File upload security check
+
+
+feature flags
+- Waffle
+- Despite waffle, keep logic to still show page, let's say for test users.
+- Would it be better to use waffle for authorization. This makes Role
+based flags!!
+- Don't have waffle flags in model.. just in web layer
+
+
+
+Prod-prod
+-- Managing vs coaching: Manager are company rep. There will be bias
+for company profit. Coach look at scenarios outside the company. Like
+a bias-variance. So, what's the optimal solution and how to go to it
+for balance, while making case that it's something that will provide
+value to company. Is it culture fit vs culture add question? -- like,
+culture fit being a good initial strategy but not for later stages of
+growth
+
+-- People will share when they feel free. Don't force. Till them,
+adopt a common mode of transparent, fair and open communication and
+prevent it from getting dominated
+
+-- Between tickets that are big and should always have an
+architecture, compared to tickets that are small and not don't need
+any.. The bigger your team gets, the smaller should get the threshold
+of changes that trigger architecture review. If you're seeing reviews
+too happen, this is the time to make "verticals"
