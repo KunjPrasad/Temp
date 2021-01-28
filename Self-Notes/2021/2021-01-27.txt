@@ -1,0 +1,130 @@
+https://www.google.com/search/howsearchworks/
+
+https://developers.google.com/search/docs/beginner/get-started
+
+https://www.bing.com/webmasters/homepage
+https://search.google.com/search-console/about
+
+
+
+font awesome works by creating glyph for character and then adding those characters using ::before or ::after psuedo-value to selected element. The problem: (1) use of <glyph> has been deprecated, (2) if doing so, you're stuck with a font with certain glyph and don't have flexibility to change, (3) same as #2, but because you're stuck with font, you have to download full file. can't eb modular about it, (4) probably bad for accessibility because how will the character behave on screen reader, etc. (5) what if font awesome site is restricted on client end, or if you repurposed character but that's overwritten by new glyph. 
+---- better solution, add a background svg and padding to element instead. See here: https://css-tricks.com/using-svg/ -- for making a more readable data element to pass in url("...") for background-image. Also set background image location.. and set padding (not margin) where you want image to show. Also, now the image is part of the element and not a separate thing
+
+
+
+UI: Always display user name on all pages after they've logged in. Can show icon.. but show something
+
+
+
+See https://stackoverflow.com/questions/12168624/pagination-response-payload-from-a-restful-api/12171176#12171176
+-- use of link header for sending paginated response. Good idea.
+Decouples extra data from response body. Similar can probably also be
+done for hateoas.. decoupling GET from OPTIONS
+
+
+TDD: This way you can just focus on ensuring that there's a test for
+all requirements. This is documentation + greatly helps in debugging
+because rather than going in nitty gritties of code, you go over
+tests.
+Declarative code is better because it is less error prone
+
+
+A drawback of code review in that it creates a development/pause cycle
+which reduces velocity. However, on other side, it gives space for new
+ideas to come or for ideas that were initially suppressed to come out.
+Less one person dominance. So, maybe not good for start-up phase, but
+better for later expansion.
+
+An advantage of separating server and client side rendering: (1)
+Server side rendering puts extra load on server. Let clients device
+handle it! (2) Server side rendering is via templates which are hard
+to test than testing REST output. (3) server side rendering couples
+code development.. devs may not hugely focus on keeping the two
+separate. (4) not easy to separate out the backend and frontend code
+to 2 separate servers when the codebase becomes too big.
+
+
+data denormalization: statistics.. when speed is needed, or when doing
+reporting. That's why reporting is generally kept separate from data
+modeling, done separately (housekeeping). This can show up in sprint
+like behavior, causing your db to have both the entries.
+
+
+DB: generally, when you have foreign key relation, you want to save it
+from deletion, or cascade delete or set it to null. However,
+if-and-only-if you're storing some auditing / reporting value that you
+want to save even when original entry is deleted.. then don't have
+foreign key relation.. and just store the value. Realize that doing so
+can also help table make a column "multifunctional", i.e. the "id"
+value stored in a column refers to "id" of different table depending
+on value in some other column. Once again.. if-and-only-if, this saved
+data must exist even after original data in some table is deleted..
+then only do both above, else, have strong foreign key relation - or
+risk having inconsistent data that now needs to be programmatically
+normalized.
+
+
+UX:
+---- Ideally, keep all forms mutually separate. This will prevent the
+need for having a slice. However, consider a case, like, the chatbox
+in bottom right that should always have separate data. ideally, such
+forms are still parallel (if not orthogonal) to other forms. A bad
+design is requiring the data in such forms to also get changed because
+of other forms. Best, avoid such designs
+---- In REST, having both queryParam and final id in url is a wrong
+thing to do.. why would you need a queryPram if you already have a
+terminal-id? BUt consider same from UI perspective. The final UI can
+be one among the results obtained by applying certain filters at list
+level. So how shouls such url be saved -- incl. both terminal-Id and
+query-param! SO, for UI, having both is NOT WRONG!
+
+
+
+Entity: In addition to record level constraint.. should it also have
+"flux" constraint defining states that a model can move between. It is
+again model related. or is it? Is it business related? Can there be
+pieces in both. Or should that be a different class in itself that
+should be used!! And then any service, etc. methods use both.
+Conceptually, think of how you'd model a DB table's row transition and
+corresponding validation -- like a validation on audit table for
+corresponding entity table.
+---- is this even a good design: Or does it work because of assuming a
+"Finite State Machine"
+(https://en.wikipedia.org/wiki/Finite-state_machine) model. What about
+other models of computation, like - pushdown automata (see
+https://en.wikipedia.org/wiki/Model_of_computation) -- i.e. validation
+for an object depends on past history and not just previous state and
+changes.
+
+
+Advantage of using "header" for pagination:: any swagger codegen
+client remains same.. essentially your data structure is same
+regardless of pagination / whole.. so is a good behavior in moving
+from mvp stage low list size to large list size.. Any analysis you may
+do on response (governor service), any documentation, etc..
+
+
+
+Serializer: A good practice can be to check that your request isn't
+getting more fields than expected (based on user role). It could be a
+sign of broken integration/communication somewhere if that's
+happening. See https://stackoverflow.com/questions/22178266/django-rest-framework-raise-error-when-extra-fields-are-present-on-post
+
+
+
+React:
+-- https://vasanthk.gitbooks.io/react-bits/content/ :: But doesn't
+seem like a nice resource. Some ideas are really weird wrong. Others -
+like basic react
+-- For aspect like behavior in React, use Higher Order component (if
+affecting rendering, i.e. it should look different) ..or middleware
+(if affecting action, i.e. it should behave different). Middleware
+restricts though in that you must be using redux
+
+
+
+interview:
+-- for every 1 person hired, 3 are denied because they couldn't code;
+and for every 5 people hired, 1 is denied because they are rude. So,
+be skilled, think out loud (to get partial credits), ask, analyze
+-- code review : should be explaining, not dictating
