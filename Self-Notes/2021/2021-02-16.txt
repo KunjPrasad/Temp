@@ -1,0 +1,168 @@
+5 Ws of PII
+Who? What? Why? When? Where?
+[When + Where: Should be consistent across all DTOs for org - for same
+role] : Governor
+---- Privacy depends on country laws, but with privacy becoming
+important.. keep it in focus and also to transparently communicate it
+to users.. and reflect the same in data model and in table / column
+comments
+
+
+Security: rate limit on sign on failure
+
+
+
+When this curriculum uses the terms MUST, SHOULD, and MAY in all
+capital letters, it is in reference to conformance with WCAG 2.1 Level
+AA as follows:
+
+MUST: Required
+SHOULD: Strongly recommended
+MAY: Optional or conditionally recommended
+
+
+
+
+code rearrangement:: Not part of code, but track tasks via jira. Epic,
+stories .. and then keep design doc
+
+
+DTO: When sending response, don't send out internal data type. First..
+users don't and shouldn't need to know it - that's the entire idea of
+decoupling!!
+
+
+question to ask interviewer:
+-- how do you expect to respond if someone is giving design review and
+you point out some issue. Does the company policy require the other
+person to hold on proceeding, or is design review not like gatekeeping
+but just suggestive in nature.. and others can still do what they want
+-- is it needed for managers to also have technical background --
+don't ask directly, but somewhat in related manner
+
+
+Advanced: Have an internal monitoring service that attempts to connect
+to all databases using known simple passwords. The idea is to ensure
+that noone is inadvertently setting simple passwords in Prod system
+Use similar logic "as one time service" when a new user tries to make
+an account with weak password. Can also have tiered logic where the
+"required strength" changes depending on role getting associated with
+user. So, they can start by lower strength password.. but if they are
+being given important roles, then a password check for strength is
+done before giving new role.
+--|---- Mix it with governor service!!! - to standardize password
+strength across enterprise based on role.
+--|---- Don't confuse it with OpenIDConnect.. which is for
+authentication.. this is for enterprise level authentication, though
+an inter-org role schema is something that can be done!!!
+
+
+
+Design review
+
+You want to get as much critical feedback as early as possible. You
+cannot do anything once your code hits the prod.
+* If you got no reviews, you didn't need any design review
+* If your design review complete fails, there is a problem with the
+purpose of your project
+
+Start with important, and risky and controversial parts; for riskier
+parts - do more of it not less.
+* You want to confirm what is important is really important, and not
+that something you thought is unimportant is actually important.
+* You want to let everyone have some background, but also not want to
+spend time on non-controversial ideas. Try to group non-controversial
+ones for follow up later in meeting, or say, you'll reach out
+separately. But don't use this to sweep off any controversial idea. If
+someone still insists, ask them what's the controversy here
+
+Do bunch of small review rather than a big review. Start with a small
+review on what is your goal of project. Make sure your goal on what
+you're trying to solve is correct. Make any implicit thing explicit.
+
+Propose multiple options that could be right; and objective way to
+evaluate: have an objective for what's good for company and not just
+because it sounds right.  With this, don't just say one thing and run
+with it
+
+Understand at high level, not nitty gritty details
+
+Exit criteria, or what is result of design review:
+* Don't ever expect or commit to others - that you'll be changing
+design based on comment
+* Ideal should be: these are some great suggestions, I'm gonna assign
+myself or others to look into it. That way, the design review is just
+there for suggestions but nobody commits. You assign tasks. later,
+when heat f moment is gone, then you can take a step back and
+analyze!! Good design review is when you have follow up tasks and you
+assign to yourself or to others
+
+When writing design (i.e. even before review starts, just making doc)
+- do pair writing - and/or - run it internally like a mini design
+review
+
+
+
+
+
+Advanced: Practicing backend dev concepts
+-- take example of school. Say when practicing problems, never start
+with "intent to model, always start with intent to business. Identify
+initial goals. Then stop. code it. Then proceed along business plan.
+Much later: first do brainstorm on ideas of growth. Pick a few and
+stick to them.
+
+
+
+Advanced SQL: Get nth smallest or largest
+* https://stackoverflow.com/questions/463054/sql-select-nth-member-of-group
+* https://stackoverflow.com/questions/16994871/sql-is-there-any-efficient-way-to-find-second-lowest-value
+* https://www.xaprb.com/blog/2008/08/08/how-to-select-the-nth-greatestleastfirstlast-row-in-sql/
+
+
+SQL:
+See https://stackoverflow.com/questions/24741051/order-by-before-select
+-- SQL first selects all data, then orders it.. that's why "order by"
+goes after "where" clause.. and that's why just in comparing "order +
+limit" to get something going vs using "where".. use "where". Why? -
+because SQL needs to get the entire data before it can order it.
+reference: http://use-the-index-luke.com/sql/partial-results/top-n-queries
+-- related: if you are trying to set some variable for each iteration,
+then that will get set before the order is done. So, if you do:
+    select t.id, @curRank := @curRank + 1 as rank
+    from table t, (SELECT @curRank := 0) r
+    order by t.id desc
+.. then you won't get @curRank=1 for last t.id. The rank will be 1 for
+lowest id, but now the first result will have last id and
+correspondingly, highest rank
+
+-- Followup: what happens when no "order" is specified.. don't assume
+it will go by "id" as default order. See
+https://www.exacthelp.com/2012/10/default-order-of-select-statement-in.html
+
+-- SQL way of getting now number::
+https://stackoverflow.com/questions/1895110/row-number-in-mysql  ---
+IMPORTANT: this can even be used to reset row number for every group
+change, you need to use 2 variables, and reset when the value of 2nd
+variable (set in past) does not match the column being grouped on
+which will be near boundary.. else set the 2nd variable to group
+column value
+select
+    @numWithinGroup := IF(@groupColumnValue = t.group_column,
+@numWithinGroup+1, 1) as number_within_group,
+    @groupColumnValue := t.group_column /* NOTE: If you do this before
+@numWithinGroup update, then the intent of query will fail. Order
+matters */
+from
+    table t,
+    (SELECT @numWithinGroup := 0, @groupColumnValue := '') tSupport
+order by ?? <-- what order. see previous comment, best to order the
+data first before starting this
+
+
+DB design: date vs datetime!! when to use what!!
+
+
+For integration test.. staying on happy path is sufficient.. but goal
+is cover multiple web of operations to make sure everything works fine
+even when including all 3rd party api(s)

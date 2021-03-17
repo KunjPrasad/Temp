@@ -1,0 +1,163 @@
+RBAC: role based access control
+ABAC: Attribute based access control
+
+
+VERY VERY VERY IMPORTANT: About DB locking.. and how things can go in deadlock:
+https://dev.mysql.com/doc/refman/5.7/en/innodb-locks-set.html
+https://dev.mysql.com/doc/refman/5.7/en/innodb-locking.html
+-- This shows why sticking to querying by primary key is good. And keep query by unique key to as much limited. Particularly, don't update by unique key. Also, keep transactions small and fast!! Also shows that when using unique key, indexes are locked even when row gets unselected due to where clause
+-- HOWEVER.. from application perspective, unique key and primary key can be considered same.
+
+
+Django: to get settings, always use "from django.conf import settings", and NOT "import settings", or "from settings import ...": https://stackoverflow.com/questions/19976115/whats-the-difference-between-from-django-conf-import-settings-and-import-set
+
+
+DB: By having domain driven design, you can even partition your DB into separate small DBs that can make them more fine tuned and speed performance. Analytic workloads can be made to work on different replica!! ..or can do it in cache!!! -- best if db can be configured to have cache which is aptly partitioned to only store the corresponding table data
+
+
+UI: https://www.joshwcomeau.com/operator-lookup/
+
+
+IMPORTANT: 
+-- User lifecycle management (+checks on period of inactivity, password management) + Priviledged access management:: Comment on it..
+-- Governor: keep track of which all pods of business have used/access to user data. The goal is that when a breach occurs, it can be quickly identified what all business sections are impacted.
+-- is it beneficial to have uniform authenticator and uniform authorizer.. at least for latter.. would be good to have applications register the roles in it and then when request comes, then role headers are added to it (as security, if you are adding these via custom headers, then don't allow those headers to come in from outside, and to leak to outside)
+
+
+
+
+VERY VERY IMPORTANT: You can use null vs non-null to identify different state.. as long as it can be mapped properly and there is no overlapping meaning, as it happens for string (Cue to - use null value in charge to identify that no call is made). Another way to think about it is that if you don't do it and instead use another column, then you'll have strong coupling between 2 columns and that breaks 3NF
+
+
+REST should version come first, or should the group-path-name come first:: Have group path name come first because the root doesn't know of version.. it knows of the group-paths.. now the group path have version.
+
+
+Security: While REST is "like" a filesystem.. never ever copy rest url directly on to file system. It is like it "conceptually".. not exactly it. If you directly copy, you can run into insecure IDOR file path attack -- because you are copying url, not the peermissions!!
+-- Have a security system that makes known attacks against your application to ensure it is not vulnerable
+
+
+Entity: Use unique combination to describe the entry.. i.e. its __str__ value
+
+
+If a request goes through chain of processing - with 3rd party API.. then have a separate status for each update.. don't try to lump things together.. keep it DAG!
+
+
+
+When doing migrations -- how to include data - while keeping it agile
+-- one way is to always include data at very end, and to always run it. Either create data if missing or update
+-- other is to scatter them in migrations
+-- The advantage of former is that it keeps all dta at one place which is good for reference, but it'll only work if your framework allows add/update in single command. Else it becomes messy.. should it be added, or updated? The advantage of latter is that it keeps chronology.. so you can track how data evolved - is made one time only.
+-- When using former, another good thing is that you can break your migration into 3 separate sections of DDL schema generation, add/update data, adding/update permissions
+
+
+
+When doing migrations.. always maintain linearity as done in Django
+
+
+
+UI: Don't mix onclick and onchange - specially where the boundary between the two can be thin:: https://stackoverflow.com/questions/5575338/what-the-difference-between-click-and-change-on-a-checkbox
+
+
+
+UI: Be transparent about click ollection
+-- https://lawstreetmedia.com/tech/nike-fullstory-sued-for-recording-screen-sessions-of-websites-visitors/
+-- https://classactionsreporter.com/lululemon-website-wiretapping-of-visitors-sessions-california-class-action/
+
+---- can also be troll lawyers.. since 
+
+
+
+
+
+Code review
+
+
+
+If you are at code review stage.. then the product requirements, design review should have already been done. that would have contributed to JIRA. If you're asking why this design is being used.. that's too late in code review. Don't ask if the code should exist - but instead if it does correctly in what it wants to do. That being said, if you see an issue with missing design review, product clarification -- then it means you need to improve those processes and/or make it more transparent and inclusive so people can chime in earlier
+
+
+
+code review are only as good as reviewers. it is collaborative. 
+
+Always have test.. code review is a forum for discussion; but not to find bugs. That's for unit test. Always write tests.. and also review test - Make sure it meets requirements.
+
+Cons - can have back and forth, slow speed.
+
+The good thing is you get to know what's happening elsewhere. People can give opinion and not get steamrolled.
+
+nit type CR, ok type comments, and then blocker comments
+
+
+
+quick checks: Logs, security, availability, validity check
+
+
+
+don't have code review longer than few hundred lines change. If not, split tickets.. split code review. But recall, everything is reversible.. more tickets can be made. So, don't be extra rigid. But keep those options open in mind when coding. If things are not fully defined.. keep an interface. Make sure it's extendable. That being said.. have context of what you want and code for it.
+
+
+
+Keep description of changes in JIRA. more specific comments in MR
+
+
+
+Everything in CR and JIRA should have a binding context. It's a balancing act.. not too small, not too large
+
+
+
+Rude CR comments: (1) your code is not you. (2) be objective when writing, don't give opinions, give reasons - not statements or directives. (3) de-escalate, read in good faith. If reasons are missing, ask for reason. (4) Don't give directive -- ask question to confirm about what's done in code (better EQ)
+
+Feel free to say if something is your personal idea.. but need not be used by others
+
+
+
+
+
+
+
+
+
+PROJECT DESIGN:
+
+If project duration is of no consequence, you should design your project for lowest cost. But if cost is immaterial, you should design it for the least duration.
+
+
+
+
+
+
+
+
+
+GraphQL:
+
+Seems to be better to do on UI side than on service side:: https://blog.logrocket.com/5-reasons-you-shouldnt-be-using-graphql-61c7846e7ed3/
+
+But if done on UI side for data collection, or even on service side to collect data from other services.. that's essentially a microservice collection pattern - because - it is not done in a single transaction!!! If you want single transaction and just return few fields, then maybe just specify fields to return.. and use the field name as obtained from OPTIONS call/
+
+
+
+This seems to explain "awesomeness" of GraphQL but it just shows how it a  return to single root RPC call : https://medium.com/@JeffLombardJr/when-and-why-to-use-graphql-24f6bce4839d -- with everything done in POST and no restful structure or response code? Having separate data and error object?! Yuck! or maybe I'm not understanding
+
+
+
+This contains points on having GraphQL: https://nordicapis.com/is-graphql-the-end-of-rest-style-apis/
+
+
+
+For example, if the goal is to simply reduce the round trip time to resources, then maybe just pass fields?! Also, have you defined if/why it's necessary to be returning parent data when user asked for child data, or return child-list-data when user asked for parent data. If efficiency is reason, then why even return data that hasn't been modified.. but how do you define "modification" when both parent and child data are returned.
+
+When creating data, things can get even more complex if sub resources are created on the fly! Why? - for same reason that Django rest Framework does not allow it.. ther's no unambiguous way to identify how to proceed.. or if to raise error.
+
+
+
+Over vs underfetching.. just give the fields that you want. Plus.. lets look at overfetching.. is it hurting your performance, and by how much..? considering that network calls are the ones worst. Also, if concern is still there, maybe look for a framework that allows specifying the fields to get. Coming to graphQL.. does it fetch only required fields, or does it fetch everything and then throws away non-required fields
+
+
+
+HATEOAS is not a constraint.. you can also use Swagger openAPI and use it for interaction!
+
+
+
+Saying REST has bad discoverability.. again.. how does it align with product requirements. What if you want to keep discoverability low to have better security? ALSO.. REST isn't the one making query in database - if discoverability is such a big thing, then make a framework that is able to take dynamic fields and prepare SQL accordingly!
+
