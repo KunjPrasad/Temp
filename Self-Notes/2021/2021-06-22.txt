@@ -1,0 +1,53 @@
+UI:
+**IMPORTANT**: Mock service worker -- transparent mocking for front end
+
+RBAC: negative role.. where its presence means you are "not something" -- can be used for restriction on impersonation
+
+
+IMPORTANT:
+- You don't have to go down the rat hole of handling every edge case if it may not happen or will happen extremely negligibly.. Still, a good idea is to make a log that can be easily searched on to identify and count such edge cases.. and with sufficient information os that the triggering scenario can be identified - so that it can be corrected
+---- Same, can also be done to maintain distributed transaction but without the complexity of transactional outbox!!!
+
+-- For logs, add that they have text logs vs metric logs distinction.. but is there a good, unified way of handling it. Should there be a distinction. Should there be 2 ways to handle it. How does governor service come in?
+
+
+-- Test: When writing functional test, don't mock internal methods - as if you're doing unit test. Do either unit test, or functional test, but don't try to mix one in another!!
+
+
+**VERY VERY VERY IMPORTANT: Equivalence principle: If at any time, you have a requirement, that can be met through more than one separate architecture ideology (both with nitpick tradeoffs, if any), and both don't add any new tests and compile on existing tests - then equivalence kicks in, i.e. the code should be such that it can easily be refactored from one to another if needed; tests should not be tailored to one or other implementation -- this is where functional tests gain more importance than unit tests
+--|---- Add this to Prod-Prod as part of effective communication
+--|---- Add to UI as part of mixing html, css, js in front end frameworks like React. For example, keep clean the JS porting that routes for different states to different html output. Keep the css-in-js logic such that it could easily be moved over to individual css as needed. Similarly, even if using css, keep it such that it can easily be moved over to css-in-js. Also see https://krasimirtsonev.com/blog/article/react-separation-of-concerns
+
+
+-- UI/React: rendering vs hydration
+---- https://stackoverflow.com/questions/46516395/whats-the-difference-between-hydrate-and-render-in-react-16  -- hydration good to not render empty page, helps with seo
+
+
+
+Prod/Prod + interviewee
+-- A statement like "[Action] because [Statement]" doesn't mean that the following statement will always be a reason. Be cognizant.. if you are providing an opinion, say so. Giving an opinion and then saying that other person doesn't listen to reasoning is a fault on your side of communication, expects opinions to not be acted upon because they are opinions, not reasons. If the other person asks you to clarify more to bring out the reason behind an opinion, then that's their goodness, and not them behaving per expectation - unless they are manager, or at high level in tech field. 
+-- Hence, also note, that if you are recipient of such message, then following up on it, is you increasing your level. It's not a daily expectation.
+-- If other opinion seems equally likely, then realize that equivalence is coming in.. i.e., there likely isn't any functional / testable difference -- and moving between different options will just mean moving the same code at different positions. There isn't any "correct" answer in this case, but anyone implying so is clearly wrong. Maybe try multiple options and you'll get some insight on which way to go, they'll be minor, but can help decide; maybe look to prior example or company/group design guideline and that is the reason to go one way or other; or maybe cite creative freedom
+-- For interviewee, note if your interviewer is making such comments. Additionally, ask how the interviewer feels in their experience that such cases are handled.
+
+
+interviewee
+-- If at any time you feel that you cannot move forward because many competing concerns are coming to your mind and/or you cannot identify where/how to start.. then explicitly say so that "you have many things that are coming into your mind and you cannot identify a way to break them down and prioritize it and that is preventing you from proceeding". This does a few thing: (1) transfers most of the burden to interviewer to get details from you and unblock your path, (2) gives you an idea of company's culture: Do they help people who are stuck, or do they immediately give up because its "not their job". Either way, your interviewer will work with you to unblock you. Best thing to do, write down all the points you have in mind at one place (maybe a paper, doesn't have to be written at correct place), then work with interviewer to discuss each and have each point be sent to its correct location. Bonus: realize that you've worked in an agile manner in the interview!!
+
+
+-- code-review interview is not an architecture interview.. so don't go deep in architecture, but it's about technical guidance on an already defined ticket.
+
+
+**IMP: ceheck notes from the indeed diary - for code review
+
+interview -- for array: think sorted, ordered.. also, think if that order needs to remain same over time. Can we get some gains by trading ability to maintain order.. in case maintaining the order downgrades performance
+
+interviewee -- don't ask for business proprietary info.. don't think you'll be dinged, but you are wasting otherwise valuable time. Try to ask more on things that an engineer would be engaged in.. not product. BUT.. you can ask how open is interaction between enggineer and product and manager, and tem leads, and legal...
+
+
+
+sending emails?! - log when sending, add pixels for notification when user opened it, create a singular point that contains all information about email being sent and generate email using only that object (single point of interaction with external system. Keep as much generic as possible. Don't just give an action url in email, give some encrypted url so that you capture clicks. Understand and properly use utm parameters. 
+
+
+
+Returning "Slug" in data -- Be careful when returning information from an object that lies on boundary of 2 domain. For example, consider the case of a contract between temp worker and company for 6 months. Here, worker and company are 2 separate domains. When worker makes any entry, they own it, including the slug, and same for company. However, the "contract" object lies on the domain boundary. When contract is active, the company can see the worker information via the contract and vice versa. But, in the strictest of privacy, this should not happen after the contract is over. So, ideally, when "contract" is made, then its slug should be given to both worker and company. When contract is active, then, via "/contract/{contractSlug}/company" or "/contract/{contractSlug}/worker" endpoint, one can see information about the other.. but even in doing so, the "slug" of other party should not be sent. This contrasts against just using "/company/{companySlug}" or "/worker/{workerSlug}" because those should be accessible only to company or worker respectively - and in that case, it can show the slug, because it's already provided in url. The reason for doing so is that once the contract is over, the PII sharing setup should behave as if before the contract. Hence, no reason for company to know worker's slug that they can use for tracking in any manner. SImilarly, it's even better if the email / phone is also not shared, and some intermediary is used, and then dropped. However much this happens depends on the "definition" of "contract" and how much the worker and company entity gets exclusive after a contract is over. "Id" is anyways not shared.. and shouldn't be shared, and should only be used for relations.. but in this case, even slug should not be shared. Since almost all other data can still remain shared between the two, it "seemingly" doesn't make sense to be so strict about no slug sharing.. but is a good model if requirements come to prevent sharing other data in future

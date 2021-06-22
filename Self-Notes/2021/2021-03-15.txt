@@ -66,6 +66,10 @@ UI: Be transparent about click ollection
 ---- can also be troll lawyers.. since 
 
 
+UI-testing
+-- test functional api calls using service workers
+-- there are packages to enable testing of setTimeout, setInterval logic.. alongwith also being able to freeze time
+
 
 
 
