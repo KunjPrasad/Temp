@@ -1,0 +1,130 @@
+example of information leak: say you have a referring mechanism to invite new participants.. and not let a referrer know that they cannot send referral because the referral-receiving-person is already registered. This lets out information to referrer that the referral-receiving-person is already in system.
+
+
+
+Logging - Say you have an endpoint that accepts a request body and validates it. Some validation can be basic.. like a valid number provided, or if asking for hours - then it is between 0 or 23, etc. This can be form-specific validation / model-specific validation where the validation is based (1) only on the field value for the instance and not on any historical value of field, (2) only on value of that model, and nothing is, (3) is from constraint based on definition of a field itself. HOWEVER, there can also be validations based on business-processing and this can also be based on historical value of a model, or based on value of fields of other model.. for such validations, one may want to log how often these are happening, and/or capture metrics. This can be useful in setting standards for process negotiation.. like, say, you want to pay some $7/hour, but most people are asking for $10/hr. Then this shows that an unrealistic standard has been kept. Maybe you don't allow people to check in after 5 minutes of reservation time, but there are lot of failures occurring up to 10 minutes past. Having a count / log / metric of failures can be helpful to negotiate the parameter of constraints. This distinction also shows how form/model level validation is different from service level validation. Form/model level validation isn't likely something you'd want to collect metrics from.. but service level validation could be!!
+
+
+Prod-prod: 
+* Love the problem not the solution - solution needs to change to address the problem.
+* Don't impose your will/decision on customer. See what issues they are facing and then make solution. Or, look at data to back your answer
+* Get people on board - discuss architecture - listen to opinions. If not, you won't get people to delegate to because they don't understand. Or, they'll just not want to do so, or will be slow at it. In other words, use the "advantage" of having a team when working in team!
+--|---- Don't put you opinion, witty remark, comeback if you are giving any kind of negative feedback. It's stressful as such for other person, don't add to it. Be objective, give reason and example. End by asking for a clarification from other if you are missing anything.
+--|---- If you are running in a situation where you have multiple feedback, then schedule a sync-up instead with the other party. Don't overburden them with comments without having a follow up. You can still put comments for visibility.
+
+
+========
+
+IMPORTANT: running a python script locally when python shell is opened
+
+I found myself wanting to run some python code automatically each time I started a python3 shell in the flex-backend-client folder (or any other project folder).  I came up with this bit of code/configuration to get it done:
+
+new file ~/pystartup.py:
+
+```
+import os
+
+cwd = os.getcwd()
+pystartup = os.path.join(cwd, "pystartup.py")
+
+if pystartup != __file__ and os.path.exists(pystartup):
+  # Execute the pystartup.py file
+  exec(open(pystartup).read())
+```
+
+in ~/.zshrc I added:
+`export PYTHONSTARTUP="${HOME}/pystartup.py"`
+
+in ~/.gitignore (which is my global git ignore file, so I don’t check this file into any repos):
+`pystartup.py`
+
+Now, I can add a pystartup.py file in any of my "project folders" (not in ~ directory), and if I type python3 there, it’ll automatically run the contents as it launches the shell.
+
+==========
+
+
+Interview -- DO NOT DELETE
+
+
+
+
+
+Help the candidate relax (introduce yourself, set clear agenda, give goal for meeting, friendly facial expression, give positive vibes - but don't lie or overpromise - if something is complex, say it is complex and has various focus points, few friendly talks, avoid internal talks with your shadow, explain about shadow, is shadow given chance to speak/lead; outline agenda to clarify; keep camera on for virtual)
+
+Engage them (no distraction, be on time, be respectful, answer questions, is the note being taken in notebook or keyboard)
+
+challenge, but not too much.. you don't want to  harp on something not working, and have the conversation stop
+
+Be patient, thank the "candidate" for time and taking interview, wish best of luck
+
+culture fit vs culture expand; in-group vs out-group; actionable <--- add a section on after getting employed; Progress-through-level, progress-through-band, how objective it is
+
+
+
+
+
+--- As a candidate, look if the interviewer is doing these things
+
+
+
+
+
+
+
+
+
+Other qs:
+
+is the compensation data driven (how do you prevent managers, individuals from wasting time lobbying for higher comp)
+
+
+
+Don't ask: How is my resume better than others? - This is confirmation bias -- Comparing candidates against each other, rather than our predetermined job criteria. Or, maybe ask it - a good interviewer will not respond to it
+
+
+
+
+
+Accommodations / Inclusive Language / "Indeed" Benefits (not personal benefits.. but can be personal example) / Commitment to Inclusion (!! how to identify?) / Culture Contribution
+
+
+
+
+
+
+
+Recognize the positive impacts of preparing and planning out an interview.
+
+Understand the requirements
+
+Be fair and unbiased; don't have hidden agenda
+
+
+
+
+
+Behavioral-based interviewing is a style of interview designed to assess the candidate's abilities, skills, and behavioral traits by asking for examples or scenarios.
+
+
+
+
+
+for jobseekers - keep a happy profile, listen to music, relax! think good/funny situations, read jokes. Keep mind light. Play sudoku (easy level)!
+
+
+
+
+
+Identify the key area (skill or behavior) to assess. 
+Compose an interview question to assess if the candidate is competent in the identified skill by asking them to provide a scenario. -- for software this will include tech questions
+
+
+Asking open-ended behavioral questions requires the candidate to share their experiences through rich examples of past behavior.: star response -- does the interviewer guide you through it or expects a response from you
+
+(R = what's the result, what's the impact, what's the learning)
+
+
+
+
+
+probing questions in interview
