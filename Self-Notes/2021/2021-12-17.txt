@@ -1,0 +1,49 @@
+Prod-prod
+Ask why stay (stay interview)
+Ask what's correct that is going wrong. This and above can be done once a month
+  ..compared to scrum retro: What went well, what went poorly, what is learnt
+
+Make JIRA tickets for Indeed learn
+Every ticket is demoable -- even the ones with code alone, like code infra setup. Can demo what all changes made. But it depends on company culture whether managers would want to see it
+
+
+UI:
+
+**IMPORTANT**
+
+-- Micro Frontend :: develop components in a <div id="some-container"> upper element rather than in <body>, <main>, etc. This allows each micro frontend to be separate. Then an "orchestrator" is responsible for putting all these containers in the main page, and link it with primary html elements. Think of it as "containerization" of UI that can then be loaded on main-page by an orchestrator!!  **This also highlights the importance of having a reactive UI. **ALSO** set/capture some common tracking key among all components so that uniform logging can be done
+
+-- Above view also matches with "Hybrid view" for Mobile webviews, where a Native app defines the main boundary, header, footer etc.. and then delegates the business logic to a webview inside it.
+
+-- Question: Above (micro frontend) is easier to do when each component is not interacting with each other.. what if an interaction is needed. Can there be an "event driven frontend?" Probably.. if the webview / microfrontend exposes a hook to a event queue that the orchestrator can set when loading the each micro container with ui data.. or maybe, just overwrite the js event handlers for the components that got loaded in webview. 
+
+--|---- Recall "react-toastify".. where the toast is displayed in a separate component. This mainly works because of use of setTimeout(() => {}, 0), i.e. async processing via a 0-sec timeout. `history.push` on server call success can also be seen as an example of async processing. These can be used as inspiration for front-end event driven architecture between micro front-end ..and also combine it with observer pattern, along with ability of federate modules to export methods that can be used by "host" to set contexts / variables
+
+
+
+
+
+
+
+Workflow management
+
+-- Event driven with 1 single store for all status change
+
+
+
+
+
+
+
+UI:
+
+-- media query for dark mode on site: `prefers-color-scheme` can help identify if user has dark-mode set. See https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-color-scheme
+-- Maybe a good idea is to have "remote" folder inside every feature for front end. The goal is to pull any/all external dependencies in the remote, and then have the code inside the feature only import from this "remote". This provides a single place to identify all external dependencies and can be useful when breaking a monolith code. It can now be asserted that only the "remote" file should have absolute path, and everything inside the feature folder can be relative paths
+--|---- Having a separate remote folder can be seen as equivalent to having "require" statement in Java module system (Refr: http://tutorials.jenkov.com/java/modules.html)
+--|---- Finally, in index.js (for JS), or __init__.py (for python), export out whatever you want to be available for others. This is equivalent of `exports` in java module system
+--|---- same design can also be used in python since it has modules.
+
+
+
+JS:
+**IMPORTANT**: See https://stackoverflow.com/questions/5226285/settimeout-in-for-loop-does-not-print-consecutive-values -- this is generally seen as an example of "closure gotchas" in JS, for code `for (var i = 1; i <= 2; i++) { setTimeout(function() { alert(i) }, 100); }`. HOWEVER.. do note (IMPORTANT) that this example also mixes concept of how event-loop works in JS (https://developer.mozilla.org/en-US/docs/Web/JavaScript/EventLoop) -- even if the timeout was 0-sec rather than 100-sec above, it would still fail because (i) for-loop runs syncly, and all the 3 setTimeout are placed on js event loop AFTER the for-loop execution has completed after 3 times. (ii) Because of for-loop running first before all setTimeout, and because `var` is used, which hoists the variable to outer scope, and because all 3 setTimeout uses the same hoisted variable, so now when the event loop runs the setTimeout, it prints "3" for all cases, because at end of for-loop execution, which is before any setTimeout started, `i` was set to 3 by for-loop
