@@ -26,10 +26,13 @@ UI:
 
 
 Workflow management
-
--- Event driven with 1 single store for all status change
-
-
+-- Event driven with 1 single store for all status change. So, there is a single store for all "status" - but can break it as needed. Similar to this, there can be a single store for "flow status". So, based on existing flow-position for a user, the central logic identifies what comes next. From HATEOAS viewpoint, this can be useful telling user about what comes next. From core REST response viewpoint, now each service needs to just process the request, and it can then reach out to the "flow manager" to identify what page / request should come next. This can now be configurable or different user based on corresponding requirements. Hence, the "work logic" is separated from "flow logic". 
+-- This enables:
+--|---- Async jobs can be set to look at flow manager and pick up async work if they are at correct status. 
+--|---- Users can just go to one link that drives them to correct next step
+--|---- Lambdas can be registered with flow-manager, such that they get kicked off when a particular status is set. This can be one-step, or fan-out if all steps can be done parallely
+-- Reference: ( https://www.researchgate.net/publication/2518290_Micro-Workflow_A_Workflow_Architecture_Supporting_Compositional_Object-Oriented_Software_Development )
+-- Cadence (See https://cadenceworkflow.io/docs/use-cases/ ) -- do realize that since "workflow orchestration" will almost always be working on distributed-system environment, so be careful of CAP limitation coming in.. and maybe use "transactional outbox" pattern to consistently deal with it if cases come up..
 
 
 
