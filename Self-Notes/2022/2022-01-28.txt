@@ -1,0 +1,75 @@
+Workflow orchestration
+-- Any RPC type non-GET endpoint in REST design is likely for an invocation of some state-changing and/or state-based action. For all such cases, try to separate out the workflow management code in separate class.. such that if needed, it can further be pulled out into Cadence workflow. Previously, we realized that there is a difference between "request body validation / form field validation", "model validation", and anything else was defined as "service / business validation". NOW.. it feels that service validation should further be broken down into a "workflow validation" piece which exists only for workflow of a model.
+-- A good thing of workflow manager is that now an end-product using some intermediary product can see the workflow rules set by intermediary product, and can modify it.. so, there can be default workflows set by 3rd party, but the end-product can view / update / overwrite the workflows set by 3rd party.. if not, they can continue using (something like `get_auth_user()` equivalent of django - where if you overwrite it, that is used, else the default is used.. and this check is done in runtime)
+-- Realize that orchestration manager code can get bloated over time.. best to define it in a "Observer pattern" kind of manner (..i guess), along with a backend to persist state.. such that teams can subscribe to changes, and tasks can get triggered.  Or, if something is not subscribed, then that doesn't happen. Every team is responsible for developing their own workflow and then registering it.. such that the global manager simply identifies related events and persists data, or triggers any tasks
+
+
+UI:: mixpanel vs just logging data: Note that when the user interacts with webpage, they can create stateful data.. like, what time did they log in, log out, what was the last login before current, if there is a multistep workflow, how much time is spent in each step.. these details are ui interaction related... so rather than polluting db data, it is best to store it somewhere else. This is where use of "mixpanel" carves its space rather than just logging. application logging is stateless, or relies on db data for statefulness. Rather than polluting db with user interaction data.. so best to use a different transient db.. and that's where mixpanel as a separate store for "transient" user data makes sense.. Other example is to keep record of whether a new feature added to UI has been seen/ack-ed by user.
+--|---- Some good discussions under the data model section: https://help.mixpanel.com/hc/en-us/articles/360021749032-Mixpanel-Implementation-Course-#understanding-the-mixpanel-data-model
+--|----|---- The video has good discussion on why to avoid boolean as much possible, don't reuse same name for fields that have different data (can be skipped for normalized design, but good in denormalized design), and that in a denormalized design, it is good to mention data that is already covered at another place.
+--|---- **IMPORTANT**: above may be good to cover on model + controller (or in advanced topics under workflow).. in that workflow detail is best stored as a different table, and having corresponding service. Depending on nature of workflow and the parties involved, the "model" may mean multiple models, any may include user, etc. Sometimes the time variation of workflow details may be need to be stored. 
+
+
+Basic auth is insecure because you need to store the raw text password in browser. Any xss vulnerability, and the password is out!
+-- This can be reduced, at least, by instead giving a token on first authentication and then reusing the token. Don't just rely on md5 hash since it can be reverse engineered and is almost as insecure as raw text password
+
+
+
+interview/architecture: see about file copy, bittorrent,e tc.: https://www.youtube.com/watch?v=lDXdf5q8Yw8
+-- maybe link to other indeed architectures
+
+
+
+
+architecture + advanced/auditing: 
+-- (Maybe put auditlog in advanced section.. keeping logging with auditing, because logs can be used for audit)
+-- See https://medium.com/swlh/event-notification-vs-event-carried-state-transfer-2e4fdf8f6662 - "Event Notification vs. Event-Carried State Transfer" - an audit "log" that captures change.. but the "change" is not captured in log. Maybe capture change in log and/or in event released during change
+-- Use kafka as a "log" aggregator, collecting log entries from different system under different topic.. This further cuts down scope of what should be in log files.. there is access-logs which is server request response, that leaves capturing exception logs in application log, and all success mutation log in Kafka. The only thing left is GET calls, which being safe method.. having only the access-logs is sufficient. (So, application log only contains error; kafka event state stream contains successful state changes; access log contains request made and response code; datadog is telemetry connecting logs across front and back end and any other system, but for performance monitoring, SLO/SLA; Mixpanel is for containing user workflow event, info on UI - which is covered under workflow) ..also move workflow under advanced topic?!
+
+
+
+UI: Redux vs context -- Personally, 2 advantages of redux that I see is that (1) it "decouples" the data store from rest of application, (2) it allows adding middleware, (3) one of the posts say that if you want to store data in server side rendering, and build from that.. then redux is useful. 
+
+-- #1 is useful if you want to do micro-frontend. Here, each component defines a global store/reducer slice that it reads and modifies.. but does not worry about where that data is coming from. So, micro-frontend can be made where different features from different remote locations are collected together, and the global redux store manages the data. Compare this to if there's a "context" that exists "above" the micro-frontend, and that is getting read. This is a tight coupling and prevents the feature from being used as a micro-frontend. Any "remote" place that wants to use this feature will also have to import all contexts being defined above the  icro-frontend. There may be conflicts among different remotes. I am also not sure if this will work. Let's say feature-1 in codebase-1 uses a context that sits on top of it, context-1. Now, context-1 is defined at some path in codebase-1, and when feature-1 module uses it, it imports it from that specific path. When a micro-frontend imports feature-1, then even if it imports context-1 code, maybe it is not available at correct path, so that when feature-1 code on micro-frontend machine tries to import context-1 code, it will not be able to pull it!! All this problem is resolved when using redux (..provided top reducer does not add any other level of hierarchy in data)
+--|---- Within a feature though, you may be doing small data store, and context / hooks can be used to save that data.. and that should not be passed to redux. So, redux is good only to have external dependency data
+
+-- #2 is useful if you want to have some uniform "aspect" behavior around each method handling. This allows for having redux devtools, logging, error catching, etc.. but again, once inside a feature, it may not be needed.. but may be good to have at global level
+
+
+
+https://alexkondov.com/tao-of-react/
+
+
+
+Service + UI (specially UI): serve static content using CDN and only route non-static content to your router
+
+
+If you are a platform/service provider, then best to not rely on cookies for authentication. This is because as a provider, you'd want to be setting CORS to allow all servers and cannot rely on cookies. Also, as a provider, any cookies you set is a 3rd party cookie. If you are end product, then the service works in conjunction with UI, and cookie based session is useful. BUT, if you are a provider, you cannot use cookies for auth, and so only rely on header based auth achieved by exchanging tokens. 
+
+
+
+UI + service: Note that the difference between integration test vs functional is that former works on actual data by making actual server calls, while latter works on mocked server calls returning mocked data (preferably which is randomized using fake data). But otherwise, the core tests that run are the same. So, it may be possible to define a code arrangement where depending on an external control, same tests are run.. but when the control is integration test, then actual server calls are made and when control is functional then server calls are mocked. ALSO, the same control can be used where if it is set on integration then test data is "identified" by calling some server endpoint (only available in local or qa, not Prod) that returns tests data based on an actual test-user login, but when it is set for functional, then test data is created by faker. This can be done for since page render, single changes, or even for workflow, accessibility checks.
+-- One more thing to note, as mentioned in react testing library, only always test for features, like, query by text, form label, and not by css. Same should also be done in integration test
+-- Note that when running integration test, it runs in browser, vs when running functional tests, that run in jest. Also not sure if jest expectation work when using integration test. Maybe this is a reason to have the two as separate rather than sharing code?! Also, since integration test runs in browser, there's no way to mock certain libraries as can be done for functional, and also it will be comparatively slower because it is working with browser code, rather than doing in-memory. So, integration test is best confined to positive use cases.. and this can cover workflows across different features. Doing the same for functional test can be taxing as that'll cause a lot of fake test data to be generated. SImilarly, testing for all edge cases on browser via an integration test can make integration tests slow!
+
+
+
+Java:: Testcontainers (https://www.testcontainers.org/) provides ephemeral resources that an application can depend on for "integration tests".
+
+
+Password hashing: Using Argon-2 hashing, which is CPU heavy, so cannot just be cracked by upping the number of GPUs. Also, each for choice of password hash, it can be identified on what is the time/cost estimate to crack the password. Ideally, the password hashing choice should be such that it becomes almost around $20M for cracking password
+
+
+UI: 
+-- Accessibility checking tool: https://chrome.google.com/webstore/detail/indeed-accessibility-exte/imlpkcheheedjipigphiajninjnflldg
+-- HTML validation tool: https://validator.w3.org/nu/
+
+
+Service: For NOT using basic auth:
+1) For basic auth, you need to store encoded (not encrypted) password on client side. That's bad because any xss vulnerability will reveal it
+2) Attackers can brute force their way on server, trying password combination till they succeed (this is not the fault of basic auth.. but still, it increases the chance)
+-- Hence, if you want stateless service, then best to use some token with key rotation. You can use basic auth just for first time login, that returns back token to user.. and then use token. Even when using basic auth for the first time.. do ensure to never ever read/use/save plaintext password from user
+
+
+A/B test: "Inactive" vs "Holdout" has different meaning. Holdout is something that will always be "not" given any test data. Inactive is someone not participating in test now (so not getting test data), but they may be put in a group later -- But is this of any use.. does it may stats mirky, if holdout and inactive are treated as same???
+-- be careful of range allocation for A/B test -- See https://opensource.indeedeng.io/proctor/docs/best-practices/
