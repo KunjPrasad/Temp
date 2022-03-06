@@ -1,0 +1,71 @@
+OAuth:
+-- use the TLS certificate as client-Id itself. This forces use of https. Client-Id in certificate is used and certifies the client. This is also distributable to other OAuth provider and is unique
+-- If your organization hosts various internal services - then, for a user, once they log in through one service, they expect to be always logged in, as they go through other services in org. Also, the services in your org can do a "service-to-service" call. Even when a user first hit service-A which authenticated it.. they may then go to service-B, which should have access to same details, and service-B should be able to ask for a new access token that was initially obtained by service-A. The user details can be passed around from one service to another, and this should form basis of service-to-service call using same auth token. HERE, in this case, it's better to make a central, single service, which holds user auth token, user details, etc.. and all other services can access it, or ask for refresh. This acts as a shared, user details, session - but only to store auth details.. don't store any other session details. Now, any service-to-service call will keep on using this data.
+-- If your organization is both an OAuth provider and OAuth user, and also is an organization with multiple services, then you'll have OAuth server, and another server to store user details.. No service will interact directly with OAuth server directly. Instead, using service mesh, they interact with the user-auth-session-service. This means, if you make oneGraph, then that should never directly interact with OAuth server data, but only via user-auth-session-service identified from service-mesh!
+
+
+UI: A good idea is to have the base js folder get an alias of `@appName`, so you can do something like `import ComponentX from '@appName/features/featureX'`, or `import utilY from @appName/utils/utilY`. It adds to the clarity of import showing clearly that the features or utils paths is coming from your app. You can also do `@company/appName` instead of just `@appName`
+
+
+
+UI: Email-accessibility: Flesch-Kincaid test for readability of content, specially in email (many govt. goes for 6th grade level.. )
+
+
+
+UI: Testing - A good testing strategy: (1) Have all tests be in a separate folder and not in source directory (exclude this folder from bundling), (2) Only make `.test.js` (not `.test.jsx`) file where you render the entire application and do test on it. This does slow down testing a bit, but will not break on refactor. If you are worried that the entire application jsx is loading, even when it is not needed.. then instead use async loading at router level.. but prefer loading entire application.
+--|---- DO NOT test UI by queryByTestId() method - both in unit test and integration test. reason: (1) Doesn't check semantic structure, (2) Doesn't check accessibility, (3) If you change UI from self written component to a company wide one or 3rd party.. then you want to check on functionality provided by it, and not by testId, (4) Anything extra written just for purpose of test should be avoided
+
+
+UI: Redux
+-- NOTE that Redux store exists at top most level of application. (Or, maybe you can have multiple stores.. each existing for a feature.. in which case, it is similar to a React context!!? Anyways.. better discussion is for case when it is at "global" level)
+-- Being at global level, there is a use case in micro-frontend, where different "features" in different codebase can be defining their own reducer, and some other code can be using it. Here's the thing.. as long as the root-reducer definition is consistent for all (i.e., there is consistency in how different reducers are combined), then micro-frontend gets enabled. SO.. best to format reducer `action` type as `@company/productName/featureName/actionName`. AND, to combine reducer from `feature/featureName` module in code release by `productName` as `const productReducer = combineReducer({featureName: featureReducer, ...}); const companyReducer = combineReducer({productName: productReducer, ...}); const globalReducer = combineReducer({companyName: companyReducer, ...}). Now reducer, and corresponding action will have same hierarchy, making it easier to understand, what action is affecting what reducer -- and helping with easier micro-frontend
+-- For same reason as above, if your code is reading properties by looking at some constant defined at `window` level, like `window.__initialState = {key1: value1, key2: value2}`, then, again, it will be useful to name the keys as `@company.productName.featureName.constantName`. **ALSO NOTE: From an execution viewpoint, it may be useful to have prefix like `.client`, `.server` somewhere in the path so that it is clearly visible that a property is something that will be exposed to user javascript and so, it shouldn't have any secrets in it!!
+
+
+
+
+(Prod/Prod): 
+-- Platformization vs Product-add : One gies for consistency and reducing tech debt, other for new features. 
+-- Microservice vs Distributed Monolith: Former requires you to know and optimize 1 system; Only think of its use cases ..and should others want to use your service, you add features for them. Trying to know of other services and how yours could fit into it - is extra, is good but not necessary. A distributed monolith is where knowing others is not extra, but is required! It could be because of two systems closely working, and/or transition from monolith to microservice. Either way, it is not a good thing and generally means that each microservice is not quite "micro" or a generic "service".. and hasn't been platformized.
+
+
+
+
+Include if not already: https://martinfowler.com/bliki/UnitTest.html -- also stress on solitary vs classic unit test
+-- https://martinfowler.com/articles/practical-test-pyramid.html -- what if db is in memory? is that integration or unit test.. sure it may not be as fast, but is a more robust feature testing. And at end of day, business customers will demand that a feature works.. not just that half of it works - even though all unit tests are working. Maybe it brings in some inefficiency, some repeated test code (not source code), some slowness compared to if it were purely unit.. but does that matter. Even with in-memory DB.. it won't go super slow as things are still happening in memory! But now, you can refresh database between tests and see how things behave! Maybe your unit test on controller is fine, but mapping from request data to what goes in controller has issues! When using framework -- you don't want to add tests that test the framework -- but make sure to not use it as a pretext to not test the fact that you are correctly using a framework.. you don't want to test the framework, but you do want to test that you are correctly using it.. and if that configuration/usage translates to a feature.. then you do want to test it
+-- Plus, your unit tests shouldn't add inertia against refactor. Also, by using in-memory DB, the unit tests come close to actual integration test run against an environment.. so the integration test development gets boosted by unit test code!!!
+
+
+
+Update interview pages: It's all about getting signals!!!
+
+
+
+UI: react router creates abstraction for HashRouter vs BrowserRouter. So, if you use HashRouter, then having location={'pathname':'abcd'}, appends the 'abcd' as a hash to the url. For same code, if BrowserRouter is used, then it gets appended to url path. **ALSO**, same when using `useHistory()` and trying to push a path! This shows how React-Router has far more utility in creating abstraction for the path.. depending on what is used, the url the actually gets made in browser changes.. but the rest of underlying code remains the same, i.e., it keeps using same {pathname} field in location
+
+
+UI: Use of broadcast channel to communicate "event" among the tabs/windows! Can also be used with Redux to dispatch actions when certain broadcasted data is received
+
+
+UI: I **WOULD NOT** suggest syncing redux data onto sessionStorage. It just creates duplicate store of data which bring new data management nightmare. Like, you'lll have to throttle data being written to sessionStorage so it doesn't happen on every redux call.. but if you do it time based, then it can be too late (for quick changing data), or too soon (for slow changing data). Also, when user logs out, you can't simply refresh the page and expect all user data to be gone, because it will be in SessionStorage. Or, maybe your users would want to "refresh" the data being loaded for them to forcefully pull in new data.. but that cannot be done now, because Redux will continue to read old data from sessionStorage on initialization
+
+
+UI: There are different storages -- localStorage, sessionStorage, cookie (shared with server), redux store (shared and used by multiple components), react (in context and state), react-query. NOTE:
+-- (1) Do NOT duplicate data stored in different location (on microservice principles)
+-- (2) Clear all user-related data on user-logout. Reloading the page is good way to clear react, redux, etc. data, but that won't remove sessionStorage or localStorage or cookie data.. so be careful
+
+
+UI: NOTE:
+-- code arrangement. Keep code relating to similar functionality co-located
+-- features folder (for each feature) vs utils folder (functions, components, constants) used by more than 1 "feature" (not more than 1 component). You can also have a `utils` folder in each feature for utilities used by more than 1 module in each feature
+-- For each feature, have an `index.js` page which exports all components, functions that other features can use. Other features should never dip below and try to get utilities not exported from feature-level index.js. It may be possible that certain methods, etc are exported by modules in a feature, but they are for internal use or testing only.. and should not be used otherwise
+-- have css, images, (and constants) etc. be defined / co-located with each feature. Don't try to make different folders for like, reducer, action, components, etc. It just gets confusing!!!
+-- Realize that all pointers above are obtained by thinking of each feature as a microservice, and having them as much independent as possible. Same also holds for Backend!
+
+
+
+UI: REDUX middleware vs reducer
+-- Refr: https://stackoverflow.com/questions/41131395/how-to-simulate-events-using-react-redux
+-- The idea is that Redux can host state (global DB). Any component can modify that state, or monitor it to be notified when it changes. (This is important.. if you are using Redux to combine reducers for different features.. such that a data will be used only by that feature.. maybe you want to instead use a React context, one for each feature)
+-- Redux is good for micro-frontend design
+-- Redux has state, and state is modified by reducer. By design, reducer shouldn't have any other side effect and should only be modifying the state. Component hook into the "state" of redux, to render new, when state changes. But let's consider something like a logout action (i.e, logout button click). This should cause side-effect and state change. State change is like, clearing user details. Side effect can be like creating logs, reporting events to somewhere.  Such side effects should be done in "Middleware".. don't have reducers doing the side-effects.. that's not the job of reducers. Middleware do side-effects and pass action to redux store, where reducers look at it and just change state data.
