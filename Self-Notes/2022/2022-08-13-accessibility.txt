@@ -1,0 +1,513 @@
+OTHER - IMPORTANT:
+-- Be careful storing user's accessibility preference on server side, or 3rd party tracker. This is a PII because someone can use it to identify disability info!
+-- Use html tags as much possible, rather than div + aria-role. Use css for styling. Also, use lists where ever possible.. but prefer table rather than lists!
+
+
+Accessibility in gaming
+-- https://www.eurogamer.net/articles/2021-12-18-its-a-true-frontier-of-game-design-how-naughty-dog-and-insomniac-games-think-about-accessibility
+-- Access and challenge design patterns: https://accessible.games/accessible-player-experiences
+
+
+* media query: `prefers-color-scheme` can help identify if user has dark-mode set. See https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-color-scheme
+
+
+Accessibility test:
+-- Chrome plugins for Axe Devtools :: https://chrome.google.com/webstore/detail/axe-devtools-web-accessib/lhdoppojpmngadmnindnejefpokejbdd
+-- Chrome plugin for Wave Evaluation Tool :: https://chrome.google.com/webstore/detail/wave-evaluation-tool/jbbplnpkjmmeebjpijfedlgcdilocofh
+-- Jest-axe :: https://github.com/nickcolley/jest-axe
+-- Nu HTML Checker is a HTML code validation tool :: https://validator.w3.org/nu/
+
+
+
+//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+
+
+Type of disabilities:
+
+* Blind
+-- All content must be presented in text or via a text equivalent (e.g., alt text for images or other non-text objects).
+-- All functionality must be available using only the keyboard
+-- The content must use markup with good structure and semantics (headings, landmarks, tables, lists, etc.).
+-- All custom controls (e.g., expand/collapse buttons, media player volume control, dialogs, etc.) must have the correct name/label, role (either with HTML or with ARIA), and value, and must change value when appropriate
+-- Users must receive immediate feedback after all actions, via their screen reader. Silence after activating a feature is always bad!
+-- Videos require audio descriptions (additional narration of visual content) if the video's original audio track (dialog, sounds, narration) does not explain everything that a person who is blind would need to know to understand the video.
+-- On mobile devices:
+--|---- All features require a click action.
+--|---- Custom swipe actions on web pages will "NOT" work with the screen reader turned on. (auto-paginate?!)
+-- (Self) don't change text too quickly.. and then have screen reader immediately read it
+
+
+* Low Vision
+-- If a JavaScript alert pops up to the side of the current visual focus, the alert may actually appear out of the visible area for the user with low vision, so the user may not see the alert at all. It is best to place popups, alerts, error messages, and other similar messages near the visual focus, to make sure users don't miss them.
+-- The pinch-to-zoom feature must not be disabled (AVOID <meta name="viewport" content="user-scalable=no">)
+-- All text must pass contrast guidelines against the background
+-- Links, buttons, and controls MUST have a visible :focus state and SHOULD have a visible :hover state. (A good idea.. always have elements with a white padding. This way any border will always be separate from the the content it envelops, and, showing border won't make it hard to read the enveloped text because of padding. May also want to ensure that css box-sizing:border-box is used, so that when an outline is made, that is done at expense of some padding, causing the size and position of original text to remain the same as it was previously. Note that it may not always be possible to rely on margin because (a) sometimes you don't want a gap to show as can happen if using margin, (b) margin of consecutive elements can overlap, so when one element's margin gets used up by border, the overall layout may start looking different)
+-- The user interface should provide a clear visual distinction between content (e.g., text) and controls (e.g., buttons, links, etc.).
+
+
+* Color-blind
+-- Example: People often can't tell when others are "online" because, to them, the green dot that is used to indicate if others are online looks very similar to the red dot used to indicate when others are offline. This is a source of annoyance for them because they just can’t tell if others will answer or not until they try to call them.
+-- Example: There is one particular website that he really likes, but he gets lost sometimes because its tabs use green to indicate which main page is selected. (Meaning, don't rely on color alone to convey state)
+-- All information must be understandable without needing to distinguish between colors. Reds and greens are especially problematic when used as the only way to convey information.
+-- Self: See https://uxdesign.cc/a-colorblind-persons-guide-to-using-color-acb79e0d27a5 -- Can using colors of different value and saturation (i.e., in Hue-Saturation-Value scale, rather than in RGB scale) help make pages more accessible to color-blind people? Would it interfere with requirement for texts to have sufficient contrast with the background.
+
+
+* Deaf
+-- The concern with deafness is the accessibility of audio, in either audio-only formats, or audio combined with video, as is often the case. So, all videos must have captions; all audio-only content must have transcripts. Better if the transcript is sync'd with the audio/video
+-- Sign language interpretation of videos can be very helpful.
+
+
+* Deafblind
+-- Transcripts (this is different from caption which go at speed of video/audio; Transcripts are fixed text) are the only way that a person who is both deaf and blind can access video or audio content at all, because neither the video nor the audio is directly accessible to someone who is deaf and blind. Only digital text is accessible, because it can be converted into braille by a screen reader.
+-- All of the considerations for blindness apply; And All of the considerations for deafness apply.
+
+
+* Motor Disabilities
+-- All functionality must be available using only the keyboard.
+-- Links, buttons, and controls must have a visible :focus state and should have a visible :hover state.
+-- With session time-outs, warn users before the time expires (e.g. an accessible dialog or alert), and give them the option to extend the session. Ensure the warning itself allows for slow responses. A recommended minimum response time is 2 minutes.
+-- Provide large click targets (links, buttons, controls) for users who have movements that are difficult to control.  (..or maybe tab/keyboard controlled)
+
+
+* Speech Disabilities
+-- Don't depend on voice input (e.g., in mobile apps, custom widgets, games, etc.).
+
+
+* Cognitive Disabilities
+-- Experienced problems
+--|---- Limited Comprehension (Most people with cognitive disabilities experience limited comprehension of one kind or another. They may not be able to understand complex ideas. They may have difficulty with metaphors or abstract language. They may not understand some kinds of slang or idiomatic expressions. Some people with cognitive disabilities have exceptionally high cognitive functions in one area—the ability to remember numbers or conversations, but low cognitive functions in other areas, such as social skills or emotional awareness.)
+--|---- Low Tolerance for Cognitive Overload (Some people with cognitive disabilities easily become frustrated or upset when they sense difficult situations, or when there are too many things in their environment happening at the same time. They cannot handle the complexity of the moment. They need things to be simple and straightforward. Too many choices can cause them to freeze, and they may be emotionally unable to change their state of mind for a period of time.)
+--|---- Limited Problem-Solving Skills (When presented with a problem to solve, some people with cognitive disabilities may simply be unable to solve it, so they may not even attempt to solve it. If a website requires users to type in text in a CAPTCHA, for instance, they may not be able to process what kind of action is required. If they type an incorrect response and get an error message, they may not be able to figure out why they got the error message, or how to solve the problem.)
+--|---- Short-Term Memory Loss (Some people with cognitive disabilities have a hard time remembering things from one moment to the next. Their brains don't allow them to focus on new information, so they don't retain it in the short term. Long web processes—such as online purchasing procedures, account sign-up procedures, or setting preferences—can cause users to forget what they were doing, or to lose track of information that they may need to remember from one step to the next.)
+--|---- Attention Deficit (Some users experience attention deficits, making it hard for them to focus on the task at hand. They may get lost in their own thoughts, or they may find online advertisements too interesting, causing them to forget why they went to the website in the first place.)
+--|---- Difficulty Reading (Many people with cognitive disabilities experience difficulty reading. Some read at a lower level than their peers of the same age, and some can't read at all. It can help to provide illustrations or audio to supplement text. Some people with dyslexia have high levels of cognitive function at a conceptual level, but visual encoding of text can be difficult, so they have a hard time spelling or reading words.)
+--|---- Difficulty Understanding or Using Math (Some people experience math anxiety, which is an emotional or psychological fear that grips some people when confronted with math problems.)
+
+-- For users with lower comprehension:
+--|---- Simplify the interface as much as possible (Self: Don't do unexpected side-effects or more than 1 side-effects on a click/change)
+--|---- Simplify the content as much as possible.
+--|---- Keep videos and audio as short as possible.
+--|---- Limit the number of choices on the screen.
+--|---- Provide help features.
+--|---- Design for ease of use.
+--|---- Test the usability of the interface with actual users, preferably including users with cognitive disabilities.
+
+-- For users with memory loss:
+--|---- Retain information across screens, and within a path. (Self: Use "next" param when taking on different page to login to redirect back; If using a multistep form, then give step number, and the goal of form on each page; After successful POST operation via a form on UI, redirect to LIST page + show toast; After successful PUT operation via a form on UI, redirect to GET page + show toast)
+--|---- Provide help features. (Self: proper use of aria-describedby)
+
+-- For users with distractibility:
+--|---- Reduce or eliminate distractions (be careful with ads, carousels, intrusive audio, intrusive video, etc.). (Self: don't auto-start audio or video; Or at least don't auto-start video till user is on page - like Youtube does)
+
+
+* Reading Disabilities: For users with difficulty reading (dyslexia, etc.)
+-- Supplement text with illustrations, videos, audio, etc.
+-- Avoid the highest level of contrast for text against background (e.g., black on white) BUT be sure to stay within the contrast range that people with low vision need.
+
+
+* Seizures
+-- Don't include videos, animations, or transitions with flashing light sequences of 3 times or more per second.
+-- (For videos) - if this is unavoidable, then give user a warning. May, also give means to temporarily turn off video even though audio continues.
+
+
+* Multiple Disabilities
+
+
+//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+
+
+* WCAG:
+-- https://www.w3.org/TR/WCAG21/
+-- "Sufficient Techniques" and "Advisory Techniques": Many of the success criteria are at least mostly self-explanatory, but some of them are a bit ambiguous, so there is an additional level in the documentation that lists techniques for achieving the success criteria. If you meet all of the "sufficient techniques," then you pass the success criterion. The "advisory techniques" are basically a list of good ideas or best practices, but they aren't considered critical for accessibility in the same way as the "sufficient techniques."
+-- NOTE that WCAG contains objective, testable guidelines for accessibility. However, the topic of accessibility is subjective to individual, so, a webpage complying with WCAG can still be inaccessible to some. But still, it should cover various use cases.
+-- ALSO NOTE that accessible does not mean usable. A website can be inaccessible but still usable. Or, it can be accessible, complying to WCAG guidelines, but be in a manner that makes working on it very frustrating and makes it unusable. So, accessibility and UX are different!
+
+
+* The 4 main accessibility principles identified in WCAG are as follows. These principles form an acronym: POUR
+-- 1. Perceivable: Information and user interface components must be presentable to users in ways they can perceive. [Ensure content is accessible to people who are blind and/or deaf.]
+-- 2. Operable: User interface components and navigation must be operable. [Make sure all features are accessible by keyboard; not just by mouse.]
+-- 3. Understandable: Information and the operation of user interface must be understandable.
+-- 4. Robust: Content must be robust enough that it can be interpreted reliably by a wide variety of user agents, including assistive technologies.
+
+
+* There is a total of 13 guidelines beneath the four main principles.
+-- Perceivable
+--|---- 1.1 Provide text alternatives for any non-text content so that it can be changed into other forms people need, such as large print, braille, speech, symbols or simpler language.
+--|---- 1.2 Provide alternatives for time-based media.
+--|---- 1.3 Create content that can be presented in different ways (for example simpler layout) without losing information or structure. (Self: better to use html elements than using div + aria-role; Then style using css)
+--|---- 1.4 Make it easier for users to see and hear content including separating foreground from background.
+-- Operable
+--|---- 2.1 Make all functionality available from a keyboard.
+--|---- 2.2 Provide users enough time to read and use content. (Don't quickly open/close - specially on important message)
+--|---- 2.3 Do not design content in a way that is known to cause seizures.
+--|---- 2.4 Provide ways to help users navigate, find content, and determine where they are. (Announce errors! + error navigation on page)
+--|---- 2.5 Make it easier for users to operate functionality through various inputs beyond keyboard.
+-- Understandable
+--|---- 3.1 Make text content readable and understandable.
+--|---- 3.2 Make Web pages appear and operate in predictable ways.
+--|---- 3.3 Help users avoid and correct mistakes.
+-- Robust
+--|---- 4.1 Maximize compatibility with current and future user agents, including assistive technologies.
+
+
+
+
+* ATAG (Authoring Tool Accessibility Guidelines)
+-- https://www.w3.org/TR/ATAG20/
+-- These specify principles that web authoring tools (Dreamweaver, SharePoint, etc.) should follow in order to facilitate the creation of accessible web content. If any part of a web application allows users to create web content, though, the ATAG principles apply. **IMPORTANT** So, if you allow creating any email templates, etc. - then this applies!
+-- The guidelines are built around two focus areas:
+--|---- Make the authoring tool user interface accessible (Think of it as "maker" side WCAG, i.e., person making content should be able to use tools)
+--|---- Support the production of accessible content (Think of it as enabling created content to comply with "receiver" side WCAG, i.e., person receiving the content made by your tools is able to access final content. So, add checks to prevent creation of inaccessible content by author, and guide them to making accessible content)
+
+
+
+
+* ARIA
+-- Authoring practices: https://www.w3.org/TR/wai-aria-practices-1.1/
+-- WAI-ARIA—or just ARIA, for short—is a somewhat recent invention, intended to help fill in the gaps between the accessibility features of HTML and the real-world accessibility needs of today's robust, dynamic web applications, especially with regard to JavaScript. ARIA allows developers to specify the name, role, state, and property of HTML elements in both static and dynamic content. ARIA is not an entirely new language. It is an add-on to the HTML syntax. For example, to add a role of "navigation" to an HTML element, simply type it as an attribute.
+-- ARIA is almost entirely for screen reader users (and for speech recognition users and some keyboard-only users), in the sense that the markup is hidden, and ARIA allows screen reader users to know what's happening visually on the screen.
+
+
+//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+
+
+* Test
+-- Realize that one limitation of jest test on page render only is that some elements on page may change state under user actions, like, click or hover. And those won't get tested. So, just relying on jest-axe test during page oad is insufficient. Also, when testing in browser using chrome's axe and wave plugin, test it under all css conditions that can occur on page
+
+
+* Page title
+-- Add a title! If you leave off the title entirely, there is nothing for the screen reader to read.
+-- Make each title unique. If you have a section of the website describing products, don't use a title of "Products" on all of the pages. On a page about a specific product, the title should include the name of that product.
+-- Put the unique information first. If you want to include your site's brand in each page title, put it last, after the unique information (with the possible exception of the home page).
+-- Both the title (<title>) and the top heading in the main content (ideally marked with <h1>) serve essentially the same purpose: to give the page a title. With this in mind, it usually makes sense to match the page title and the top heading with identical text, or at least very similar text.
+-- Search engines and site search tools also use the page title when displaying search results. So, these are good for SEO.
+-- **IMPORTANT**: Any time the web address changes, whether due to a true page load event, or due to an AJAX call (as in single-page applications), or due to a JavaScript event, the page <title> must change to reflect the new content. Otherwise, the page title will be out of sync with the content, which can lead to confusion, especially if the user arrives at the page via a link sent to them or saved in a bookmark.
+--|---- SELF: Is the reverse also true? That page title should only be changed if the page url changes. This has implication in (1) form submit and error - since form submit is a POST operation and actual URL does not change, and also, the user will never be able to bookmark an errored page and arrive back there, should title NOT be changed on form submit. (2) query parameter - Should title be changed on query parameter in url. This denotes user operation, and while the url can change to capture state of user filter, this just makes causes noise when filter is repeatedly changed, which causes url to change, which causes title repeat. This also means that using query param for changing tabs on page is likely not a good thing. (3) Url change due to url-fragment -- definitely not change title (But what about single page applications?! - maybe that's why using hash based routing is also bad and shouldn't be preferred compared to browser router). IN CONCLUSION: Ideally, only change title when url "path" changes, which itself should be triggered by a GET call. This also matches with above requirement that <title> and <h1> should match as much possible!
+
+
+* headings
+-- Use heading nicely! Screen reader users often like to navigate by headings
+-- Create real headings, not just big, bold text. Alternately, don't use heading if you want big, bold text - instead use css.
+-- h1
+--|---- Every page should have one, and only one <h1>.
+--|---- Usually, the best practice is to start the main content of a document with a level 1 heading (<h1>). There should be no other headings before this high-level heading. One of the main reasons that the <h1> should appear at the beginning of the main content is because screen reader users can use keyboard shortcuts to navigate directly to the first <h1>, which, in principle, should allow them to jump directly to the main content of the web page. If there is no <h1>, or if the <h1> appears somewhere other than at the start of the main content, screen reader users will have to listen to more of the web page to understand its structure, wasting valuable time.
+--|---- As mentioned earlier, <h1> should closely match value in <title>
+-- Headings should not skip hierarchical levels. So, only h2 headers should come below h1, not h3.
+
+
+
+* Landmark
+-- Having <main> start with <h1> is a good way to identify what should go in <main>. It can be put in a <header> inside <main>. As mentioned in https://developer.mozilla.org/en-US/docs/Web/HTML/Element/header , the <header> element defines a banner (`role=banner`) landmark when it is immediately child of the <body> element. The HTML header element is not considered a banner landmark when it is descendant of an <article>, <aside>, <main>, <nav>, or <section> element. A navigation of content in <main> can be put inside a <nav> WITHIN <main>. Navigation among different pages at top-most-level, immediately under <body>, can be put in a <nav>, or in a <nav> inside <header> which is outside <body>, by considering what should be in a banner! ..all being outside <main>. Different <h2> can be put inside a <section> (preferable) or <article> in <main>. Company level logo shared across all pages is <header> OUTSIDE <main>, and under <body>. Company level legal disclaimer, links shared across all pages is <footer> OUTSIDE <main>
+
+-- There can be multiple <nav> in a page, and <nav> can also be a top-level element. However, if there's more than 1 nav, then add label using `aria-label` or `aria-labelledby`. Also, for <nav> that is site wide, it is best put inside `<header>`
+--|---- To generalize above, if you have more than 1 landmark of a type (and it is allowed to have multiple landmarks of same type), then give a label to all such landmarks, either using `aria-label` or `aria-labelledby`
+--|---- For <nav>, include a visible method of informing users which page within the navigation list is the currently active/visible page.
+--|----|---- SELF: Use `aria-current=page`, maybe also add a css class! DO NOTE THOUGH: If you are using <nav> inside <header> for a site wide navigation, and adding `aria-current` on the tab, then DO NOT also add a breadcrumb trail and add `aria-current=page` also in breadcrumb. DO NOT try to offset this behavior by using `aria-selected` for nav, and `aria-current` for breadcrumb, because `aria-selected` should change depending on which link user has tabbed onto, even with the same `aria-current`. Generally, either only use breadcrumb design, or only use navbar design.. don't use both!! If using navbar, then keep page flatness to just 1 level depth so that need for breadcrumb doesn't arise. If you are having deeply nested structure, then use breadcrumb. IF - you need to use both, then you'll have 2 nav, give label to both, and use `aria-current=page` in only one of them!
+--|----|---- NOTE: Another suggestion is to use aria-label with value having prefix `Current page`, or to add a visually hidden span with same text. NOT SURE if this is correct or good way.. or if this should be preferred over use of aria-current. Or, maybe use `aria-describedby` (but note that this will only be read when user goes to nav, iterates through entries and finally tabs onto the active link. It will not stand up from the outset, and so doesn't reduce user effort). But changing `aria-label` dynamically may also be bad - I'm guessing if that causes the screen reader to repeat the entire nav, since the label changed
+--|---- For a global level <nav>, i.e., one having `role=banner`, make sure that the order of items is always same in different pages!
+
+-- A <section> can have a header and text, let's say <h2> and couple of <p>. Here, it'd be good to add `aria-labelledby` to <section> and reference it to <h2>'s id
+
+-- Note that landmarks can be used by screen reader to skip navigation to a particular section. Realize though, that this technique cannot be used by sighted keyboard users or screen enlarger users with low vision. So, HTML 5 regions and ARIA landmarks cannot yet replace the old-fashioned "skip navigation" links. For "Link to skip navigation", See https://webaim.org/techniques/skipnav/#creating
+
+
+
+* Language
+-- Always add page-language on <html> identifying the PRIMARY language of the page, like `<html lang="en">` (..else screen reader will read the page in language accent and rule set by user's language preference)
+--|---- NOTE: if making multi-lingual content, then that also affects how search engines should crawl and interpret your page(s) in different language(s). So, if necessary, add corresponding info in head's <meta> and also in sitemap
+--|---- **IMPORTANT**: Note that "en", "en-us" are language, but "en_US" is a locale. Don't use "locale" for a "language"
+-- Also add charset in head's <meta>
+-- Identify any changes of language within the document. The "lang" attribute can be applied to block level elements (<div>, <h1>, <p>, <table>, etc.) as well as inline elements (<span>, <a>, <strong>, etc.). For example, if going from one text to another has no style change, and the 2 are inline, but the language changes, then use a span block, i.e., `<span lang="...">....</span>` to identify the change in language
+
+
+* Text
+-- content
+--|---- Text is the foundation upon which all other accessible content is built. Everything must exist in a text format — either as normal text or as alt text — or else screen readers won't be able to read it. **IMPORTANT**: Avoid Referencing Color, Size, Location, Position, Shape, or Sound in Instructions or Help Information
+-- A really good practice is to have ALL text on a webpage be container within one or other landmark!
+
+-- contrast
+--|---- Ensure color contrast of at least 4.5:1 for small text or 3:1 for large text, even if text is part of an image. Large text has been defined in the requirements as 18pts or 14pt bold.
+--|---- Be particularly careful of text on image. So places may have worse contrast than others
+
+-- font
+--|---- Avoid fancy font, or at least give option to user to switch font, with default being an accessible font
+--|---- Serif fonts have extra embellishments on them, typically at the top and bottom of the letters (like Times new Roman). Sans-serif fonts are plainer, without the embellishments (like Arial). The research is LESS conclusive as to whether serif fonts or sans-serif fonts are easier to read. The trend on the web has been toward sans-serif fonts in recent years. However, at this point it is relatively safe to assume that standard serif and sans-serif fonts are both acceptable. One of the problems with SANS-SERIF fonts, though, is the possible confusion between upper-case I (as in India) and lower-case L (as in laughter). In most circumstances the context provides enough clues to determine which letter it is, but in a few cases, the characters may be confused.
+--|---- A few font designs exist that are supposed to help people with dyslexia.
+--|---- Self: maybe DON'T prefer font that are too skewed on the aspect ratio, or if the aspect ratio changes drastically for elements in font
+
+-- justification
+--|---- People with certain reading disabilities or cognitive disabilities have problems reading text that is both left and right justified.
+--|---- The uneven spacing between words in fully justified text can cause "rivers of white space" to (vertically) run down the page, making reading difficult and, in some cases, impossible. (Likely, because it gives appearance of a boundary!)
+--|---- Text justification can also cause words to be either bunched closely together or stretched in unnatural ways, so that it is difficult for them to locate word boundaries.
+
+-- length
+--|---- Split up long sections of text into separate paragraphs, or lists, or find other ways to make each section of text more manageable.
+--|---- On similar note, don't have very long sentence. Instead, prefer multiple smaller sentences.
+-- supplement text with illustrations where appropriate
+
+-- Emphasis for Users with Visual Disabilities
+--|---- Write the word "Important" (or similar) before the content (easiest solution)
+--|---- Put the word "Important" in the alt text of an image. This is same as above, plus, gives option to use graphics
+--|---- If you want to emphasize something only for screen reader users, you can hide the word "Important" from visual users by using sr-only CSS
+--|---- Some screen readers (JAWS and VoiceOver, for example) read asterisks as either "star" or "asterisk," but it is best to not rely on asterisks, because the NVDA screen reader ignores asterisks, as do most older versions of screen readers.
+--|---- Don't just rely on using color, or very thin outline for emphasis. Color-blind people may not see color. People with low vision may not see thin outline
+
+-- Not all screen readers can understand <em> or <strong> for emphasis. Even for those who do, it takes extra configurations. So, best to add a visual/hidden text saying "Warning", "Important", etc. Or, if using an icon, give it an aria-label or title
+
+-- `<del>` can be used for strikethrough text. However, screen readers don't support it and it can be confusing to blind users. Also, if doing a strikethrough that has more context than simply meaning a correction, (like, some item on sale.. was some high price, now is some low price), then that information is lost. So, best to also use visually hidden text to convey contextual meaning of correction
+
+-- There is `<mark>` which highlight the text between the tag. But screen readers cannot user it. Best add a visually hidden text at start/end to show start/end of highlighted region. If the highlight is to convey a special meaning, best mention it, rather than just saying begin/end highlight. In itself also, use `<mark>` when doing so captures some additional information
+
+-- Using `<code>` together with `<pre>` can be useful to represent big code.
+
+-- Blockquote is for block-level-quotations, i.e. quotes that go so long they span entire block. For small quotes, there is `<q>` but the support in screen readers may not be present/good. So, just use explicit double / single quotes
+
+
+
+* Color/Contrast
+-- (Self) Use HCL based color wheel - Hue/Chroma/Lightness
+--|---- Maybe require your page to have colors with different "lightness" so that the page is accessible to color-blind - even when doing a greyscale! For people without color deficiencies, hue and saturation have minimal or no effect on legibility as assessed by reading performance. However, color deficiencies can affect "luminance" contrast somewhat. Therefore, in the recommendation, the contrast is calculated in such a way that color is not a key factor so that people who have color vision deficit will also have adequate contrast between the text and the background. Problem statement here: https://uxdesign.cc/a-colorblind-persons-guide-to-using-color-acb79e0d27a5 - to use colors with different saturation and value. For grey blindness - saturation is useless!
+--|---- For better contrast, and if you have to use color: use "white" text on dark chroma, or black text on light chroma. See Chroma vs Saturation (in HSV scale): https://munsell.com/color-blog/difference-chroma-saturation/
+--|---- **UPDATE** WCAG 3 will use a new color contrast method called APCA (Advanced Perceptual Contrast Algorithm) - so just contrast alone as used in WCAG 2 will no longer be used
+
+-- For best cross browser compatibility, refer colors using Color Codes Rather than Color Names
+
+-- Prefer color that have generally accepted meaning. Don't use "red" color for success, or "green" for failure.
+
+
+
+* Link
+-- Don't just rely on color to convey that it is a link, or behavior under :hover css. Add an underline or button. If color is the only method being used, it must provide at least a 3:1 contrast ratio to the "surrounding text" (not just with background, meaning, links should be discernible against background and also against surrounding text) during all states, hover and visited. Exception: Links in a nav or footer don’t usually require any additional cues because they rely on position and context in the site. Maybe add a hidden h2 header also in footer!?
+
+-- The link text should make sense when read out of context, describing the destination or purpose of link. Don't just use text like "click here" for a link, tell exactly what link is about. Screen reader users can navigate by link alone.. so links should sound/feel ok when read by itself.
+--|---- For same reason, a link MUST contain text. If there is an image, it must contain alt-text.
+--|---- If the link is specific to a file type, like, link ending with `.pdf`, `.docx`, then also say in link description the type of file being opened. NOTE: this may not work if the link does not have file extension at end, or if the link is obtained dynamically from properties.
+--|---- Also, for same reason, don't use 2 separate link for same text. Avoid use different text for same link. Best to have 1-to-1 match globally (or, at least on the page), between link href and link text/label
+--|---- If, however, you do need to override such that what screen reader announces with link is different from text, then use `aria-label` attribute within `<a>`. PREFER NOT TO have `<a>` consist of a text and a span, where the span is visually hidden, causing viewers and screen readers to behave differently in expected manner. While this works, it may be hard to test! -- do note though that this will happen if `<a>` consists of text + image/icon (an example of icon use is mentioned below, when link opens in new tab or window)
+--|---- Don't use the words "Link for.." in link text/label. The fact that it is in `<a>` element makes it clear, and screen readers announce that it is a link
+
+-- If link opens in new tab or window, then:
+--|---- add `rel="noreferrer noopener"` or at least `rel=noreferrer`
+--|---- prefer to add a proper icon after text, and ALSO, add title to icon "opens in new window". Hence, when screen reader reads the link, it'll say, "some link text opens in new window"
+--|---- AN ALTERNATIVE to adding icon and text.. is to add `aria-describedby` in link that points to a <span> or <div> which is visually hidden and has `aria-hidden=true` and contains text "opens in new window". This will not be shown, screen reader will not read it in normal flow, but when user tabs on the link, then the description "opens in new window" will be read (even though it is in span/div having `aria-hidden=true`). Depending on context, the behavior of screen reader not reading "opens in new window" under normal browse mode, and only announcing it when the link is tabbed on may be a good or a bad thing! For example, user may prefer that when screen reader lists all links, it also contains text whether link opens in new page or not. Another thing here.. an "opens in new window" icon can be added to anchor link by css alone - either by adding a glyph in `::after` (as done by font awesome) or by using `background-image`. NOT SURE.. how screen reader will react to glyph addition
+
+-- Reduce possibility of frustration from fat-finger: (a) As much possible, don't have multiple links close to each other. (b) Use a line spacing big enough all around links so that link text is separated from other text - giving is bigger area where someone can touch to effect a link click, also making the link stand out from other text rather than blend into it. For same reason, link text should not be too small and there should be sufficient number of words in link so it is big enough to be touched. For this reason, don't just add a small icon for link, even if it has alt text - because such a link is not accessible for sighted users, who can have motor disabilities.
+
+-- (SELF): Don't use links to effect a POST or PUT or DELETE call.. best keep that as a button so that you can capture the "is-processing" state, followed by a state of end action
+-- IMPORTANT: DO NOT add link in an element that has a different context meaning for click. This includes elements for which you have defined custom onClick handler, or those with standard meaning for onClick.
+--|---- For example: don't add link in form label, because clicking anywhere on label should take to label input. Instead, if necessary, make a separate text element and link it to input via aria-describedby, and add the link in that text
+--|---- Don't add a link in text of button's submit!
+
+-- All links in the page should be tabbable without requiring separate use of tabIndex
+
+-- NOTE: Screen readers announce links, and then read the link text.
+
+
+
+* Button
+-- When pressing button does backend call, then: (1) say that it is loading (via text and/or image), (2) disable it to prevent addition clicks (and enable back on success/fail - whatever case), (3) use aria-pressed and aria-disabled
+-- See comments under "link". Most also apply for buttons
+--|---- Like link, the button text should make sense when read out of context. It can be, and should be more concise than link text - which is ok because buttons are associated with a context on webpage. However, don't have similar text among buttons present in similar context (like, same form). If there are multiple contexts on page, and each of them have buttons, then ensure that anyone cycling through buttons can identify its purpose. That's why it's best to just have a single context with buttons in a page. ALSO, just like link, don't add a clickable text in button
+-- (Self) Above constraints also apply for elements with `role="button"` attribute
+-- (Self) If anything is clickable, that's either a radio, select, link, or button. If you are adding custom js click behavior to any other div, then also add `role=button` to it. And once this is added, then it means all above accessibility constraints related to link / button apply.
+-- Most web-browser highlight a button/link with a blue box around it. So, if you are making a blue colored button, then add a white/background color border, so that when the user is actively on button, then the browser added highlight shows up. This is specially important when sending email because the email browser is the one rendering, not you!
+-- Another good idea is to have primary / non-primary colors in
+
+
+* Link vs Button:
+-- Link takes user to a location, button does some action. Never, use link just to trigger custom JS. Button, can be used to open a window (and this can make things come in grey area), but almost always prefer link for it! As much possible, avoid styling link as button.. but is ok if needed.
+-- Link and button (and tabs) are the "focusable" - Hence, when they are focused, it should be visible / discernible that they are in focus! The change effected on focus shouldn't cause change in placement of other elements on the page, else that can be jarring to photosensitive users. For example, in list of tabs A, B, C, D... when tab-B comes in focus, it MUST NOT change the overall width of container for tab-B, that causes tab-C, tab-D to shift from their initial placement. This jarring motion of tabs moving as different tabs come in focus is wrong.
+
+
+* Images
+-- Adding empty alt text for decorative images, or if the image is described by a context (see https://www.w3.org/WAI/tutorials/images/decorative/ ). To do so, prefer setting `alt=""` rather than `role="presentation"` because latter has a wider screen-reader support. Maybe do both! If possible, try setting the image using background-image css setting.
+-- For alt text, give  brief, specific, meaningful description. Don't just give filename or generic values like "chart", "image", etc. If the image has text, then writing out all the text is a good alt text
+-- For image, `longdesc` attribute can be used to associate long description
+-- Avoid floating images with text wrap (if possible) because floating objects with text wrap are less accessible to screen readers than objects that are inline with the text.
+-- For image with text, such that the text gives user instructions on doing something (like table column header), prefer to use svg that using image. This is because SVG can be magnified without losing resolution - unlike image. If using image, then magnify it 5X and ensure it is still legible. Still realize that color inversion feature by screen magnifiers will still fail - so best, don't use image with text
+-- Put Context of Repeated Image Buttons in the Alt Text: Consider a table of 10 rows, such that FOR EACH ROW, you have a button clicking which gives extra details, and another button clicking which removes the entry. In this case, When screen reader users go through this lengthy table of data, they can easily lose track of which row they're on. It can help to add information about the row to the alt text of image buttons. So, instead of using `alt-text="details"`, use `alt-text="row-1 details"`
+-- Do: <a href="test.html">Page about image</a> or <img src="image.jpg" alt="Image description/>, but Do NOT: <a href="image.jpg">Link to image</a> ..because when user clicks this link, they'll get one image without any other reference. It won't even have any alt text! So, always use ".html" type for <a href> entries. Over in the new page, you can now give bigger picture, and also, give an alt text for the image on the page.
+-- Don't have a link or any content that can be tabbed to.. but has a `display:none` style. That would be confusing for sighted users
+
+-- Add title in svg. Description can also be added, but that is not read by screen-readers. If it is needed to have readers read out the description, then an aria-describedby can be used (If wanting to provide more and complex details, use `aria-details`):
+```
+<svg version="1" viewBox="0 0 720 800" aria-labelledby="titleId" aria-described="descId" role="img">
+  <title id="titleId">Svg title</title>
+  <desc id="descId">verbose description of image</desc>
+  ...
+</svg>
+
+-- Image/Chart: has many more accessibility issues on top of being an image - like, (i) show text value on top of every bars in bar-chart; (ii) In pie chart, explicitly relate a pie section to corresponding legend via a line and don't have floating legends without any connection to pie chart. Also, give fraction numbers; (iii) Using patterns rather than colors can sometimes be useful, special for color blind readers. But be careful if you are using multiple patterns.
+
+-- Use icons with commonly accepted usage pattern. Like, prefer garbage or cross icon to remove an array entry rather than expand/collapse icon
+--|---- For icons, give it a title (just like svg)
+
+-- Figure vs Image: Figure is potentially self-contained and has a caption. A figure can also have <p>, <blockquote>, etc.
+
+
+* Iframe
+-- Know that all of the elements in the iframes (such as headings) are made available to screen readers, and essentially treated as part of the same overall document structure. Screen readers treat an <iframe> almost as if it is part of the same document that contains it. Users can access all of the content within an <iframe> using the same keystrokes that they would use to access the content if it were all in the same document. For example, if there are 5 headings in the parent document and 3 headings in an iframe, the screen reader will list all 8 headings, in the sequence that they appear in the DOM across the pages. Users can also access lists, links, graphics, tables, forms, and other elements within an iframe. -- SO, Maybe when adding iframe, always have it come at end, and then use css to position it on page! This way any content added by iframe will not disrupt the flow of original document!!
+-- Screen reader users can navigate by iframes, so each iframe must have a `title` to help screen reader users know which iframe is which. For this reason, every iframe title on page must be unique and be sufficiently descriptive. Also, best to have one-to-one relation between iframe content and title globally on the application. If the enclosed page in iframe has a title, then its title will be read by screen reader rather than title added by you on iframe. So, best to ensure that the two are same to avoid confusion.
+-- If there is no useful content in iframe, then hide it using `aria-hidden`
+
+
+
+* Multimedia (skipping for now)
+
+
+
+* List (also see list covered in table)
+-- When screen readers come to a list, they announce that it is a list, and they announce how many items are in the list.
+-- There is a description list `<dl>` markup, other than ordered list `<ol>` and unordered list `<ul>`
+-- DO NOT use `<br>` to have text "appear" like a list when it is meant to "be" a list - because screen reader will ignore <br/>. On other hand, if you want text to be read as one line, and not be announced by screen reader as being as list, but appear only as multiple line, then <br/> can be useful. (Like for address)
+
+
+
+* Tables / List
+-- DO NOT use tables for layout; Instead use css. On other hand, if you see an information as something that is well managed as a spreadsheet or database, then it is definitely data and should be in a table, and not in preformatted html text, or div, or list.
+
+-- List vs Table:
+--|---- If the data is presentable by just 1 category, then make it a list. If you want data presentable by multiple category, then make it a table. Other way to see, if you data is best modeled as a NoSQL entry, where only "id" is of interest and carries other data with it, then that's a list. If it is like a SQL data, where you can index by different columns, that's a table
+--|---- Even for tabular data, when displayed on mobile.. it may become unwieldy. In that case only, break table in multiple tbody! But again, don't make it as a list. Also, do so based on expected user experience and without hurting accessibility in either view.
+
+-- For both list and table, it's best to ensure that the data being presented don't depend on each other. So, options under select is like a list. But if you change subsequent paragraphs by a list, then that's bad -- because the order sequence between the paragraphs is lost.
+-- Add caption to table, else screen reader will just read rows and columns in table. NOTE that screen reader DOES read the row and column count in each table
+--|---- For this reason, each table caption must be unique.
+--|---- Alternately, can also use aria-label on table, or aria-labelled by pointing to outside id
+--|---- Don't try to use one of table row/column for caption
+
+-- At least use <thead> and <tbody> in table. Even more important, add 1 <th scope="row"> for every row and <th scope="col"> for every column.
+--|---- NOTE above: Also define scope = row / col / rowgroup / colgroup for each header. If you have, say colgroup, and next line has individual columns, then the first entry should be `<th scope="colgroup">` to give header for colgroup, and the entry in next row should be `<th scope="col">`, which gives header for the column under the above colgroup.
+--|---- For table with subgrouped rows and/or cols, best is to use id+headers pattern. for all examples, see at https://www.w3.org/WAI/tutorials/tables/
+--|---- HOWEVER, DO NOT reference headers, id, etc. across different table! Each table and linking within it must be self contained.. For this reason.. DO NOT have a table inside a table! Instead use rowspan/colspan, or id+headers
+
+
+
+* Form
+-- NOTE: When using "role=group".. screen reader will announce that it is entering a group. Hence, (1) best to label a group, (2) don't use a group just to collect a form input, label, helper text, error text -- instead rely on using aria-label, htmlFor, aria-describedby, aria-owns (if needed) etc.
+-- Inputs are the "focusable" - Hence, when they are focused, it should be visible / discernible that they are in focus! The change effected on focus shouldn't cause change in placement of other elements on the page, else that can be jarring to photosensitive users. For example, in list of tabs A, B, C, D... when tab-B comes in focus, it MUST NOT change the overall width of container for tab-B, that causes tab-C, tab-D to shift from their initial placement. This jarring motion of tabs moving as different tabs come in focus is wrong.
+-- Say, you have an array of form elements in a form section, and each form element can itself have multiple input (like, you want a list of addresses, each address can have multiple fields). You can probably group the list using fieldset. This is useful because the button to add a new form element, or removing existing one can all come inside fieldset. Howeve do not add another role="group" for each form element (which itself comprises of multiple input fields). To do a proper labelling, you can: (1) add `aria-labelledby` to the input and give it multiple id(s), one for the heading of form section, one for the index of form element in list, and one for the specific input field. This way, the input will get labelled by all; (2) You can also add a `<label for="input-id"` such that clicking on label goes to the input, but the `aria-labelledby` on input overwrites the label text for the input; (3) If you prefer, instead of using `aria-labelledby`, you can pass in text that is pre-pended to label text but is visually hidden. This way, aria-labelled by will not be needed on input
+
+
+* Nice HTML markups!
+-- <dl>: See https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dl  - it provides way to define terms used on a page
+-- <abbr>: See https://developer.mozilla.org/en-US/docs/Web/HTML/Element/abbr for abbreviation of a term
+-- <dfn>: See https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dfn for when defining a term
+-- <code>: for code data
+
+
+* Modal vs tooltip vs helper text
+-- WCAG says: For content on Hover or Focus: Where receiving and then removing pointer hover or keyboard focus triggers additional content to become visible and then hidden, then: (a) Dismissible: A mechanism is available to dismiss the additional content without moving pointer hover or keyboard focus, unless the additional content communicates an input error or does not obscure or replace other content; (b) Hoverable: If pointer hover can trigger the additional content, then the pointer can be moved over the additional content without the additional content disappearing; (c) Persistent: The additional content remains visible until the hover or focus trigger is removed, the user dismisses it, or its information is no longer valid. This is because users need time to perceive, read, and process new content. Users with cognitive disabilities might find it particularly frustrating if content appears briefly and then disappears before they have a chance to review it.
+-- In this context, note:
+--|---- having fixed helper text, and using aria-describedby is helpful. But realize that if the text changes, or focus comes back on element, then the full description will be read. Maybe check out `aria-details`. But, otherwise this is best option
+--|---- Realize that in terms of accessibility, tooltip is far worse than modal. With above constraints, it may be best to just have a modal
+
+
+* Activity / Inactivity
+-- Users are warned of the duration of any user inactivity that could cause data loss
+-- Changes of context are initiated only by user request (meaning, do not trigger a change based solely on dropdown selection). If you do have to add such a mechanism, then at least also provide ability to undo the change
+-- AJAX content load / dynamic pagination: Have a "load more live text" button (can make it sr-only). It would be more user-friendly to give deafblind users the control over when to load the content with a simple button. When users activate the button, it would probably be best to send the focus to the container of the new text. The container would need to be set to tabindex="-1" in order to receive the focus successfully - Note this is a special case where tabIndex is needed. Each new "container" can conceptually correspond to a page. Think of it like having a tabList, where the list of tabs keep increasing on each button press, and the focus moves to the last tab.
+
+
+
+* Additional details
+
+-- Have the elements in html DOM ordered in the same manner as it shows up on screen. Using css to float data and give it a different position may break the one-to-one relation between visual order and dom order
+--|---- This can become somewhat tricky when implementing patterns where an input is disabled, and enabled back only when a previous value is provided. Few options: (i) Add an aria-alert that announces new field is available, (ii) add a label to disabled/hidden field telling users to provide value for a previous field and after that it becomes active. ALTERNATELY.. would it be sufficient to just have `aria-controls` on the html element that controls the other one!
+--|---- Another tricky situation is where depending on whether user chooses one or other radio options, new fields are made available. Here: (i) having an aria-alert announcing new fields is a better option that have a label on all disabled fields, (ii) Be careful of HTML semantic structure - You want to have a fieldset with radio, and another fieldset with new input fields for corresponding options. Also, ideally, the 2 fieldsets should get displayed one after another so that visual and dom order match with each other
+--|---- Another related effect is that the focus order of elements should be logical, matching the element order, which itself matches DOM order. For this reason, avoid tabIndex of positive value.
+
+-- Only the element, and not the children, with `role=presentation` are hidden in screen reader
+
+-- Element with `aria-hidden=true` are not read by screen reader in browse mode. However, the `id` for such elements can still be used in `aria-labelledby` and `aria-describedby`, and the text content will be read
+
+-- `aria-label` and `aria-labelledby` shows up in screen reader and are read. However, `aria-describedby` is only read when user lands on that element. Sometimes, this may not be desirable. For example, telling user only when they land on a link that it opens in new page. maybe they would have preferred to know about it earlier
+
+-- Be careful modifying the label of an element. For example, in `<nav>` should the label for selected element be changed to say "currently selected", or should `aria-current` be used? SELF: Don't know what happens when label is changed - will screen reader read everything!! EVEN SO.. adding contextual metadata to change original label is better than completely modifying it
+
+-- Element with `id` that is used by `aria-describedby` should have text (maybe, can also have <br/>. For anything more, prefer to use `aria-owns`
+
+-- A paginated view SHOULD include a visible method of informing users which view is the currently active/visible view (maybe using aria-current and/or modifying aria-label or adding a visually hidden element. DOn't rely on css alone
+
+
+
+
+
+
+
+//////////////////////////////////////
+
+
+
+Basic Web Accessibility Checklist for Designers
+
+* Page Title
+-- Does the page title (the browser title for the page; not the main content heading or <h1>) describe the topic or purpose of the page?
+
+
+* Headings
+-- Is all text that looks and acts like a heading marked as a heading?
+-- Are the heading levels chosen so they convey their correct hierarchical order in the content, not for their visual styling?
+
+
+* Navigation
+-- Is a method provided to skip repetitive navigation and go to the main content? Two of the main techniques including providing HTML/ARIA landmarks (e.g. header, navigation, main, footer), and "skip navigation" links.
+-- Will the content's reading and focus order, as determined by the code order, be logical and intuitive?
+
+
+* Links
+-- Does link text clearly describe the purpose or destination of the link?
+Color/Contrast
+-- Is information conveyed by means other than just color alone? For example, using color and text both to indicate that a form field has an error, or using colors with text to label chart categories.
+-- Does all text have a minimum color contrast against its background of at least 4.5 to 1 (3 to 1 for large text)?
+-- Is link text distinguishable from non-link text by more than just color?
+-- Do actionable elements have clear, visible focus when non-mouse users Tab or Arrow to them?
+-- Do all non-text elements (user interface components and graphical objects) that are important for accessing and understanding content have sufficient color contrast of at least 3 to 1?
+
+
+* Magnification and Responsive Design
+-- Can a user with low vision magnify or zoom in on the content in the browser on any device, including desktop and mobile?
+-- Is the design optimized for all zoom states? Simplify the design as much as possible, eliminating horizontal scrolling.
+-- Can a user use the website with their device in their preferred orientation (landscape/portrait)?
+Images
+-- Does the alternative text for informative images provide the same information as the image?
+-- Does the alternative text for actionable images, such as an image link, button, or image map area, clearly identify the link destination or button purpose?
+-- Are complex images or infographics explained fully in the page content and with a short alternative text description?
+-- Are decorative images identified as not requiring alternative text?
+-- Is plain text used instead of text embedded in images? (exceptions like text in logos and decorative text images exist)
+
+
+* Tables
+-- If the page contains a data table, does the table have a caption (name/title), and are columns and/or rows properly identified in the markup?
+-- Are complex tables simplified to minimize or eliminate the need for compound column or row headers?
+
+
+* Forms
+-- Do all form fields have a label that is always visible?
+-- Are all form labels adequately descriptive and instructive? Is all the information the user needs to fill out the form available on the page?
+-- Are all form labels and instructions immediately adjacent to their form element so that users (including users of screen magnification) can easily connect the form element with its label and/or instructions?
+-- Are all controls in close proximity to the content they are controlling? For example, are Edit and Delete buttons next to the content they modify?
+-- Do error messages provide enough information for users to correct their error?
+-- Are forms written so they can be used with Autofill?
+
+
+* Dynamic Content
+-- Are users made aware of content that is dynamically inserted on a page or does the new content come right after the element that caused it to appear, in the logical reading order / tab order of the page?
+-- Do all keyboard-only and touch screen interactions follow expected patterns so users know how to interact with all widgets on the page?
+-- Design success and failure feedback into all interactions. When users activate scripted functionality (buttons, form submissions, etc.), they must know whether the action was successful or not, through a success/error message, the obvious activation of a feature (e.g. a video starts to play after the user activates the "play" button), etc. The feedback must be available to sighted users, screen reader users, and all other user categories.
+
+
+* Custom Widgets
+-- Does the design use standard HTML widgets (links, buttons, form elements, controls, etc.) whenever possible? Native widgets have built-in accessibility capabilities. Custom widgets do not.
+-- If you do have any custom widgets, have they been created with full keyboard support, and are they compliant with WAI-ARIA authoring practices?
+
+
+* Touch Devices
+-- Is the touch target size of main links and buttons large enough and far enough apart from each other to activate easily with a finger?
+-- Is there an alternative way to activate any custom swipe actions or gestures? Note that when a screen reader is activated on a touch device, it overrides all custom swipe actions and gestures.

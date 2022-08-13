@@ -1,0 +1,65 @@
+Service:
+-- Is a validation done on a value based on maintaining a convention, or is it because of a field definition. If former, then it should be kept as a service test rather than as a model level test
+-- Is a validation done by comparing new value against previous value for a model.. then that's a service level test rather than a model test. Model/Entity tests are applicable on single model and not on its state.
+-- NOTE: having service test different from model test (..and DTO level test) is important to enable different functionality for admin vs non-admin users. Non-admins go via normal workflow and will get subjected to service level validation. But admin users don't get subjected to it. However, both of them should get subjected to model level tests - because that is made from definition of field itself. To either to them DTO validation applies where applicable.. and should just be done over data sent to endpoint
+
+
+Interview:
+-- How does performance eval go if, say, all members of team say they are behaving at 5 level, where the average is 3. Does everyone get a high bonus? How is it qualified that someone/multiple may be overstating
+
+
+Service:
+-- Ideally any resource should be updatable with PUT, and PATCH should behave as "do a PUT with only the provided fields being changed". What happens for cases where a field being null valued or not means different things? In thi case, if a PATCH is called with certain fields missing, but rather than meaning "process it as existing values", the fields need to be set to "null" value. REALIZE that in such cases, the null value of a field is not because of resource definition but because of a workflow processing. In a workflow, something happened and the field got set to null, or to non-null. Generally, that processing status is correlated with the null/non-null value of field and so, it is not explicitly coded in the entity/dto. This means 2 things:
+--|---- (1) If you want to update a field to null/non-null value, then don't call either PUT or PATCH, but instead do a RPC call (POST with special endpoint) that does the change. 
+--|---- (2) For above reason - what does PUT on a object-having-workflow mean? - should it respect workflow status and related transitions.. or should it totally ignore workflow transition and just add the resource in newly provided workflow status. I think latter is allowable, and not former, because latter works with resource as a whole without any dependency on history of the object. But, this also means that the PUT/PATCH endpoint can break state transition endpoints, and hence, should only be allowed for admin/higher level roles, and not to everyone.
+--|---- (3) Point#2 above bring out an interesting concept - that even the state machine definition can depend on role!
+
+
+
+Interview - code review: The book "Clean code" by Robert Martin is full of code reviewing exercises along with explanations of what to look for and why. it's also available for free online
+
+
+
+TODO -- when to use a Utils file for exposing methods from external library vs when to directly use it.
+
+
+Java -- Preferably don't have enum in DTO (only keep string), and instead (1) keep enum in database - because only 1 service should be touching DB. So, enum in DB vs that in service will not b out of sync. (2) define the corresponding DTO fields as String, and add validation that it only have values as that in Enum. This allows for someone using the service response to still get  the enum field names - even if they are using older version of API - because what they receive is String and not Enum.. however, when they try to send any information back, then it is validated and checked. This also matches better with changing from Enum to a DB backend storing constants..
+
+
+
+Regex evaluator: https://regex101.com/ -- can be used to see regex behavior and steps it takes to match!! (So can also be used for performance checks)
+
+
+
+Add to security checklist: Insecure deserialization (see owasp https://owasp.org/www-project-top-ten/2017/A8_2017-Insecure_Deserialization  and  https://swapneildash.medium.com/understanding-insecure-implementation-of-jackson-deserialization-7b3d409d2038  ,  https://snyk.io/blog/java-json-deserialization-problems-jackson-objectmapper/  ,   https://adamcaudill.com/2017/10/04/exploiting-jackson-rce-cve-2017-7525/  ,  etc.) -- essentially never have object / map directly in your class being deserialized. Define deserialized class as ONLY having primitive data types.
+
+
+
+One reason to keep DTO separate from Model is because for vast/all cases, DTO fields must be read-only once constructed. However, for model, the field should be mutable, because a DB record can change.
+
+
+Having nested REST endpoints like /api/parent/{parentId}/child/{childId} rely on the fact that a "child element can only exist under a parent element". HOWEVER, one should ponder whether this constraint is a model constraint, or a business constraint. For example, let's say that a file for some processing (like, insurance processing) must be added inside a folder.. but, what if the user wants to temporarily upload a file so that they can continue to work on it. In this case folder <--> file parent-child relation is not an inherent relation but something that shows up because of business workflow, and there may be cases where the workflow may differ, either now, or in future. Having shallow REST endpoints rather than deep-nested ones enable the API to be flexible enough to accommodate such changes - and henec, they should be preferred. And finally, GraphQL endpoints can be added to enable deep relations!!
+
+
+
+RPC endpoints: Generally RPC endpoints should be modeled as a POST because you are posting a command to be done. HOWEVER.. (a) if the method is idempotent, and (b) all parameter that would have gone in POST request body can be added to GET query params and it will not cause PII/security issues, and (c) it could be useful to analyze the query parameters to see when all the method was called -- then it could be useful to instead have the endpoint be available as GET -- even though it is a RPC endpoint
+
+
+
+Representing an ENUM in DTO -- when representing ENUM, always do it as an object. The reason being that an enum can have other constant properties associated with it, and the end-user may want to know about other properties. So, when serializing it, it becomes an object. Think of enum as the primary key for a DB record. You can send/receive and work on only the `id` column - but maybe, you want to send the entire DB row object. Now, it is up to you if you want to have just one DTO object for enum which has a class like structure.. and then everywhere else in other DTOs that use the enum, you just work with code.. or you use same DTO enum everywhere. Personally, former option would be better and more intuitive/manageable
+
+
+
+Why controller / service / dao methods:
+1) Controller methods bind to outside controller. It takes DTO, and sends out DTO. Have it convert DTO -> Entity before sending it in to Service, and Entity -> DTO after receiving response from Service before sending it out. This way, multiple consumers can setup their own controller without affecting the actual service method. 401 / 403 / 429 (rate limit) / 200 are the errors raised by controller.
+2) Since the Entity being provided to service is by controller, treat it as an "outside" element. Perform validations and raise error. This also means that Entity must NOT have validations in its constructor, else the controller will end up getting affected by it. Service calls the entity validations. Then it calls any additional service-level constraints/validations. It then calls Dao, and can take results from a Dao and call other Dao and so on. 
+3) Dao differs from service in (a) dao don't call other dao. This lets a dao map closely to a DB table, and keeping in line with microservice, and dao being representation on DB - every Dao is independent. (b) Dao can return Optional/null. Dao doesn't throw error. So, Dao returns, say, Optional/null if an entry is not present. Service turns it into an exception. That's why as service goes down the chain of code, it proceeds normally or throws error. Now, service can call different dao in chain of code. If there was no error thrown previously, it works, else the command does not come to a method. And after the control coming to a point, if Dao returns null, then service determines if that should be an error.
+
+
+
+
+DB modeling: Normalized vs Denormalized table
+-- In Normalized structure, each record is given an `id` (record number), so that it can be used as foreign key with other tables. Since `id` can leak business information, so a `slug` is formed - which is also unique and maps to a specific record, and rather than `id`, the `slug` is given to user. However, both the `id` and `slug` does not change for a record. Next, there should be a combination of field(s) that define the unique nature of record. Above implies that there must be at least 3 unique indexes for each table. Using a separate slug opens up the possibility where the value of unique field is changed to new value, but the slug used to identify the record remains same.
+-- In Denormalized form, there are no foreign keys / joins. So, it can be seen as normalized form joined together using foreign keys. This removes the need to have an `id` column. Seeing the denormalized tables as a key-value store, it means that slug is the key and the record is the value.
+-- In both normalized and denormalized form, if the unique value field is non-modifiable, i.e., it cannot be changed once made, then it can be used instead of slug.. because once made, it will remain the same. Be careful though to not jump into this design assumption, more likely than not every field changes! Seeing the denormalized table as a key-value store, it means that the unique field is the key, and the record is the value.
+--|---- In such cases, it seems that `PUT /resources` with request body having the key (i.e, value of unique field), and `PUT /resources/unique-key-value` with request body not having the unique-key-field value can behave in same manner. Having the DTO class such that the unique-key-field is tagged as read-only field will also not work -- because this field is needed when making POST call. YET.. do not use the former style of endpoints and use the latter one because: (1) Latter is more standard, to use PUT with resource-id when modifying resource, (2) Former only works if unique-key-field is non-modifiable and is a slug. This may not always be the case. It is also a bad model when using microservice - because ideally, the server should be given the flexibility to set a `slug` to resource, rather than using the value given in resource itself to form the `slug` -- because the server can have its own constraints. So, using `unique-key-value` itself as a slug is not very "microservice ready", (3) The unique field value is something that is user provided when user made the first POST call. It is possible that it can have some sensitive information. So, using a user-provided data and then adding it in url, is not a sensitive-information-preserving model.
