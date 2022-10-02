@@ -1,0 +1,47 @@
+Consider the workflow:  entries coming from "multiple sources" are added to DB with "to-be-processed" status. For each source, entries need to be picked and then processed by same "processor". The processing can result in "success" status, or "retry-1", "retry-2"... statuses, or "failed". Anything in retry status needs to be picked again later. How should this be modeled?
+--|---- First: Is there anything unique about the entries. If yes, then DB can be used, else it comes to MQ. Over here, let's say the entries come once a day.. so (day + source) combination is unique. So, this is definitely something that can go in a DB -- but that doesn't yet mean that it should ONLY go in a DB
+--|---- Next - observe: Consider the historical effect.. over time more entries will come in and get queued. They will be processed and their status changed. To be able to fetch entries for processing, you need an index on "status". However the entries associated with the status will rapidly change. The ones in "to-be-processed" will soon get picked up for processing, and will go through multiple status. Finally, they will go in "success" status. So, over time, the count of entries in "status" will keep on increasing. It is as if the "status" index is useless except for a certain group of entries at front which are moving from "to-be-processed" to "success" status.. but is of no use after that.
+--|---- Next - observe: It is preferable to process entries in FIFO (first in first out) manner. This naturally matches the queue structure.
+--|---- Finally: Following is suggested:
+--|----|---- Have a DB where entries are initially made. It can have a status column, but no need to index on it. However, let each entry have a primary key
+--|----|---- Next put the entries on a queue. And have processor pick up from queue. Let the processor only ack when processing is done. When the processing is continuing, let the processor query the DB to get the initial status of the entry (let's say this in "to-be-processed" status). Now, let the processor start processing, and after each successful process, let it update the entry status in DB, including finally, when status is updated to "success" - after which a success ack is sent. Now, if the processor fails midway, then another processor thread will pick up the message from queue. This new processor will again start processing, but as a starting point it will use the one obtained from querying DB -- so it won't start from the very beginning but somewhere midway. And it will finish processing.
+
+THIS is how (DB + queue + processor) can be used to process entries in FIFO manner, but still be able to collect all entry status update in single place (i.e., in DB), and is fault tolerant
+
+
+
+
+-- What if you are using the unique key of a resource as also the slug, and a POST is called with the unique key that already exists?
+--|---- Ideally when doing a POST, user data contains the unique key field(s), but does not contain "slug" field. "Slug" is what the Application gives back when POST is successful. Having different "slug" vs a unique field allows someone to change the unique field name, without changing the slug, such that the new field value is still unique. However, if the backend model is such that the unique key is also used as slug, then it can blur/confuse the distinction between a POST and a PUT -- for list type endpoint, whether it is POST or PUT, it can create the resource if that is absent, or not do so, if it is already there. The problem though: POST will return the error as a 400 status with requestBody saying that field is already present. PUT on the other hand - always return 200 - creating an entry if it is not present, but it also silently modifies it if entry is present. The behavior is weird though because PUT acts on a resource, which means the resource here is "null" - which is modified to "non-null", which is not the same representation as original resource ("null"). 
+--|---- Should HTTP 409 be used? -- No. It is for "conflict" status of a resource. But "null" is not a resource.
+
+
+
+
+Good introduction on iframes: https://blog.logrocket.com/the-ultimate-guide-to-iframes/
+
+
+
+Service:
+-- 3 stage validation
+-- Adding validations in Entity, and reusing it in serializer.. but currently, there's no easy way to do it in Java
+
+
+
+Service:
+-- An application (for convenience, let's say backend application) can be one that serves individual user (i.e., authentication is user based), or one that is a platform (i.e., it is used by other backend applications and the authentication is backend-client-key based. The goal is to store data coming from some system, and give data back to it.. now what that system does with the data is it's thing - and that system must ensure that data is sent to correct user). 
+-- For platformized application, have its model also capture the createSource and updateSource, i.e., name of the the backend client application that called it - in addition to createTime and updateTime. Depending on business requirement, you "may" want to also capture create and update user Id. Also, have the create/updateSource be auto read rather than provided separately in DTO of request.
+-- For such applications, you WILL need to define a client code, that can be used by others to make a call to this application. Hence, (1) it may be good to also define a client-common library which is used to define common things, like, common validators, validation-group, serializers, deserializers, exception, etc. (2) since the usage of this application is from other applications, you would want to define unit and integration test utils - which depend on the client side code only + faker data, as needed - to make available test data objects that can be used by other applications. (3) In writing the tests for your server code, you would want to include the test-data-util library as a test dependency, and use the library you made to do the testing. (4) This also means that you would want to treat the integrationTest for such backend application, as a separate application in itself - so that integration test interacting with your application behaves like another application doing so. **All things mentioned here just shows that for a platformized application, you need to treat other applications as user -- which is usual -- but it identifies some changes that may otherwise be overlooked.
+-- For any application, where you are making separate client and server code, you'd want to define DTO and validation annotations in client code.. but add the actual validator in server code.
+-- Things get a bit more dicy when you have application that serves user request, but can also call other applications that serve user request. In such cases, remember than when passing auth-token from one service to other -- pass the actual user identity, and not the server identity.. else, it can cause XSS issue
+
+
+
+(Oct-2 in email)
+
+When making DTO.. all fields should be final - except, the ones that have `@Null` validation annotation on them in DTO -- this means that the value is not set in requestBody DTO -- but it can be returned in response. So, such fields should be allowed to have a setter
+--|---- Another thought process here is to control the serialization of this field - and to not allow deserialization of field that shouldn't be provided by user. However, this design gets broken -- if you are also required to provide a "client" object. Now - the DTO, PaginationParams, ListSearchParams -- they all live in client package, and your service imports it from there. Also, now, you want the same DTO class that is sent by your server is a serialized form, to then get deserialized at client side.. So, controlling serialization is not a good option -- instead use null-validation-annotation on server side code.. this works because a validation is done only on server side, and not on client side.. And, even if client tries to run the hibernate validation on their end.. it still works!
+
+
+Even when returning conflict status, the responseBody can be structured similar to when throwing 400 response.. i.e. give the DTO field name causing conflict, and then a list of errors. This is better than simply returning a generic error message
+
